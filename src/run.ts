@@ -56,11 +56,21 @@ export async function runMotion(configPath: string): Promise<void> {
     y: config.viewport.height / 2,
   };
 
+  let camera: DemoCameraController;
   const cursor = new DemoCursorController({
+    getCameraState: () => camera.current,
     initialPoint,
     page,
+    sampleCamera: async (point, zoom) => {
+      camera.current = {
+        x: point.x,
+        y: point.y,
+        zoom,
+      };
+      await camera.sample("follow");
+    },
   });
-  const camera = new DemoCameraController({
+  camera = new DemoCameraController({
     getCursorPoint: () => cursor.current,
     initialState: {
       ...initialPoint,

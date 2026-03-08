@@ -142,8 +142,14 @@ export type LoadedMotionConfig = {
 };
 
 export type CursorMoveOptions = {
+  camera?: {
+    follow?: boolean;
+    zoom?: number;
+    zoomFrom?: number;
+    zoomTo?: number;
+  };
   durationMs?: number;
-  onSample?: (point: Point) => Promise<void> | void;
+  onSample?: (point: Point, progress: number) => Promise<void> | void;
   steps?: number;
 };
 
@@ -169,6 +175,12 @@ export type CameraSample = CameraState & {
 export type CameraFocusOptions = {
   durationMs?: number;
   zoom?: number;
+};
+
+export type CameraZoomOptions = {
+  durationMs?: number;
+  followCursor?: boolean;
+  point?: Point;
 };
 
 export type CursorController = {
@@ -204,6 +216,8 @@ export type CameraController = {
   sample: (kind?: CameraSampleKind) => Promise<void>;
   wait: (durationMs: number) => Promise<void>;
   wide: (options?: Omit<CameraFocusOptions, "zoom">) => Promise<void>;
+  zoomOut: (options?: CameraZoomOptions) => Promise<void>;
+  zoomTo: (zoom: number, options?: CameraZoomOptions) => Promise<void>;
 };
 
 export type SceneBase = {
@@ -238,6 +252,8 @@ export type MotionScene =
       selector: string;
       steps?: number;
       type: "move-selector";
+      zoomFrom?: number;
+      zoomTo?: number;
       zoom?: number;
     })
   | (SceneBase & {
@@ -246,7 +262,22 @@ export type MotionScene =
       point: Point;
       steps?: number;
       type: "move-point";
+      zoomFrom?: number;
+      zoomTo?: number;
       zoom?: number;
+    })
+  | (SceneBase & {
+      durationMs?: number;
+      followCursor?: boolean;
+      point?: Point;
+      type: "zoom-out";
+    })
+  | (SceneBase & {
+      durationMs?: number;
+      followCursor?: boolean;
+      point?: Point;
+      type: "zoom-to";
+      zoom: number;
     })
   | (SceneBase & {
       button?: MouseButton;
@@ -303,6 +334,8 @@ export type FeatureTourStep = {
   text?: string;
   typingDelayMs?: number;
   typingDurationMs?: number;
+  zoomFrom?: number;
+  zoomTo?: number;
   zoom?: number;
 };
 

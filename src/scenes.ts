@@ -1,18 +1,5 @@
 import type { DemoContext, MotionScene, SceneProgram } from "./types.js";
 
-async function sampleCameraOnCursorMove(
-  context: DemoContext,
-  point: { x: number; y: number },
-  zoom?: number,
-): Promise<void> {
-  context.camera.current = {
-    x: point.x,
-    y: point.y,
-    zoom: zoom ?? context.camera.current.zoom,
-  };
-  await context.camera.sample("follow");
-}
-
 async function waitWithTargets(
   context: DemoContext,
   durationMs: number,
@@ -73,25 +60,49 @@ async function runScene(scene: MotionScene, context: DemoContext): Promise<void>
 
     case "move-selector":
       await context.cursor.moveToSelector(scene.selector, {
+        camera:
+          scene.cameraFollow || scene.zoom !== undefined || scene.zoomFrom !== undefined || scene.zoomTo !== undefined
+            ? {
+                follow: scene.cameraFollow,
+                zoom: scene.zoom,
+                zoomFrom: scene.zoomFrom,
+                zoomTo: scene.zoomTo,
+              }
+            : undefined,
         durationMs: scene.durationMs,
-        onSample: scene.cameraFollow
-          ? async (point) => {
-              await sampleCameraOnCursorMove(context, point, scene.zoom);
-            }
-          : undefined,
         steps: scene.steps,
       });
       return;
 
     case "move-point":
       await context.cursor.move(scene.point, {
+        camera:
+          scene.cameraFollow || scene.zoom !== undefined || scene.zoomFrom !== undefined || scene.zoomTo !== undefined
+            ? {
+                follow: scene.cameraFollow,
+                zoom: scene.zoom,
+                zoomFrom: scene.zoomFrom,
+                zoomTo: scene.zoomTo,
+              }
+            : undefined,
         durationMs: scene.durationMs,
-        onSample: scene.cameraFollow
-          ? async (point) => {
-              await sampleCameraOnCursorMove(context, point, scene.zoom);
-            }
-          : undefined,
         steps: scene.steps,
+      });
+      return;
+
+    case "zoom-to":
+      await context.camera.zoomTo(scene.zoom, {
+        durationMs: scene.durationMs,
+        followCursor: scene.followCursor,
+        point: scene.point,
+      });
+      return;
+
+    case "zoom-out":
+      await context.camera.zoomOut({
+        durationMs: scene.durationMs,
+        followCursor: scene.followCursor,
+        point: scene.point,
       });
       return;
 

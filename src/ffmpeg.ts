@@ -412,7 +412,33 @@ function condensePoints(
     condensed.push(point);
   }
 
-  return condensed;
+  const maxPoints = 96;
+
+  if (condensed.length <= maxPoints) {
+    return condensed;
+  }
+
+  const limited: NumericPoint[] = [condensed[0]];
+  const interiorCount = maxPoints - 2;
+
+  for (let index = 1; index <= interiorCount; index += 1) {
+    const sampleIndex = Math.round(
+      (index / (interiorCount + 1)) * (condensed.length - 1),
+    );
+    const point = condensed[sampleIndex];
+
+    if (point.timeMs !== limited.at(-1)!.timeMs) {
+      limited.push(point);
+    }
+  }
+
+  const finalPoint = condensed.at(-1)!;
+
+  if (limited.at(-1)!.timeMs !== finalPoint.timeMs) {
+    limited.push(finalPoint);
+  }
+
+  return limited;
 }
 
 function getFormatOutputPath(

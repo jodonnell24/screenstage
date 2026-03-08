@@ -5,6 +5,7 @@ import type { Page } from "playwright";
 import { clickCursorOverlay, moveCursorOverlay } from "./cursor-overlay.js";
 import { resolveLocatorCenter } from "./locator.js";
 import type {
+  CameraState,
   CursorClickOptions,
   CursorController,
   CursorMoveOptions,
@@ -15,8 +16,10 @@ import type {
 } from "./types.js";
 
 type CursorControllerOptions = {
+  getCameraState?: () => CameraState;
   initialPoint: Point;
   page: Page;
+  sampleCamera?: (point: Point, zoom: number) => Promise<void>;
 };
 
 function interpolate(start: number, end: number, progress: number): number {
@@ -36,11 +39,22 @@ export class DemoCursorController implements CursorController {
 
   readonly #startedAt = performance.now();
 
+  readonly #getCameraState?: () => CameraState;
+
+  readonly #sampleCamera?: (point: Point, zoom: number) => Promise<void>;
+
   current: Point;
 
-  constructor({ initialPoint, page }: CursorControllerOptions) {
+  constructor({
+    getCameraState,
+    initialPoint,
+    page,
+    sampleCamera,
+  }: CursorControllerOptions) {
     this.current = initialPoint;
+    this.#getCameraState = getCameraState;
     this.#page = page;
+    this.#sampleCamera = sampleCamera;
     this.#samples.push({
       kind: "move",
       timeMs: 0,
@@ -68,6 +82,11 @@ export class DemoCursorController implements CursorController {
     const steps = options.steps ?? Math.max(6, Math.ceil(durationMs / 12));
     const delayMs = steps > 1 ? durationMs / steps : 0;
     const start = this.current;
+    const startingCamera = this.#getCameraState?.();
+    const cameraShouldFollow = options.camera?.follow ?? false;
+    const zoomFrom = options.camera?.zoomFrom ?? startingCamera?.zoom;
+    const zoomTo =
+      options.camera?.zoomTo ?? options.camera?.zoom ?? zoomFrom ?? startingCamera?.zoom;
 
     for (let step = 1; step <= steps; step += 1) {
       const progress = easeInOutCubic(step / steps);
@@ -79,7 +98,19 @@ export class DemoCursorController implements CursorController {
       await this.#page.mouse.move(nextPoint.x, nextPoint.y);
       this.current = nextPoint;
       await this.sample("move");
-      await options.onSample?.(nextPoint);
+
+      if (this.#sampleCamera && startingCamera && zoomFrom !== undefined && zoomTo !== undefined) {
+        const nextZoom = interpolate(zoomFrom, zoomTo, progress);
+        const cameraPoint = cameraShouldFollow
+          ? nextPoint
+          : {
+              x: startingCamera.x,
+              y: startingCamera.y,
+            };
+        await this.#sampleCamera(cameraPoint, nextZoom);
+      }
+
+      await options.onSample?.(nextPoint, progress);
 
       if (step < steps && delayMs > 0) {
         await this.#page.waitForTimeout(delayMs);

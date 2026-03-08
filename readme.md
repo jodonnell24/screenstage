@@ -226,23 +226,25 @@ Manual example:
 
 ```js
 export default async function demo({ camera, cursor }) {
-  await camera.wide({ durationMs: 400 });
-  await cursor.wait(600);
-
-  await camera.focusSelector("[data-demo='email']", {
-    durationMs: 850,
-    zoom: 2,
+  await cursor.moveToSelector("[data-demo='card-1']", {
+    durationMs: 950,
+    camera: {
+      follow: true,
+      zoomFrom: 1,
+      zoomTo: 1.7,
+    },
   });
-
-  await cursor.typeSelector(
-    "[data-demo='email']",
-    "hello@getrestocky.com",
-    { durationMs: 900, delayMs: 75 },
-  );
-
-  await camera.followCursor({ durationMs: 300 });
-  await cursor.moveToSelector("[data-demo='cta']", { durationMs: 850 });
+  await camera.wait(250);
+  await cursor.moveToSelector("[data-demo='cta']", {
+    durationMs: 800,
+    camera: {
+      follow: true,
+      zoomFrom: 1.7,
+      zoomTo: 1.9,
+    },
+  });
   await cursor.click();
+  await camera.zoomOut({ durationMs: 700, followCursor: true });
 }
 ```
 
@@ -278,9 +280,17 @@ export default [
     type: "move-selector",
     selector: "[data-demo='cta']",
     durationMs: 850,
+    cameraFollow: true,
+    zoomFrom: 1,
+    zoomTo: 1.9,
   },
   {
     type: "click",
+  },
+  {
+    type: "zoom-out",
+    durationMs: 700,
+    followCursor: true,
   },
   {
     type: "wait",
@@ -298,6 +308,8 @@ Supported scene types:
 - `focus-point`
 - `move-selector`
 - `move-point`
+- `zoom-to`
+- `zoom-out`
 - `click`
 - `click-selector`
 - `type`

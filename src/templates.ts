@@ -52,6 +52,8 @@ function appendFeatureTourStep(
         selector: step.selector,
         steps: step.steps,
         type: "move-selector",
+        zoomFrom: step.zoomFrom,
+        zoomTo: step.zoomTo,
         zoom,
       });
       break;
@@ -63,6 +65,8 @@ function appendFeatureTourStep(
         selector: step.selector,
         steps: step.steps,
         type: "move-selector",
+        zoomFrom: step.zoomFrom,
+        zoomTo: step.zoomTo,
         zoom,
       });
       scenes.push({
@@ -84,6 +88,8 @@ function appendFeatureTourStep(
         selector: step.selector,
         steps: step.steps,
         type: "move-selector",
+        zoomFrom: step.zoomFrom,
+        zoomTo: step.zoomTo,
         zoom,
       });
       scenes.push({

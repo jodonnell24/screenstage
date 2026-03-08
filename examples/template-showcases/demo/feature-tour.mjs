@@ -1,58 +1,48 @@
-import { createFeatureTour } from "../../../dist/index.js";
+export default async function demo({ camera, cursor }) {
+  await cursor.moveToSelector("[data-demo='card-1']", {
+    camera: {
+      follow: true,
+      zoomFrom: 1,
+      zoomTo: 1.68,
+    },
+    durationMs: 1050,
+  });
+  await camera.wait(250);
 
-export default createFeatureTour({
-  includeEstablishingShot: false,
-  introPauseMs: 0,
-  outroPauseMs: 0,
-  steps: [
-    {
-      action: "move",
-      cameraFollow: true,
-      label: "Follow the cursor into the first product region",
-      moveDurationMs: 1050,
-      pauseMs: 250,
-      pauseTarget: "camera",
-      selector: "[data-demo='card-1']",
-      zoom: 1.7,
+  await cursor.moveToSelector("[data-demo='card-2']", {
+    camera: {
+      follow: true,
+      zoomFrom: 1.68,
+      zoomTo: 1.54,
     },
-    {
-      action: "move",
-      cameraFollow: true,
-      label: "Track across to the secondary proof card",
-      moveDurationMs: 1050,
-      pauseMs: 250,
-      pauseTarget: "camera",
-      selector: "[data-demo='card-2']",
-      zoom: 1.6,
+    durationMs: 1050,
+  });
+  await camera.wait(250);
+
+  await cursor.moveToSelector("[data-demo='email']", {
+    camera: {
+      follow: true,
+      zoomFrom: 1.54,
+      zoomTo: 1.88,
     },
-    {
-      action: "move",
-      cameraFollow: true,
-      label: "Travel back toward the operator controls",
-      moveDurationMs: 1000,
-      pauseMs: 250,
-      pauseTarget: "camera",
-      selector: "[data-demo='email']",
-      zoom: 1.75,
+    durationMs: 950,
+  });
+  await cursor.click();
+  await cursor.type("demo@atlas.dev", { delayMs: 75 });
+
+  await cursor.moveToSelector("[data-demo='cta']", {
+    camera: {
+      follow: true,
+      zoomFrom: 1.88,
+      zoomTo: 1.72,
     },
-    {
-      action: "type",
-      cameraFollow: true,
-      label: "Type a real-looking email",
-      moveDurationMs: 850,
-      pauseMs: 250,
-      selector: "[data-demo='email']",
-      text: "demo@atlas.dev",
-      zoom: 1.95,
-    },
-    {
-      action: "click",
-      cameraFollow: true,
-      label: "Follow the cursor into the CTA commit",
-      moveDurationMs: 900,
-      pauseMs: 500,
-      selector: "[data-demo='cta']",
-      zoom: 1.7,
-    },
-  ],
-});
+    durationMs: 850,
+  });
+  await cursor.click();
+
+  await camera.zoomOut({
+    durationMs: 700,
+    followCursor: true,
+  });
+  await cursor.wait(350);
+}

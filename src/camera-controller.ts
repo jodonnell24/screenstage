@@ -9,6 +9,7 @@ import type {
   CameraSample,
   CameraSampleKind,
   CameraState,
+  CameraZoomOptions,
   Point,
 } from "./types.js";
 
@@ -106,5 +107,19 @@ export class DemoCameraController implements CameraController {
       ...options,
       zoom: 1,
     });
+  }
+
+  async zoomTo(zoom: number, options: CameraZoomOptions = {}): Promise<void> {
+    await this.focus(
+      options.point ?? (options.followCursor ? this.#getCursorPoint() : this.current),
+      {
+        durationMs: options.durationMs,
+        zoom,
+      },
+    );
+  }
+
+  async zoomOut(options: CameraZoomOptions = {}): Promise<void> {
+    await this.zoomTo(1, options);
   }
 }
