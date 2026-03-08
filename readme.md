@@ -277,6 +277,25 @@ export default async function demo({ camera, cursor }) {
 }
 ```
 
+You can also stage the camera timing inside a single move so long travel stays wide until the approach:
+
+```js
+await cursor.moveToSelector("[data-demo='search']", {
+  durationMs: 1600,
+  camera: {
+    follow: true,
+    followStart: 0.1,
+    followEnd: 0.92,
+    zoomFrom: 1,
+    zoomTo: 1.8,
+    zoomStart: 0.68,
+    zoomEnd: 1,
+  },
+});
+```
+
+`followStart` / `followEnd` and `zoomStart` / `zoomEnd` are normalized move-progress values from `0` to `1`.
+
 ## Scene API
 
 Scene programs are exported as a plain array:
@@ -310,7 +329,11 @@ export default [
     selector: "[data-demo='cta']",
     durationMs: 850,
     cameraFollow: true,
+    followStart: 0.15,
+    followEnd: 1,
     zoomFrom: 1,
+    zoomStart: 0.6,
+    zoomEnd: 1,
     zoomTo: 1.9,
   },
   {

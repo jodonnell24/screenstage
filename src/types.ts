@@ -153,8 +153,12 @@ export type LoadedMotionConfig = {
 export type CursorMoveOptions = {
   camera?: {
     follow?: boolean;
+    followEnd?: number;
+    followStart?: number;
     zoom?: number;
     zoomFrom?: number;
+    zoomEnd?: number;
+    zoomStart?: number;
     zoomTo?: number;
   };
   durationMs?: number;
@@ -257,21 +261,29 @@ export type MotionScene =
     })
   | (SceneBase & {
       cameraFollow?: boolean;
+      followEnd?: number;
+      followStart?: number;
       durationMs?: number;
       selector: string;
       steps?: number;
       type: "move-selector";
       zoomFrom?: number;
+      zoomEnd?: number;
+      zoomStart?: number;
       zoomTo?: number;
       zoom?: number;
     })
   | (SceneBase & {
       cameraFollow?: boolean;
+      followEnd?: number;
+      followStart?: number;
       durationMs?: number;
       point: Point;
       steps?: number;
       type: "move-point";
       zoomFrom?: number;
+      zoomEnd?: number;
+      zoomStart?: number;
       zoomTo?: number;
       zoom?: number;
     })
@@ -330,6 +342,8 @@ export type FeatureTourStep = {
   action?: FeatureTourAction;
   cameraFollow?: boolean;
   clickDelayMs?: number;
+  followEnd?: number;
+  followStart?: number;
   focusDurationMs?: number;
   focusFirst?: boolean;
   handoffDurationMs?: number;
@@ -344,6 +358,8 @@ export type FeatureTourStep = {
   typingDelayMs?: number;
   typingDurationMs?: number;
   zoomFrom?: number;
+  zoomEnd?: number;
+  zoomStart?: number;
   zoomTo?: number;
   zoom?: number;
 };

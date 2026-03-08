@@ -64,8 +64,12 @@ async function runScene(scene: MotionScene, context: DemoContext): Promise<void>
           scene.cameraFollow || scene.zoom !== undefined || scene.zoomFrom !== undefined || scene.zoomTo !== undefined
             ? {
                 follow: scene.cameraFollow,
+                followEnd: scene.followEnd,
+                followStart: scene.followStart,
                 zoom: scene.zoom,
                 zoomFrom: scene.zoomFrom,
+                zoomEnd: scene.zoomEnd,
+                zoomStart: scene.zoomStart,
                 zoomTo: scene.zoomTo,
               }
             : undefined,
@@ -80,8 +84,12 @@ async function runScene(scene: MotionScene, context: DemoContext): Promise<void>
           scene.cameraFollow || scene.zoom !== undefined || scene.zoomFrom !== undefined || scene.zoomTo !== undefined
             ? {
                 follow: scene.cameraFollow,
+                followEnd: scene.followEnd,
+                followStart: scene.followStart,
                 zoom: scene.zoom,
                 zoomFrom: scene.zoomFrom,
+                zoomEnd: scene.zoomEnd,
+                zoomStart: scene.zoomStart,
                 zoomTo: scene.zoomTo,
               }
             : undefined,

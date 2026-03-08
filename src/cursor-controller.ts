@@ -32,6 +32,26 @@ function easeInOutCubic(progress: number): number {
     : 1 - Math.pow(-2 * progress + 2, 3) / 2;
 }
 
+function normalizeWindowProgress(
+  progress: number,
+  start = 0,
+  end = 1,
+): number {
+  if (end <= start) {
+    return progress >= end ? 1 : 0;
+  }
+
+  if (progress <= start) {
+    return 0;
+  }
+
+  if (progress >= end) {
+    return 1;
+  }
+
+  return (progress - start) / (end - start);
+}
+
 export class DemoCursorController implements CursorController {
   readonly #page: Page;
 
@@ -87,6 +107,10 @@ export class DemoCursorController implements CursorController {
     const zoomFrom = options.camera?.zoomFrom ?? startingCamera?.zoom;
     const zoomTo =
       options.camera?.zoomTo ?? options.camera?.zoom ?? zoomFrom ?? startingCamera?.zoom;
+    const followStart = options.camera?.followStart ?? (cameraShouldFollow ? 0 : 1);
+    const followEnd = options.camera?.followEnd ?? 1;
+    const zoomStart = options.camera?.zoomStart ?? 0;
+    const zoomEnd = options.camera?.zoomEnd ?? 1;
 
     for (let step = 1; step <= steps; step += 1) {
       const progress = easeInOutCubic(step / steps);
@@ -100,13 +124,18 @@ export class DemoCursorController implements CursorController {
       await this.sample("move");
 
       if (this.#sampleCamera && startingCamera && zoomFrom !== undefined && zoomTo !== undefined) {
-        const nextZoom = interpolate(zoomFrom, zoomTo, progress);
-        const cameraPoint = cameraShouldFollow
-          ? nextPoint
-          : {
-              x: startingCamera.x,
-              y: startingCamera.y,
-            };
+        const nextZoom = interpolate(
+          zoomFrom,
+          zoomTo,
+          normalizeWindowProgress(progress, zoomStart, zoomEnd),
+        );
+        const followProgress = cameraShouldFollow
+          ? normalizeWindowProgress(progress, followStart, followEnd)
+          : 0;
+        const cameraPoint = {
+          x: interpolate(startingCamera.x, nextPoint.x, followProgress),
+          y: interpolate(startingCamera.y, nextPoint.y, followProgress),
+        };
         await this.#sampleCamera(cameraPoint, nextZoom);
       }
 

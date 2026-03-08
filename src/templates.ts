@@ -49,10 +49,14 @@ function appendFeatureTourStep(
       scenes.push({
         cameraFollow: step.cameraFollow ?? true,
         durationMs: step.moveDurationMs ?? 800,
+        followEnd: step.followEnd,
+        followStart: step.followStart,
         selector: step.selector,
         steps: step.steps,
         type: "move-selector",
         zoomFrom: step.zoomFrom,
+        zoomEnd: step.zoomEnd,
+        zoomStart: step.zoomStart,
         zoomTo: step.zoomTo,
         zoom,
       });
@@ -62,10 +66,14 @@ function appendFeatureTourStep(
       scenes.push({
         cameraFollow: step.cameraFollow ?? false,
         durationMs: step.moveDurationMs ?? 800,
+        followEnd: step.followEnd,
+        followStart: step.followStart,
         selector: step.selector,
         steps: step.steps,
         type: "move-selector",
         zoomFrom: step.zoomFrom,
+        zoomEnd: step.zoomEnd,
+        zoomStart: step.zoomStart,
         zoomTo: step.zoomTo,
         zoom,
       });
@@ -85,10 +93,14 @@ function appendFeatureTourStep(
       scenes.push({
         cameraFollow: step.cameraFollow ?? false,
         durationMs: step.moveDurationMs ?? 800,
+        followEnd: step.followEnd,
+        followStart: step.followStart,
         selector: step.selector,
         steps: step.steps,
         type: "move-selector",
         zoomFrom: step.zoomFrom,
+        zoomEnd: step.zoomEnd,
+        zoomStart: step.zoomStart,
         zoomTo: step.zoomTo,
         zoom,
       });
