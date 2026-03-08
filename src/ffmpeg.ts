@@ -477,10 +477,10 @@ export function buildFfmpegPlans(
 ): FfmpegPlan[] {
   const duration = resolveDurationWindow(cursorSamples, cameraSamples);
   const frames =
-    cameraSamples.length > 1
-      ? buildFrameStatesFromCamera(cameraSamples, config, layout)
-      : config.camera.mode === "static"
-        ? buildStaticFrameStates(duration, config, layout)
+    config.camera.mode === "static"
+      ? buildStaticFrameStates(duration, config, layout)
+      : cameraSamples.length > 1
+        ? buildFrameStatesFromCamera(cameraSamples, config, layout)
         : buildFrameStatesFromCursor(cursorSamples, config, layout);
   const durationSeconds = Number(
     ((duration.endTimeMs + 1000 / config.output.fps) / 1000)
