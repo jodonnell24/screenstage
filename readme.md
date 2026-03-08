@@ -8,6 +8,7 @@ It is designed for the workflow you described:
 - keep the cursor visible in the footage with a professional-looking overlay
 - direct the camera toward important UI moments instead of relying only on raw cursor-following
 - author demos as a sequence of named shots instead of one long imperative script
+- present the capture inside a browser-style composition shell before it reaches Motion
 - export lightweight review MP4s and edit-friendly ProRes files for Apple Motion / Final Cut Pro
 
 This is a Playwright + FFmpeg pipeline. It works with React apps and non-React web apps because it records the browser, not the framework.
@@ -29,6 +30,7 @@ This is a Playwright + FFmpeg pipeline. It works with React apps and non-React w
   - camera focus / wide shots / reframing
   - shot-by-shot scene sequencing
 - Post-processes the recording in FFmpeg into:
+  - a composed browser presentation shell with background and chrome presets
   - `mp4` for fast review/sharing
   - `prores` for Motion / Final Cut editing
 
@@ -114,6 +116,9 @@ export default {
     zoom: 1.7,
     padding: 96,
   },
+  composition: {
+    preset: "studio-browser",
+  },
   browser: {
     headless: true,
   },
@@ -131,6 +136,13 @@ export default {
   - `"prores"` for high-quality `.mov` output that is better suited for Motion / Final Cut
 - `camera.zoom` is the default follow-cam zoom when you are not manually keyframing the camera.
 - `camera.padding` keeps the target away from the crop edge.
+- `composition.preset` controls the presentation shell around the app capture.
+
+Current composition presets:
+
+- `"none"`: raw full-frame render with no presentation shell
+- `"studio-browser"`: soft light background with polished browser chrome
+- `"spotlight-browser"`: darker, more cinematic presentation shell
 
 For local apps you can add a `serve` block:
 
@@ -292,6 +304,7 @@ Implemented now:
 - manual camera keyframes
 - declarative scene arrays
 - local dev-server lifecycle
+- browser-shell composition presets
 - MP4 + ProRes rendering
 - starter scaffold
 

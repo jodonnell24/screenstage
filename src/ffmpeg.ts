@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 
 import type {
   CameraSample,
+  CompositionLayout,
   CursorSample,
   FfmpegPlan,
   LoadedMotionConfig,
@@ -106,11 +107,12 @@ function buildPiecewiseExpression(points: NumericPoint[]): string {
 
 function getCropSizeForZoom(
   config: LoadedMotionConfig,
+  layout: CompositionLayout,
   zoom: number,
 ): { cropHeight: number; cropWidth: number } {
   const safeZoom = Math.max(1, zoom);
   const sourceAspect = config.viewport.width / config.viewport.height;
-  const outputAspect = config.output.width / config.output.height;
+  const outputAspect = layout.contentWidth / layout.contentHeight;
 
   if (sourceAspect >= outputAspect) {
     const cropHeight = alignEven(config.viewport.height / safeZoom);
@@ -132,9 +134,14 @@ function getCropSizeForZoom(
 function buildFrameStatesFromCursor(
   samples: CursorSample[],
   config: LoadedMotionConfig,
+  layout: CompositionLayout,
 ): FrameState[] {
   return samples.map((sample) => {
-    const { cropHeight, cropWidth } = getCropSizeForZoom(config, config.camera.zoom);
+    const { cropHeight, cropWidth } = getCropSizeForZoom(
+      config,
+      layout,
+      config.camera.zoom,
+    );
 
     return {
       cropHeight,
@@ -149,9 +156,10 @@ function buildFrameStatesFromCursor(
 function buildFrameStatesFromCamera(
   samples: CameraSample[],
   config: LoadedMotionConfig,
+  layout: CompositionLayout,
 ): FrameState[] {
   return samples.map((sample) => {
-    const { cropHeight, cropWidth } = getCropSizeForZoom(config, sample.zoom);
+    const { cropHeight, cropWidth } = getCropSizeForZoom(config, layout, sample.zoom);
 
     return {
       cropHeight,
@@ -278,11 +286,18 @@ export function buildFfmpegPlans(
   config: LoadedMotionConfig,
   cursorSamples: CursorSample[],
   cameraSamples: CameraSample[],
+  layout: CompositionLayout,
 ): FfmpegPlan[] {
   const frames =
     cameraSamples.length > 1
-      ? buildFrameStatesFromCamera(cameraSamples, config)
-      : buildFrameStatesFromCursor(cursorSamples, config);
+      ? buildFrameStatesFromCamera(cameraSamples, config, layout)
+      : buildFrameStatesFromCursor(cursorSamples, config, layout);
+  const lastCursorTimeMs = cursorSamples.at(-1)?.timeMs ?? 0;
+  const lastCameraTimeMs = cameraSamples.at(-1)?.timeMs ?? 0;
+  const durationSeconds = Number(
+    ((Math.max(lastCursorTimeMs, lastCameraTimeMs) + 1000 / config.output.fps) / 1000)
+      .toFixed(3),
+  );
   const numericPoints = buildNumericPoints(frames, config);
   const cropWidthPoints = condensePoints(numericPoints.cropWidthPoints, 150, 16);
   const cropHeightPoints = condensePoints(numericPoints.cropHeightPoints, 150, 16);
@@ -294,26 +309,68 @@ export function buildFfmpegPlans(
   const yExpression = buildPiecewiseExpression(yPoints);
   return config.output.formats.map((format) => {
     const settings = FORMAT_SETTINGS[format];
-    const filter = [
-      `fps=${config.output.fps}`,
-      `crop=w='${cropWidthExpression}':h='${cropHeightExpression}':x='${xExpression}':y='${yExpression}'`,
-      `scale=${config.output.width}:${config.output.height}:flags=lanczos`,
-      "setsar=1",
-      settings.postScaleFormat,
-    ].join(",");
+
+    if (!layout.enabled) {
+      const filter = [
+        `fps=${config.output.fps}`,
+        `crop=w='${cropWidthExpression}':h='${cropHeightExpression}':x='${xExpression}':y='${yExpression}'`,
+        `scale=${config.output.width}:${config.output.height}:flags=lanczos`,
+        "setsar=1",
+        settings.postScaleFormat,
+      ].join(",");
+
+      return {
+        args: [
+          "-y",
+          "-i",
+          sourcePath,
+          "-t",
+          String(durationSeconds),
+          "-vf",
+          filter,
+          ...settings.args,
+          getFormatOutputPath(sessionDir, format),
+        ],
+        compositionAssetPath: undefined,
+        cropHeightExpression,
+        cropWidthExpression,
+        durationSeconds,
+        format,
+        outputPath: getFormatOutputPath(sessionDir, format),
+        sourcePath,
+        xExpression,
+        yExpression,
+      };
+    }
+
+    const filterComplex = [
+      `[0:v]fps=${config.output.fps},crop=w='${cropWidthExpression}':h='${cropHeightExpression}':x='${xExpression}':y='${yExpression}',scale=${layout.contentWidth}:${layout.contentHeight}:flags=lanczos,pad=${layout.outputWidth}:${layout.outputHeight}:${layout.contentX}:${layout.contentY}:color=black,setsar=1[base]`,
+      `[base][1:v]overlay=0:0:shortest=1,${settings.postScaleFormat}[outv]`,
+    ].join(";");
 
     return {
       args: [
         "-y",
         "-i",
         sourcePath,
-        "-vf",
-        filter,
+        "-loop",
+        "1",
+        "-i",
+        layout.assetPath!,
+        "-t",
+        String(durationSeconds),
+        "-filter_complex",
+        filterComplex,
+        "-map",
+        "[outv]",
+        "-shortest",
         ...settings.args,
         getFormatOutputPath(sessionDir, format),
       ],
+      compositionAssetPath: layout.assetPath,
       cropHeightExpression,
       cropWidthExpression,
+      durationSeconds,
       format,
       outputPath: getFormatOutputPath(sessionDir, format),
       sourcePath,

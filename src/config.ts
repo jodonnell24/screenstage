@@ -2,6 +2,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import type {
+  CompositionPreset,
   DemoModule,
   LoadedMotionConfig,
   MotionConfig,
@@ -16,6 +17,20 @@ const DEFAULTS = {
   camera: {
     padding: 96,
     zoom: 1.65,
+  },
+  composition: {
+    background: {
+      angle: 135,
+      colors: ["#eef4ef", "#e7edf5"],
+    },
+    browser: {
+      padding: 72,
+      radius: 28,
+      showAddressBar: true,
+      showTrafficLights: true,
+      toolbarHeight: 56,
+    },
+    preset: "studio-browser" as CompositionPreset,
   },
   output: {
     fps: 30,
@@ -37,6 +52,11 @@ const DEFAULTS = {
 };
 
 const VALID_OUTPUT_FORMATS = new Set<OutputFormat>(["mp4", "prores"]);
+const VALID_COMPOSITION_PRESETS = new Set<CompositionPreset>([
+  "none",
+  "studio-browser",
+  "spotlight-browser",
+]);
 
 function assertCondition(
   condition: unknown,
@@ -89,6 +109,8 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
       : path.basename(absoluteConfigPath, path.extname(absoluteConfigPath));
 
   const formats = config.output?.formats ?? DEFAULTS.output.formats;
+  const compositionPreset =
+    config.composition?.preset ?? DEFAULTS.composition.preset;
 
   assertCondition(
     Array.isArray(formats) && formats.length > 0,
@@ -97,6 +119,10 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
   assertCondition(
     formats.every((format) => VALID_OUTPUT_FORMATS.has(format)),
     "Config output.formats must only include 'mp4' or 'prores'.",
+  );
+  assertCondition(
+    VALID_COMPOSITION_PRESETS.has(compositionPreset),
+    "Config composition.preset must be 'none', 'studio-browser', or 'spotlight-browser'.",
   );
 
   return {
@@ -108,6 +134,34 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
     camera: {
       padding: config.camera?.padding ?? DEFAULTS.camera.padding,
       zoom: config.camera?.zoom ?? DEFAULTS.camera.zoom,
+    },
+    composition: {
+      background: {
+        angle:
+          config.composition?.background?.angle ??
+          DEFAULTS.composition.background.angle,
+        colors:
+          config.composition?.background?.colors ??
+          DEFAULTS.composition.background.colors,
+      },
+      browser: {
+        padding:
+          config.composition?.browser?.padding ??
+          DEFAULTS.composition.browser.padding,
+        radius:
+          config.composition?.browser?.radius ??
+          DEFAULTS.composition.browser.radius,
+        showAddressBar:
+          config.composition?.browser?.showAddressBar ??
+          DEFAULTS.composition.browser.showAddressBar,
+        showTrafficLights:
+          config.composition?.browser?.showTrafficLights ??
+          DEFAULTS.composition.browser.showTrafficLights,
+        toolbarHeight:
+          config.composition?.browser?.toolbarHeight ??
+          DEFAULTS.composition.browser.toolbarHeight,
+      },
+      preset: compositionPreset,
     },
     configDir,
     configPath: absoluteConfigPath,

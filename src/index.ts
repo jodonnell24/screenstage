@@ -3,6 +3,8 @@ export { defineScenes } from "./scenes.js";
 export type {
   CameraController,
   CameraFocusOptions,
+  CompositionLayout,
+  CompositionPreset,
   CameraSample,
   CameraState,
   CursorClickOptions,

@@ -4,6 +4,7 @@ import path from "node:path";
 import { chromium } from "playwright";
 
 import { DemoCameraController } from "./camera-controller.js";
+import { prepareComposition } from "./composition.js";
 import { loadConfig, loadDemoModule } from "./config.js";
 import { DemoCursorController } from "./cursor-controller.js";
 import { installCursorOverlay, moveCursorOverlay } from "./cursor-overlay.js";
@@ -25,6 +26,7 @@ export async function runMotion(configPath: string): Promise<void> {
   const managedService = await startManagedService(config);
 
   await fs.mkdir(recordingsDir, { recursive: true });
+  const compositionLayout = await prepareComposition(sessionDir, config);
 
   const browser = await chromium.launch({
     channel: config.browser.channel,
@@ -105,6 +107,7 @@ export async function runMotion(configPath: string): Promise<void> {
     config,
     cursor.samples,
     camera.samples,
+    compositionLayout,
   );
 
   await fs.writeFile(
@@ -115,6 +118,7 @@ export async function runMotion(configPath: string): Promise<void> {
         demoProgramType: Array.isArray(demoModule.default) ? "scenes" : "function",
         ffmpegPlans,
         cameraSamples: camera.samples,
+        compositionLayout,
         scenes: Array.isArray(demoModule.default) ? demoModule.default : undefined,
         samples: cursor.samples,
       },

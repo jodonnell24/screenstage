@@ -27,6 +27,9 @@ const CONFIG_TEMPLATE = `export default {
     zoom: 1.7,
     padding: 96,
   },
+  composition: {
+    preset: "studio-browser",
+  },
   browser: {
     headless: true,
   },

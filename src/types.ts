@@ -12,6 +12,10 @@ export type Size = {
 
 export type MouseButton = "left" | "middle" | "right";
 export type OutputFormat = "mp4" | "prores";
+export type CompositionPreset =
+  | "none"
+  | "studio-browser"
+  | "spotlight-browser";
 
 export type CursorSampleKind = "move" | "wait" | "click";
 export type CameraSampleKind = "focus" | "wait";
@@ -36,6 +40,20 @@ export type MotionConfig = {
   camera?: {
     zoom?: number;
     padding?: number;
+  };
+  composition?: {
+    background?: {
+      angle?: number;
+      colors?: string[];
+    };
+    browser?: {
+      padding?: number;
+      radius?: number;
+      showAddressBar?: boolean;
+      showTrafficLights?: boolean;
+      toolbarHeight?: number;
+    };
+    preset?: CompositionPreset;
   };
   browser?: {
     headless?: boolean;
@@ -65,6 +83,20 @@ export type LoadedMotionConfig = {
   camera: {
     padding: number;
     zoom: number;
+  };
+  composition: {
+    background: {
+      angle: number;
+      colors: string[];
+    };
+    browser: {
+      padding: number;
+      radius: number;
+      showAddressBar: boolean;
+      showTrafficLights: boolean;
+      toolbarHeight: number;
+    };
+    preset: CompositionPreset;
   };
   configDir: string;
   configPath: string;
@@ -247,11 +279,29 @@ export type DemoModule = {
 
 export type FfmpegPlan = {
   args: string[];
+  compositionAssetPath?: string;
   cropHeightExpression: string;
   cropWidthExpression: string;
+  durationSeconds: number;
   format: OutputFormat;
   outputPath: string;
   sourcePath: string;
   xExpression: string;
   yExpression: string;
+};
+
+export type CompositionLayout = {
+  assetPath?: string;
+  contentHeight: number;
+  contentWidth: number;
+  contentX: number;
+  contentY: number;
+  enabled: boolean;
+  outputHeight: number;
+  outputWidth: number;
+  preset: CompositionPreset;
+  windowHeight?: number;
+  windowWidth?: number;
+  windowX?: number;
+  windowY?: number;
 };
