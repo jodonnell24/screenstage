@@ -16,11 +16,12 @@ import {
 import {
   installManualRecorder,
   type ManualRecorderControls,
+  type RecordedMarker,
   type ManualRecording,
 } from "./manual-recorder.js";
 import { buildGeneratedDemoSource } from "./record-script.js";
 import { startManagedService } from "./serve.js";
-import type { CursorSample } from "./types.js";
+import type { CameraSample, CursorSample, Point } from "./types.js";
 import { installCursorOverlay, moveCursorOverlay } from "./cursor-overlay.js";
 
 type RecordMotionOptions = {
@@ -80,6 +81,191 @@ function withRenderableCursorSamples(
       timeMs: recording.durationMs,
       x: lastSample.x,
       y: lastSample.y,
+    });
+  }
+
+  return samples;
+}
+
+function easeInOutCubic(progress: number): number {
+  return progress < 0.5
+    ? 4 * progress * progress * progress
+    : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+}
+
+function interpolate(start: number, end: number, progress: number): number {
+  return start + (end - start) * progress;
+}
+
+function interpolatePoint(start: Point, end: Point, progress: number): Point {
+  return {
+    x: interpolate(start.x, end.x, progress),
+    y: interpolate(start.y, end.y, progress),
+  };
+}
+
+function resolveCursorPointAtTime(
+  cursorSamples: CursorSample[],
+  timeMs: number,
+  fallbackPoint: Point,
+): Point {
+  if (cursorSamples.length === 0) {
+    return fallbackPoint;
+  }
+
+  const first = cursorSamples[0]!;
+
+  if (timeMs <= first.timeMs) {
+    return { x: first.x, y: first.y };
+  }
+
+  for (let index = 1; index < cursorSamples.length; index += 1) {
+    const previous = cursorSamples[index - 1]!;
+    const current = cursorSamples[index]!;
+
+    if (timeMs <= current.timeMs) {
+      const duration = Math.max(current.timeMs - previous.timeMs, 1);
+      const progress = Math.min(Math.max((timeMs - previous.timeMs) / duration, 0), 1);
+      return interpolatePoint(previous, current, progress);
+    }
+  }
+
+  const last = cursorSamples.at(-1)!;
+  return { x: last.x, y: last.y };
+}
+
+function createManualCameraSamples(
+  recording: ManualRecording,
+  config: Awaited<ReturnType<typeof loadConfig>>,
+): CameraSample[] {
+  if (recording.markers.length === 0) {
+    return [];
+  }
+
+  const fallbackPoint = {
+    x: config.viewport.width / 2,
+    y: config.viewport.height / 2,
+  };
+  const centerPoint = fallbackPoint;
+  const transitionMs = 680;
+  const timelineTimes = new Set<number>([0, recording.durationMs]);
+
+  for (const sample of recording.cursorSamples) {
+    timelineTimes.add(sample.timeMs);
+  }
+
+  for (const marker of recording.markers) {
+    timelineTimes.add(marker.timeMs);
+
+    if (marker.kind !== "hold") {
+      timelineTimes.add(Math.min(marker.timeMs + transitionMs, recording.durationMs));
+    }
+  }
+
+  const markersByTime = new Map<number, RecordedMarker[]>();
+
+  for (const marker of recording.markers) {
+    const bucket = markersByTime.get(marker.timeMs) ?? [];
+    bucket.push(marker);
+    markersByTime.set(marker.timeMs, bucket);
+  }
+
+  let currentMode: "follow" | "wide" = "wide";
+  let transition:
+    | {
+        from: Point & { zoom: number };
+        startMs: number;
+        target: "follow" | "wide";
+      }
+    | undefined;
+
+  const samples: CameraSample[] = [];
+  const sortedTimes = [...timelineTimes].sort((left, right) => left - right);
+
+  for (const timeMs of sortedTimes) {
+    const cursorPoint = resolveCursorPointAtTime(
+      recording.cursorSamples,
+      timeMs,
+      fallbackPoint,
+    );
+    let currentState: Point & { zoom: number };
+
+    if (transition) {
+      const progress = Math.min(
+        Math.max((timeMs - transition.startMs) / transitionMs, 0),
+        1,
+      );
+      const eased = easeInOutCubic(progress);
+      const targetPoint = cursorPoint;
+      const targetZoom = transition.target === "follow" ? config.camera.zoom : 1;
+
+      currentState = {
+        ...interpolatePoint(transition.from, targetPoint, eased),
+        zoom: interpolate(transition.from.zoom, targetZoom, eased),
+      };
+
+      if (progress >= 1) {
+        currentMode = transition.target;
+        transition = undefined;
+      }
+    } else if (currentMode === "follow") {
+      currentState = {
+        ...cursorPoint,
+        zoom: config.camera.zoom,
+      };
+    } else {
+      currentState = {
+        ...centerPoint,
+        zoom: 1,
+      };
+    }
+
+    const markersAtTime = markersByTime.get(timeMs) ?? [];
+
+    for (const marker of markersAtTime) {
+      if (marker.kind === "hold") {
+        samples.push({
+          kind: "wait",
+          timeMs,
+          ...currentState,
+        });
+        continue;
+      }
+
+      transition = {
+        from: currentState,
+        startMs: timeMs,
+        target: marker.kind,
+      };
+    }
+
+    const previous = samples.at(-1);
+
+    if (
+      previous &&
+      previous.timeMs === timeMs &&
+      previous.x === currentState.x &&
+      previous.y === currentState.y &&
+      previous.zoom === currentState.zoom
+    ) {
+      continue;
+    }
+
+    if (
+      currentMode === "wide" &&
+      !transition &&
+      previous &&
+      previous.zoom === currentState.zoom &&
+      previous.x === currentState.x &&
+      previous.y === currentState.y
+    ) {
+      continue;
+    }
+
+    samples.push({
+      kind: transition || currentMode === "follow" ? "follow" : "focus",
+      timeMs,
+      ...currentState,
     });
   }
 
@@ -193,6 +379,7 @@ export async function recordMotion(
     config.viewport.width,
     config.viewport.height,
   );
+  const cameraSamples = createManualCameraSamples(recording, config);
   const generatedDemoSource = buildGeneratedDemoSource(config, recording);
 
   await fs.mkdir(path.dirname(editableGeneratedDemoPath), { recursive: true });
@@ -205,7 +392,7 @@ export async function recordMotion(
     sessionDir,
     config,
     cursorSamples,
-    [],
+    cameraSamples,
     compositionLayout,
   );
 
@@ -218,6 +405,7 @@ export async function recordMotion(
         generatedSessionDemoPath: sessionGeneratedDemoPath,
         mode: "manual-record",
         recording,
+        cameraSamples,
         cursorSamples,
         ffmpegPlans,
         compositionLayout,

@@ -2,6 +2,8 @@ import type { Page } from "playwright";
 
 import type { CursorSample, MouseButton } from "./types.js";
 
+export type ManualMarkerKind = "follow" | "hold" | "wide";
+
 export type RecordedAction =
   | {
       button: MouseButton;
@@ -31,15 +33,24 @@ export type RecordedAction =
       y?: number;
     };
 
+export type RecordedMarker = {
+  kind: ManualMarkerKind;
+  timeMs: number;
+  x: number;
+  y: number;
+};
+
 export type ManualRecording = {
   actions: RecordedAction[];
   cancelled: boolean;
   cursorSamples: CursorSample[];
   durationMs: number;
+  markers: RecordedMarker[];
 };
 
 export type ManualRecorderControls = {
   finish: () => Promise<void>;
+  mark: (kind: ManualMarkerKind) => Promise<void>;
   waitForFinish: () => Promise<ManualRecording>;
 };
 
@@ -56,9 +67,11 @@ const RECORDER_SCRIPT = `
     cursorSamples: [],
     finishTimeMs: null,
     finished: false,
-    lastSampleTimeMs: 0,
+    lastMarkerLabel: "Wide",
+    lastPointer: null,
     panelReady: false,
     startedAt: performance.now(),
+    markers: [],
   };
 
   const now = () => performance.now() - state.startedAt;
@@ -250,7 +263,7 @@ const RECORDER_SCRIPT = `
       }
     }
 
-    state.lastSampleTimeMs = timeMs;
+    state.lastPointer = { x, y };
     state.cursorSamples.push({
       kind,
       timeMs,
@@ -289,6 +302,42 @@ const RECORDER_SCRIPT = `
     state.activeType = null;
   };
 
+  const getCurrentPointer = () => {
+    if (state.lastPointer) {
+      return state.lastPointer;
+    }
+
+    return {
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+    };
+  };
+
+  const updateMarkerStatus = (label) => {
+    const target = document.querySelector("[data-role='marker-status']");
+
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    target.textContent = label;
+  };
+
+  const recordMarker = (kind) => {
+    const pointer = getCurrentPointer();
+    const label =
+      kind === "follow" ? "Punch In" : kind === "wide" ? "Wide" : "Hold";
+
+    state.markers.push({
+      kind,
+      timeMs: now(),
+      x: pointer.x,
+      y: pointer.y,
+    });
+    state.lastMarkerLabel = label;
+    updateMarkerStatus(label);
+  };
+
   const finish = (cancelled) => {
     if (state.finished) {
       return;
@@ -309,14 +358,15 @@ const RECORDER_SCRIPT = `
     const style = document.createElement("style");
     style.id = "__motion_record_style";
     style.textContent = \`
+      /* bg: #09121d; surface: rgba(10, 16, 26, 0.88); accent: #7ae2ba; text: #ffffff / rgba(255,255,255,0.72) */
       #__motion_record_panel {
         position: fixed;
         right: 18px;
         bottom: 18px;
         z-index: 2147483646;
-        width: 260px;
-        padding: 16px;
-        border-radius: 18px;
+        width: 312px;
+        padding: 18px;
+        border-radius: 22px;
         background: rgba(10, 16, 26, 0.88);
         color: white;
         backdrop-filter: blur(16px);
@@ -340,6 +390,39 @@ const RECORDER_SCRIPT = `
         color: rgba(255, 255, 255, 0.88);
       }
 
+      #__motion_record_panel .__motion_record_marker_status {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        margin-top: 14px;
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.045);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      #__motion_record_panel .__motion_record_marker_status span {
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.58);
+      }
+
+      #__motion_record_panel .__motion_record_marker_status strong {
+        font-size: 13px;
+        letter-spacing: 0.02em;
+        text-transform: none;
+        color: rgba(255, 255, 255, 0.96);
+      }
+
+      #__motion_record_panel .__motion_record_markers {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 14px;
+      }
+
       #__motion_record_panel .__motion_record_actions {
         display: flex;
         gap: 10px;
@@ -347,20 +430,57 @@ const RECORDER_SCRIPT = `
       }
 
       #__motion_record_panel button {
-        flex: 1;
         border: 0;
-        border-radius: 12px;
+        border-radius: 14px;
         padding: 11px 14px;
         font: inherit;
         font-weight: 700;
       }
 
+      #__motion_record_panel button[data-marker] {
+        min-height: 72px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.06);
+        color: white;
+        text-align: left;
+      }
+
+      #__motion_record_panel button[data-marker] span {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.58);
+      }
+
+      #__motion_record_panel button[data-marker] strong {
+        margin-top: 6px;
+        font-size: 14px;
+        letter-spacing: 0;
+        text-transform: none;
+        color: white;
+      }
+
+      #__motion_record_panel button[data-marker='follow'] {
+        background: linear-gradient(135deg, rgba(122, 226, 186, 0.25), rgba(54, 119, 99, 0.2));
+      }
+
+      #__motion_record_panel button[data-marker='wide'] {
+        background: linear-gradient(135deg, rgba(113, 182, 255, 0.16), rgba(74, 102, 185, 0.14));
+      }
+
+      #__motion_record_panel button[data-marker='hold'] {
+        background: linear-gradient(135deg, rgba(255, 214, 132, 0.14), rgba(186, 122, 68, 0.12));
+      }
+
       #__motion_record_panel button[data-action="finish"] {
+        flex: 1;
         background: linear-gradient(135deg, #7ae2ba, #4aa382);
         color: #082118;
       }
 
       #__motion_record_panel button[data-action="cancel"] {
+        flex: 1;
         background: rgba(255, 255, 255, 0.08);
         color: white;
       }
@@ -370,12 +490,50 @@ const RECORDER_SCRIPT = `
     panel.id = "__motion_record_panel";
     panel.innerHTML = \`
       <strong>Motion Recorder</strong>
-      <p>Perform your flow normally, then finish here or press Alt+Shift+R.</p>
+      <p>Perform the flow normally. Tag camera beats as you go, then finish here or press Alt+Shift+R.</p>
+      <div class="__motion_record_marker_status">
+        <span>Last shot cue</span>
+        <strong data-role="marker-status">Wide</strong>
+      </div>
+      <div class="__motion_record_markers">
+        <button type="button" data-marker="wide">
+          <span>Alt+Shift+1</span>
+          <strong>Wide</strong>
+        </button>
+        <button type="button" data-marker="follow">
+          <span>Alt+Shift+2</span>
+          <strong>Punch In</strong>
+        </button>
+        <button type="button" data-marker="hold">
+          <span>Alt+Shift+3</span>
+          <strong>Hold</strong>
+        </button>
+      </div>
       <div class="__motion_record_actions">
         <button type="button" data-action="cancel">Cancel</button>
         <button type="button" data-action="finish">Finish</button>
       </div>
     \`;
+
+    panel
+      .querySelectorAll("[data-marker]")
+      .forEach((button) => {
+        button.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const target = event.currentTarget;
+
+          if (!(target instanceof HTMLElement)) {
+            return;
+          }
+
+          const kind = target.getAttribute("data-marker");
+
+          if (kind === "wide" || kind === "follow" || kind === "hold") {
+            recordMarker(kind);
+          }
+        });
+      });
 
     panel
       .querySelector('[data-action="finish"]')
@@ -402,6 +560,24 @@ const RECORDER_SCRIPT = `
     if (event.altKey && event.shiftKey && event.code === "KeyR") {
       event.preventDefault();
       finish(false);
+      return;
+    }
+
+    if (event.altKey && event.shiftKey && event.code === "Digit1") {
+      event.preventDefault();
+      recordMarker("wide");
+      return;
+    }
+
+    if (event.altKey && event.shiftKey && event.code === "Digit2") {
+      event.preventDefault();
+      recordMarker("follow");
+      return;
+    }
+
+    if (event.altKey && event.shiftKey && event.code === "Digit3") {
+      event.preventDefault();
+      recordMarker("hold");
     }
   }, true);
 
@@ -514,10 +690,14 @@ const RECORDER_SCRIPT = `
         cancelled: state.cancelled,
         cursorSamples: state.cursorSamples,
         durationMs: state.finishTimeMs ?? now(),
+        markers: state.markers,
       };
     },
     finish() {
       finish(false);
+    },
+    mark(kind) {
+      recordMarker(kind);
     },
   };
 
@@ -551,6 +731,7 @@ function normalizeRecording(recording: ManualRecording): ManualRecording {
   return {
     ...recording,
     cursorSamples: dedupedSamples,
+    markers: [...recording.markers].sort((left, right) => left.timeMs - right.timeMs),
   };
 }
 
@@ -594,6 +775,15 @@ export async function installManualRecorder(
           }
         ).__motionManualRecorder?.finish();
       });
+    },
+    async mark(kind) {
+      await page.evaluate((markerKind) => {
+        (
+          window as Window & {
+            __motionManualRecorder?: { mark: (kind: ManualMarkerKind) => void };
+          }
+        ).__motionManualRecorder?.mark(markerKind);
+      }, kind);
     },
     async waitForFinish() {
       return finishPromise;

@@ -259,8 +259,15 @@ For camera tuning and regression checks, there is also a dedicated lab under [ex
 1. Launch the target app in a visible Chromium window.
 2. Inject the polished cursor overlay and a small recorder HUD.
 3. Perform the flow manually.
-4. Finish from the HUD or press `Alt+Shift+R`.
-5. Get an immediate rendered video plus an editable generated demo file.
+4. Tag camera beats from the HUD while you record.
+5. Finish from the HUD or press `Alt+Shift+R`.
+6. Get an immediate rendered video plus an editable generated demo file.
+
+Built-in shot markers:
+
+- `Alt+Shift+1`: `Wide` to pull back out
+- `Alt+Shift+2`: `Punch In` to zoom in and follow the cursor
+- `Alt+Shift+3`: `Hold` to insert a camera hold in the generated demo script
 
 The recorder captures:
 
@@ -268,6 +275,7 @@ The recorder captures:
 - clicks
 - typing
 - wheel scrolling
+- manual shot markers
 - inferred selectors when it can identify stable targets
 
 Manual record sessions save these extra artifacts:
@@ -276,7 +284,7 @@ Manual record sessions save these extra artifacts:
 - `generated-demo.mjs`: a generated runnable demo module in the session folder
 - `*.recorded-<timestamp>.mjs`: a copy of that generated demo saved next to your configured demo file so you can edit and reuse it
 
-The generated demo file is intentionally conservative. It aims to be easy to tweak, not to perfectly recreate every millisecond of the original interaction.
+The generated demo file is intentionally conservative. It aims to be easy to tweak, not to perfectly recreate every millisecond of the original interaction. When you place shot markers during recording, the generator emits camera calls like `camera.zoomTo()` and `camera.zoomOut()` around the recorded interactions instead of leaving all of the cinematic timing for later.
 
 ## Demo Runtime API
 
