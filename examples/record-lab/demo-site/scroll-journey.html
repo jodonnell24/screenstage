@@ -57,6 +57,10 @@
         cursor: pointer;
       }
 
+      ::selection {
+        background: rgba(23, 124, 105, 0.2);
+      }
+
       .page {
         padding: 36px;
       }
@@ -125,6 +129,11 @@
         background: rgba(255, 255, 255, 0.42);
         color: var(--muted);
         text-decoration: none;
+        transition:
+          transform 180ms ease,
+          background 180ms ease,
+          color 180ms ease,
+          box-shadow 180ms ease;
       }
 
       .rail-nav a strong {
@@ -182,6 +191,10 @@
         padding: 16px 18px;
         background: rgba(255, 255, 255, 0.72);
         color: var(--text);
+        transition:
+          border-color 180ms ease,
+          box-shadow 180ms ease,
+          background 180ms ease;
       }
 
       .button-primary,
@@ -190,16 +203,60 @@
         border-radius: 18px;
         padding: 16px 20px;
         font-weight: 800;
+        transition:
+          transform 180ms ease,
+          box-shadow 180ms ease,
+          background 180ms ease,
+          color 180ms ease,
+          border-color 180ms ease,
+          opacity 180ms ease;
       }
 
       .button-primary {
         background: linear-gradient(135deg, var(--accent), var(--accent-strong));
         color: white;
+        box-shadow: 0 16px 30px rgba(15, 90, 75, 0.2);
       }
 
       .button-soft {
         background: rgba(255, 255, 255, 0.68);
         color: var(--text);
+        box-shadow: inset 0 0 0 1px rgba(29, 38, 42, 0.06);
+      }
+
+      .button-primary:hover,
+      .button-soft:hover,
+      .filter-pill:hover,
+      .story-card:hover,
+      .gallery-card:hover,
+      .faq-card:hover,
+      .rail-nav a:hover {
+        transform: translateY(-1px);
+      }
+
+      .button-primary:hover {
+        box-shadow: 0 20px 36px rgba(15, 90, 75, 0.24);
+      }
+
+      .button-soft:hover {
+        background: rgba(255, 255, 255, 0.9);
+      }
+
+      .button-primary:active,
+      .button-soft:active,
+      .filter-pill:active,
+      .story-card:active,
+      .gallery-card:active,
+      .faq-card:active {
+        transform: translateY(1px) scale(0.99);
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      .gallery-card:focus-visible,
+      .faq-card:focus-visible {
+        outline: 3px solid rgba(23, 124, 105, 0.18);
+        outline-offset: 3px;
       }
 
       .top-meta {
@@ -220,6 +277,15 @@
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
+        transition:
+          background 180ms ease,
+          color 180ms ease,
+          transform 180ms ease;
+      }
+
+      .chip.is-live {
+        background: rgba(23, 124, 105, 0.16);
+        color: var(--accent-strong);
       }
 
       .hero {
@@ -267,6 +333,11 @@
         border: 1px solid var(--line);
         border-radius: 26px;
         background: var(--surface-strong);
+        transition:
+          transform 220ms ease,
+          box-shadow 220ms ease,
+          background 220ms ease,
+          border-color 220ms ease;
       }
 
       .proof-card {
@@ -322,10 +393,16 @@
         justify-content: space-between;
         gap: 16px;
         color: var(--muted);
+        transition: color 180ms ease, transform 180ms ease;
       }
 
       .proof-card-wide strong {
         color: var(--text);
+      }
+
+      .proof-card-wide li.is-emphasis {
+        color: var(--accent-strong);
+        transform: translateX(4px);
       }
 
       .filters {
@@ -342,11 +419,19 @@
         background: rgba(255, 255, 255, 0.62);
         color: var(--muted);
         font-weight: 700;
+        transition:
+          transform 180ms ease,
+          color 180ms ease,
+          background 180ms ease,
+          border-color 180ms ease,
+          box-shadow 180ms ease;
       }
 
       .filter-pill.active {
         background: var(--accent-soft);
         color: var(--accent-strong);
+        border-color: rgba(23, 124, 105, 0.18);
+        box-shadow: inset 0 0 0 1px rgba(23, 124, 105, 0.1);
       }
 
       .section-grid {
@@ -386,6 +471,28 @@
         padding: 18px 20px;
       }
 
+      .story-card.is-ready,
+      .story-card.is-featured,
+      .story-card.is-shipped,
+      .gallery-card.is-selected,
+      .faq-card.is-expanded,
+      .cta-banner.is-approved {
+        border-color: rgba(23, 124, 105, 0.18);
+        box-shadow: 0 18px 34px rgba(84, 95, 102, 0.12);
+      }
+
+      .story-card.is-ready {
+        background: linear-gradient(180deg, rgba(245, 252, 249, 0.96), rgba(255, 255, 255, 0.94));
+      }
+
+      .story-card.is-featured {
+        background: linear-gradient(180deg, rgba(245, 249, 253, 0.96), rgba(255, 255, 255, 0.94));
+      }
+
+      .story-card.is-shipped {
+        background: linear-gradient(180deg, rgba(247, 250, 244, 0.96), rgba(255, 255, 255, 0.94));
+      }
+
       .story-card strong,
       .faq-card strong {
         display: block;
@@ -405,6 +512,21 @@
         align-items: center;
       }
 
+      .story-meta {
+        margin-top: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(23, 124, 105, 0.08);
+        color: var(--accent-strong);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
       .stat-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -420,6 +542,7 @@
         display: block;
         font-size: 34px;
         letter-spacing: -0.05em;
+        transition: color 180ms ease, transform 180ms ease;
       }
 
       .stat-card span {
@@ -440,6 +563,11 @@
         border-radius: 22px;
         background: var(--surface-tint);
         border: 1px solid rgba(29, 38, 42, 0.06);
+        transition:
+          transform 180ms ease,
+          box-shadow 180ms ease,
+          border-color 180ms ease,
+          background 180ms ease;
       }
 
       .check-badge {
@@ -447,6 +575,21 @@
         height: 18px;
         border-radius: 999px;
         background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+        box-shadow: inset 0 0 0 5px rgba(255, 255, 255, 0.7);
+        transition: transform 180ms ease, box-shadow 180ms ease;
+      }
+
+      .check-item.is-complete {
+        border-color: rgba(23, 124, 105, 0.16);
+        background: linear-gradient(180deg, rgba(243, 250, 247, 0.98), rgba(255, 255, 255, 0.94));
+        box-shadow: 0 18px 32px rgba(84, 95, 102, 0.1);
+      }
+
+      .check-item.is-complete .check-badge {
+        transform: scale(1.08);
+        box-shadow:
+          inset 0 0 0 4px rgba(255, 255, 255, 0.88),
+          0 0 0 8px rgba(23, 124, 105, 0.12);
       }
 
       .gallery {
@@ -461,6 +604,11 @@
           linear-gradient(160deg, rgba(255, 255, 255, 0.88), rgba(236, 243, 239, 0.98)),
           linear-gradient(135deg, rgba(23, 124, 105, 0.14), rgba(214, 161, 95, 0.14));
         border: 1px solid rgba(29, 38, 42, 0.08);
+        transition:
+          transform 180ms ease,
+          box-shadow 180ms ease,
+          border-color 180ms ease,
+          background 180ms ease;
       }
 
       .gallery-card strong {
@@ -479,6 +627,18 @@
         background:
           linear-gradient(135deg, rgba(23, 124, 105, 0.14), rgba(214, 161, 95, 0.18)),
           linear-gradient(120deg, rgba(255, 255, 255, 0.92), rgba(233, 241, 237, 0.96));
+        transition: transform 220ms ease, filter 220ms ease;
+      }
+
+      .gallery-card.is-selected {
+        background:
+          linear-gradient(160deg, rgba(247, 252, 249, 0.98), rgba(237, 245, 241, 0.98)),
+          linear-gradient(135deg, rgba(23, 124, 105, 0.18), rgba(214, 161, 95, 0.16));
+      }
+
+      .gallery-card.is-selected .preview {
+        transform: scale(1.02);
+        filter: saturate(1.16);
       }
 
       .cta-banner {
@@ -500,6 +660,105 @@
         margin: 10px 0 0;
         color: var(--muted);
         max-width: 44ch;
+      }
+
+      .faq-card {
+        cursor: pointer;
+      }
+
+      .faq-card p {
+        max-height: 3.4em;
+        overflow: hidden;
+        transition: max-height 220ms ease, color 180ms ease;
+      }
+
+      .faq-card.is-expanded p {
+        max-height: 8em;
+        color: var(--text);
+      }
+
+      .topbar.is-busy,
+      .hero.is-busy,
+      .proof-card.is-busy {
+        box-shadow: 0 24px 42px rgba(84, 95, 102, 0.16);
+      }
+
+      .pulse-ring {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .pulse-ring::after {
+        content: "";
+        position: absolute;
+        inset: -32%;
+        background: radial-gradient(circle, rgba(23, 124, 105, 0.2), transparent 54%);
+        opacity: 0;
+        transform: scale(0.78);
+      }
+
+      .pulse-ring.is-pulsing::after {
+        animation: pulse-ring 600ms ease;
+      }
+
+      .toast-stack {
+        position: fixed;
+        right: 28px;
+        bottom: 28px;
+        z-index: 20;
+        display: grid;
+        gap: 10px;
+        pointer-events: none;
+      }
+
+      .toast {
+        min-width: 260px;
+        max-width: 360px;
+        padding: 14px 16px;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.34);
+        background: rgba(20, 35, 34, 0.9);
+        color: white;
+        box-shadow: 0 24px 42px rgba(20, 35, 34, 0.22);
+        transform: translateY(8px);
+        opacity: 0;
+        animation: toast-in 220ms ease forwards;
+      }
+
+      .toast strong {
+        display: block;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.62);
+      }
+
+      .toast p {
+        margin: 6px 0 0;
+        line-height: 1.5;
+      }
+
+      @keyframes toast-in {
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes pulse-ring {
+        0% {
+          opacity: 0;
+          transform: scale(0.78);
+        }
+
+        32% {
+          opacity: 1;
+        }
+
+        100% {
+          opacity: 0;
+          transform: scale(1.08);
+        }
       }
 
       .section-anchor {
@@ -557,7 +816,7 @@
               <button class="button-primary" data-demo="search-button">Queue scene</button>
             </div>
             <div class="top-meta">
-              <div class="chip">6 hours left</div>
+              <div class="chip" data-demo="status-chip">6 hours left</div>
               <button class="button-soft" data-demo="export-top">Export draft</button>
             </div>
           </header>
@@ -619,6 +878,7 @@
                     <button class="button-soft" data-demo="story-map-action">Mark ready</button>
                   </div>
                   <p>Good for a wide start, gentle scroll, then a click after the camera settles.</p>
+                  <div class="story-meta" data-demo="story-map-meta">Needs owner</div>
                 </article>
                 <article class="story-card" data-demo="story-proof">
                   <div class="row">
@@ -626,6 +886,7 @@
                     <button class="button-soft" data-demo="story-proof-action">Add to reel</button>
                   </div>
                   <p>Use this for a punch-in after the travel so the queue feels deliberate.</p>
+                  <div class="story-meta" data-demo="story-proof-meta">Awaiting proof</div>
                 </article>
                 <article class="story-card" data-demo="story-social">
                   <div class="row">
@@ -633,6 +894,7 @@
                     <button class="button-soft" data-demo="story-social-action">Ship clip</button>
                   </div>
                   <p>Long enough to test a second scroll beat before the lower proof gallery.</p>
+                  <div class="story-meta" data-demo="story-social-meta">Not scheduled</div>
                 </article>
               </div>
             </article>
@@ -750,5 +1012,343 @@
         </section>
       </div>
     </main>
+    <div class="toast-stack" data-demo="toast-stack" aria-live="polite"></div>
+    <script>
+      (() => {
+        const state = {
+          queuedScenes: 18,
+          approvalsBase: 6,
+          readyPercent: 92,
+          searchTerm: "",
+          selectedFilter: "launch",
+          selectedGallery: "gallery-proof-a",
+          checklist: {
+            framing: false,
+            copy: false,
+            proof: false,
+          },
+        };
+
+        const $ = (selector) => document.querySelector(selector);
+        const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+        const statusChip = $('[data-demo="status-chip"]');
+        const heroHeading = document.querySelector(".hero-copy h2");
+        const heroDescription = document.querySelector(".hero-copy p");
+        const topbar = document.querySelector(".topbar");
+        const hero = document.querySelector(".hero");
+        const proofTop = $('[data-demo="proof-top"]');
+        const toastStack = $('[data-demo="toast-stack"]');
+        const statOne = $('[data-demo="stat-one"] strong');
+        const statTwo = $('[data-demo="stat-two"] strong');
+        const statThree = $('[data-demo="stat-three"] strong');
+        const proofListItems = $$(".proof-card-wide li");
+        const searchInput = $('[data-demo="search"]');
+        const searchButton = $('[data-demo="search-button"]');
+        const exportTop = $('[data-demo="export-top"]');
+        const heroPrimary = $('[data-demo="hero-primary"]');
+        const heroSecondary = $('[data-demo="hero-secondary"]');
+        const finalPrimary = $('[data-demo="final-primary"]');
+        const finalSecondary = $('[data-demo="final-secondary"]');
+        const finalBanner = $('[data-demo="final-banner"]');
+        const filterButtons = $$("[data-demo^='filter-']");
+        const galleryCards = ["gallery-proof-a", "gallery-proof-b"].map((id) => $('[data-demo="' + id + '"]'));
+        const faqCards = $$("[data-demo^='faq-']");
+
+        const storyConfig = [
+          {
+            key: "story-map",
+            button: "story-map-action",
+            meta: "story-map-meta",
+            className: "is-ready",
+            buttonLabels: ["Mark ready", "Queued"],
+            metaLabels: ["Needs owner", "Scene queued"],
+            onActivate() {
+              state.queuedScenes += 1;
+              setStatusChip("Queue updated", true);
+              setToast("Queue", "Mapped the before and after path into the active launch cut.");
+            },
+            onDeactivate() {
+              state.queuedScenes = Math.max(18, state.queuedScenes - 1);
+            },
+          },
+          {
+            key: "story-proof",
+            button: "story-proof-action",
+            meta: "story-proof-meta",
+            className: "is-featured",
+            buttonLabels: ["Add to reel", "Featured"],
+            metaLabels: ["Awaiting proof", "Added to hero reel"],
+            onActivate() {
+              state.readyPercent = Math.min(99, state.readyPercent + 2);
+              highlightProofRow(1);
+              pulse(proofTop);
+              setStatusChip("Proof card featured", true);
+              setToast("Proof", "The metric reveal is now featured in the launch reel.");
+            },
+            onDeactivate() {
+              state.readyPercent = Math.max(84, state.readyPercent - 2);
+              highlightProofRow(-1);
+            },
+          },
+          {
+            key: "story-social",
+            button: "story-social-action",
+            meta: "story-social-meta",
+            className: "is-shipped",
+            buttonLabels: ["Ship clip", "Shipped"],
+            metaLabels: ["Not scheduled", "Queued for socials"],
+            onActivate() {
+              state.readyPercent = Math.min(100, state.readyPercent + 1);
+              setStatusChip("Social cut shipped", true);
+              setToast("Delivery", "Social snippet moved into the outbound reel.");
+            },
+            onDeactivate() {
+              state.readyPercent = Math.max(84, state.readyPercent - 1);
+            },
+          },
+        ];
+
+        const checklistConfig = [
+          {
+            key: "framing",
+            item: $('[data-demo="check-framing"]'),
+            action: $('[data-demo="check-framing-action"]'),
+            labels: ["Review", "Approved"],
+          },
+          {
+            key: "copy",
+            item: $('[data-demo="check-copy"]'),
+            action: $('[data-demo="check-copy-action"]'),
+            labels: ["Approve", "Locked"],
+          },
+          {
+            key: "proof",
+            item: $('[data-demo="check-proof"]'),
+            action: $('[data-demo="check-proof-action"]'),
+            labels: ["Pin", "Pinned"],
+          },
+        ];
+
+        function formatCount(value) {
+          return String(value).padStart(2, "0");
+        }
+
+        function pulse(element) {
+          if (!element) return;
+          element.classList.add("pulse-ring", "is-pulsing");
+          window.setTimeout(() => element.classList.remove("is-pulsing"), 620);
+        }
+
+        function setToast(title, message) {
+          const toast = document.createElement("article");
+          toast.className = "toast";
+          toast.innerHTML = "<strong>" + title + "</strong><p>" + message + "</p>";
+          toastStack.appendChild(toast);
+          window.setTimeout(() => {
+            toast.style.opacity = "0";
+            toast.style.transform = "translateY(10px)";
+          }, 2200);
+          window.setTimeout(() => toast.remove(), 2500);
+        }
+
+        function setStatusChip(label, live) {
+          statusChip.textContent = label;
+          statusChip.classList.toggle("is-live", Boolean(live));
+          statusChip.style.transform = "translateY(-1px)";
+          window.setTimeout(() => {
+            statusChip.style.transform = "";
+          }, 180);
+        }
+
+        function refreshStats() {
+          const approvals = Object.values(state.checklist).filter(Boolean).length + state.approvalsBase;
+          statOne.textContent = String(state.queuedScenes);
+          statTwo.textContent = formatCount(approvals);
+          statThree.textContent = state.readyPercent + "%";
+        }
+
+        function highlightProofRow(index) {
+          proofListItems.forEach((item, itemIndex) => {
+            item.classList.toggle("is-emphasis", itemIndex === index);
+          });
+        }
+
+        function runSearch() {
+          const rawTerm = searchInput.value.trim();
+          const searchTerm = rawTerm || "release story";
+          state.searchTerm = searchTerm;
+          topbar.classList.add("is-busy");
+          hero.classList.add("is-busy");
+          pulse(topbar);
+          heroHeading.textContent = "Direct the " + searchTerm + " while you scroll the real page.";
+          heroDescription.textContent =
+            "Live query routing is active for " +
+            searchTerm +
+            ". Use the queue, checklist, proof gallery, and CTA to rehearse a believable launch pass.";
+          searchButton.textContent = rawTerm ? "Queued" : "Queue scene";
+          setStatusChip(rawTerm ? "Routing " + searchTerm : "6 hours left", Boolean(rawTerm));
+          highlightProofRow(rawTerm ? 0 : -1);
+          setToast("Search queued", "Pulled '" + searchTerm + "' into the launch path.");
+          window.setTimeout(() => {
+            topbar.classList.remove("is-busy");
+            hero.classList.remove("is-busy");
+          }, 420);
+        }
+
+        function applyFilter(filterKey) {
+          state.selectedFilter = filterKey;
+          filterButtons.forEach((button) => {
+            button.classList.toggle("active", button.dataset.demo === "filter-" + filterKey);
+          });
+          const labels = {
+            launch: "Launch pass active",
+            proof: "Proof review active",
+            convert: "Conversion review active",
+            social: "Social export active",
+          };
+          const proofRows = {
+            launch: 0,
+            proof: 1,
+            convert: 2,
+            social: -1,
+          };
+          setStatusChip(labels[filterKey], true);
+          highlightProofRow(proofRows[filterKey]);
+          setToast("Filter", labels[filterKey] + ".");
+        }
+
+        function toggleStory(config) {
+          const card = $('[data-demo="' + config.key + '"]');
+          const button = $('[data-demo="' + config.button + '"]');
+          const meta = $('[data-demo="' + config.meta + '"]');
+          const isActive = card.classList.toggle(config.className);
+          button.textContent = config.buttonLabels[isActive ? 1 : 0];
+          meta.textContent = config.metaLabels[isActive ? 1 : 0];
+          if (isActive) {
+            config.onActivate();
+          } else {
+            config.onDeactivate();
+            setStatusChip("Queue adjusted", true);
+            setToast("Queue", "Removed that card from the active plan.");
+          }
+          refreshStats();
+        }
+
+        function toggleChecklist(config) {
+          state.checklist[config.key] = !state.checklist[config.key];
+          config.item.classList.toggle("is-complete", state.checklist[config.key]);
+          config.action.textContent = config.labels[state.checklist[config.key] ? 1 : 0];
+          if (state.checklist[config.key]) {
+            state.readyPercent = Math.min(100, state.readyPercent + 2);
+            setToast("Checklist", "Marked " + config.key + " as complete.");
+          } else {
+            state.readyPercent = Math.max(84, state.readyPercent - 2);
+            setToast("Checklist", "Moved " + config.key + " back into review.");
+          }
+          setStatusChip("Review pass updated", true);
+          refreshStats();
+        }
+
+        function selectGallery(id, options = {}) {
+          state.selectedGallery = id;
+          galleryCards.forEach((card) => {
+            card.classList.toggle("is-selected", card.dataset.demo === id);
+          });
+          if (!options.silent) {
+            const copy = id === "gallery-proof-a" ? "Metric reveal selected." : "Before and after comparison selected.";
+            setStatusChip("Proof chosen", true);
+            setToast("Proof", copy);
+          }
+        }
+
+        function toggleFaq(card) {
+          const isExpanded = card.classList.toggle("is-expanded");
+          setStatusChip(isExpanded ? "FAQ opened" : "FAQ collapsed", true);
+        }
+
+        searchButton.addEventListener("click", runSearch);
+        searchInput.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            runSearch();
+          }
+        });
+
+        exportTop.addEventListener("click", () => {
+          setStatusChip("Draft exported", true);
+          pulse(topbar);
+          setToast("Export", "Draft export staged for the current launch path.");
+        });
+
+        heroPrimary.addEventListener("click", () => {
+          heroPrimary.textContent = "Hero approved";
+          state.readyPercent = Math.min(100, state.readyPercent + 3);
+          pulse(proofTop);
+          setStatusChip("Hero cut approved", true);
+          setToast("Hero", "Primary launch beat approved for export.");
+          refreshStats();
+        });
+
+        heroSecondary.addEventListener("click", () => {
+          heroSecondary.textContent = "Shared";
+          setStatusChip("Shared with marketing", true);
+          setToast("Share", "Sent the current cut to marketing review.");
+        });
+
+        filterButtons.forEach((button) => {
+          button.addEventListener("click", () => {
+            applyFilter(button.dataset.demo.replace("filter-", ""));
+          });
+        });
+
+        storyConfig.forEach((config) => {
+          $('[data-demo="' + config.button + '"]').addEventListener("click", () => toggleStory(config));
+        });
+
+        checklistConfig.forEach((config) => {
+          config.action.addEventListener("click", () => toggleChecklist(config));
+        });
+
+        galleryCards.forEach((card) => {
+          card.tabIndex = 0;
+          card.addEventListener("click", () => selectGallery(card.dataset.demo));
+          card.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              selectGallery(card.dataset.demo);
+            }
+          });
+        });
+
+        faqCards.forEach((card) => {
+          card.tabIndex = 0;
+          card.addEventListener("click", () => toggleFaq(card));
+          card.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              toggleFaq(card);
+            }
+          });
+        });
+
+        finalSecondary.addEventListener("click", () => {
+          finalBanner.classList.remove("is-approved");
+          setStatusChip("Preview sent", true);
+          setToast("Preview", "Sent the bottom-of-page preview for final review.");
+        });
+
+        finalPrimary.addEventListener("click", () => {
+          finalBanner.classList.add("is-approved");
+          state.readyPercent = 100;
+          setStatusChip("Launch reel approved", true);
+          setToast("Approved", "Launch reel approved and ready to export.");
+          refreshStats();
+        });
+
+        refreshStats();
+        selectGallery(state.selectedGallery, { silent: true });
+      })();
+    </script>
   </body>
 </html>
