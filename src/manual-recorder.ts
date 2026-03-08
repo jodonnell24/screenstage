@@ -49,9 +49,15 @@ export type ManualRecording = {
 };
 
 export type ManualRecorderControls = {
+  cancel: () => Promise<void>;
   finish: () => Promise<void>;
   mark: (kind: ManualMarkerKind) => Promise<void>;
   waitForFinish: () => Promise<ManualRecording>;
+};
+
+type ManualRecorderInstallOptions = {
+  onControlsFocusRequest?: () => void | Promise<void>;
+  onMarkerStatusChange?: (label: string) => void | Promise<void>;
 };
 
 const RECORDER_SCRIPT = `
@@ -67,10 +73,8 @@ const RECORDER_SCRIPT = `
     cursorSamples: [],
     finishTimeMs: null,
     finished: false,
-    hidden: false,
     lastMarkerLabel: "Wide",
     lastPointer: null,
-    panelReady: false,
     startedAt: performance.now(),
     markers: [],
   };
@@ -315,32 +319,7 @@ const RECORDER_SCRIPT = `
   };
 
   const updateMarkerStatus = (label) => {
-    const target = document.querySelector("[data-role='marker-status']");
-
-    if (!(target instanceof HTMLElement)) {
-      return;
-    }
-
-    target.textContent = label;
-  };
-
-  const setPanelHidden = (hidden) => {
-    state.hidden = hidden;
-    const panel = document.getElementById("__motion_record_panel");
-
-    if (!(panel instanceof HTMLElement)) {
-      return;
-    }
-
-    panel.dataset.hidden = hidden ? "1" : "0";
-
-    if (hidden) {
-      delete document.body.dataset.motionRecordNative;
-    }
-  };
-
-  const togglePanelHidden = () => {
-    setPanelHidden(!state.hidden);
+    window.__motionManualRecorderStatus?.(label);
   };
 
   const recordMarker = (kind) => {
@@ -370,279 +349,10 @@ const RECORDER_SCRIPT = `
     window.__motionManualRecorderNotify(cancelled);
   };
 
-  const ensurePanel = () => {
-    if (!document.body || state.panelReady) {
-      return;
-    }
-
-    const style = document.createElement("style");
-    style.id = "__motion_record_style";
-    style.textContent = \`
-      /* bg: #09121d; surface: rgba(10, 16, 26, 0.88); accent: #7ae2ba; text: #ffffff / rgba(255,255,255,0.72) */
-      #__motion_record_panel,
-      #__motion_record_panel * {
-        cursor: auto !important;
-      }
-
-      body[data-motion-record-native='1'] #__motion_cursor_root {
-        opacity: 0;
-      }
-
-      #__motion_record_panel {
-        position: fixed;
-        left: 50%;
-        top: 18px;
-        transform: translateX(-50%);
-        z-index: 2147483646;
-        width: min(680px, calc(100vw - 28px));
-        padding: 14px 16px;
-        border-radius: 999px;
-        background: rgba(9, 16, 28, 0.84);
-        color: white;
-        backdrop-filter: blur(18px);
-        box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        font-family: ui-sans-serif, system-ui, sans-serif;
-        transition: opacity 140ms ease, transform 180ms ease;
-      }
-
-      #__motion_record_panel[data-hidden='1'] {
-        opacity: 0;
-        pointer-events: none;
-        transform: translateX(-50%) translateY(-18px);
-      }
-
-      #__motion_record_panel .__motion_record_shell {
-        display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 14px;
-      }
-
-      #__motion_record_panel .__motion_record_intro strong {
-        display: block;
-        font-size: 11px;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.58);
-      }
-
-      #__motion_record_panel .__motion_record_intro p {
-        margin: 4px 0 0;
-        font-size: 13px;
-        line-height: 1.35;
-        color: rgba(255, 255, 255, 0.9);
-        white-space: nowrap;
-      }
-
-      #__motion_record_panel .__motion_record_status {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        min-width: 0;
-        padding: 10px 14px;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-      }
-
-      #__motion_record_panel .__motion_record_status span {
-        font-size: 11px;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.5);
-      }
-
-      #__motion_record_panel .__motion_record_status strong {
-        font-size: 13px;
-        letter-spacing: 0.02em;
-        color: rgba(255, 255, 255, 0.96);
-      }
-
-      #__motion_record_panel .__motion_record_markers {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        min-width: 0;
-      }
-
-      #__motion_record_panel button {
-        border: 0;
-        border-radius: 999px;
-        padding: 10px 14px;
-        font: inherit;
-        font-weight: 700;
-      }
-
-      #__motion_record_panel button[data-marker] {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        min-width: 0;
-        background: rgba(255, 255, 255, 0.06);
-        color: white;
-      }
-
-      #__motion_record_panel button[data-marker] span {
-        display: inline-block;
-        font-size: 10px;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.48);
-      }
-
-      #__motion_record_panel button[data-marker] strong {
-        font-size: 13px;
-        letter-spacing: 0;
-        color: white;
-      }
-
-      #__motion_record_panel button[data-marker='follow'] {
-        background: linear-gradient(135deg, rgba(122, 226, 186, 0.24), rgba(54, 119, 99, 0.18));
-      }
-
-      #__motion_record_panel button[data-marker='wide'] {
-        background: linear-gradient(135deg, rgba(113, 182, 255, 0.16), rgba(74, 102, 185, 0.12));
-      }
-
-      #__motion_record_panel button[data-marker='hold'] {
-        background: linear-gradient(135deg, rgba(255, 214, 132, 0.15), rgba(186, 122, 68, 0.12));
-      }
-
-      #__motion_record_panel .__motion_record_actions {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-
-      #__motion_record_panel button[data-action="finish"] {
-        background: linear-gradient(135deg, #7ae2ba, #4aa382);
-        color: #082118;
-      }
-
-      #__motion_record_panel button[data-action="cancel"] {
-        background: rgba(255, 255, 255, 0.08);
-        color: white;
-      }
-
-      @media (max-width: 720px) {
-        #__motion_record_panel {
-          border-radius: 28px;
-        }
-
-        #__motion_record_panel .__motion_record_shell {
-          grid-template-columns: 1fr;
-          gap: 10px;
-        }
-
-        #__motion_record_panel .__motion_record_intro p {
-          white-space: normal;
-        }
-
-        #__motion_record_panel .__motion_record_markers,
-        #__motion_record_panel .__motion_record_actions {
-          flex-wrap: wrap;
-          justify-content: flex-start;
-        }
-      }
-    \`;
-
-    const panel = document.createElement("div");
-    panel.id = "__motion_record_panel";
-    panel.innerHTML = \`
-      <div class="__motion_record_shell">
-        <div class="__motion_record_intro">
-          <strong>Motion Recorder</strong>
-          <p>Use keys while recording. Finish with Alt+Shift+R.</p>
-        </div>
-        <div class="__motion_record_status">
-          <span>Last cue</span>
-          <strong data-role="marker-status">Wide</strong>
-        </div>
-        <div class="__motion_record_actions">
-          <button type="button" data-action="hide">Hide</button>
-          <button type="button" data-action="cancel">Cancel</button>
-          <button type="button" data-action="finish">Finish</button>
-        </div>
-      </div>
-      <div class="__motion_record_markers">
-        <button type="button" data-marker="wide">
-          <span>Alt+Shift+1</span>
-          <strong>Wide</strong>
-        </button>
-        <button type="button" data-marker="follow">
-          <span>Alt+Shift+2</span>
-          <strong>Punch In</strong>
-        </button>
-        <button type="button" data-marker="hold">
-          <span>Alt+Shift+3</span>
-          <strong>Hold</strong>
-        </button>
-      </div>
-    \`;
-
-    panel
-      .querySelectorAll("[data-marker]")
-      .forEach((button) => {
-        button.addEventListener("click", (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          const target = event.currentTarget;
-
-          if (!(target instanceof HTMLElement)) {
-            return;
-          }
-
-          const kind = target.getAttribute("data-marker");
-
-          if (kind === "wide" || kind === "follow" || kind === "hold") {
-            recordMarker(kind);
-          }
-        });
-      });
-
-    panel.addEventListener("pointerenter", () => {
-      document.body.dataset.motionRecordNative = "1";
-    });
-
-    panel.addEventListener("pointerleave", () => {
-      delete document.body.dataset.motionRecordNative;
-    });
-
-    panel
-      .querySelector('[data-action="hide"]')
-      ?.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        setPanelHidden(true);
-      });
-
-    panel
-      .querySelector('[data-action="finish"]')
-      ?.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        finish(false);
-      });
-
-    panel
-      .querySelector('[data-action="cancel"]')
-      ?.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        finish(true);
-      });
-
-    document.head.appendChild(style);
-    document.body.appendChild(panel);
-    state.panelReady = true;
-  };
-
   window.addEventListener("keydown", (event) => {
     if (event.altKey && event.shiftKey && event.code === "Digit0") {
       event.preventDefault();
-      togglePanelHidden();
+      window.__motionManualRecorderRequestControlsFocus?.();
       return;
     }
 
@@ -789,12 +499,6 @@ const RECORDER_SCRIPT = `
       recordMarker(kind);
     },
   };
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", ensurePanel, { once: true });
-  } else {
-    ensurePanel();
-  }
 })();
 `;
 
@@ -826,6 +530,7 @@ function normalizeRecording(recording: ManualRecording): ManualRecording {
 
 export async function installManualRecorder(
   page: Page,
+  options: ManualRecorderInstallOptions = {},
 ): Promise<ManualRecorderControls> {
   let finishResolver: ((recording: ManualRecording) => void) | undefined;
 
@@ -852,10 +557,33 @@ export async function installManualRecorder(
     },
   );
 
+  await page.exposeFunction(
+    "__motionManualRecorderStatus",
+    async (label: string) => {
+      await options.onMarkerStatusChange?.(label);
+    },
+  );
+
+  await page.exposeFunction(
+    "__motionManualRecorderRequestControlsFocus",
+    async () => {
+      await options.onControlsFocusRequest?.();
+    },
+  );
+
   await page.addInitScript({ content: RECORDER_SCRIPT });
   await page.evaluate(RECORDER_SCRIPT);
 
   return {
+    async cancel() {
+      await page.evaluate(() => {
+        (
+          window as Window & {
+            __motionManualRecorder?: { cancel: () => void };
+          }
+        ).__motionManualRecorder?.cancel();
+      });
+    },
     async finish() {
       await page.evaluate(() => {
         (
