@@ -575,11 +575,8 @@ export function buildFfmpegPlans(
     value: contentWidth / Math.max(point.value, 1),
   }));
   const scaleFactorExpression = buildPiecewiseExpression(scaleFactorPoints);
-  const composedScaleFactorExpression = layout.enabled
-    ? `((${scaleFactorExpression})*((${contentWidth + COMPOSITION_OVERSCAN_PX})/${contentWidth}))`
-    : scaleFactorExpression;
-  const scaledWidthExpression = `(${formatNumber(config.viewport.width)}*(${composedScaleFactorExpression}))`;
-  const scaledHeightExpression = `(${formatNumber(config.viewport.height)}*(${composedScaleFactorExpression}))`;
+  const scaledWidthExpression = `(${formatNumber(config.viewport.width)}*(${scaleFactorExpression}))`;
+  const scaledHeightExpression = `(${formatNumber(config.viewport.height)}*(${scaleFactorExpression}))`;
   const scaledXExpression = `((${xExpression})*(${scaleFactorExpression}))`;
   const scaledYExpression = `((${yExpression})*(${scaleFactorExpression}))`;
 
@@ -620,7 +617,7 @@ export function buildFfmpegPlans(
     }
 
     const filterComplex = [
-      `[0:v]fps=${config.output.fps},scale=w='${scaledWidthExpression}':h='${scaledHeightExpression}':flags=lanczos:eval=frame,crop=w=${contentWidth}:h=${contentHeight}:x='${scaledXExpression}':y='${scaledYExpression}':exact=1,pad=${layout.outputWidth}:${layout.outputHeight}:${layout.contentX}:${layout.contentY}:color=black,setsar=1[base]`,
+      `[0:v]fps=${config.output.fps},scale=w='${scaledWidthExpression}':h='${scaledHeightExpression}':flags=lanczos:eval=frame,crop=w=${contentWidth}:h=${contentHeight}:x='${scaledXExpression}':y='${scaledYExpression}':exact=1,scale=${contentWidth + COMPOSITION_OVERSCAN_PX}:${contentHeight + COMPOSITION_OVERSCAN_PX}:flags=lanczos,pad=${layout.outputWidth}:${layout.outputHeight}:${layout.contentX - COMPOSITION_OVERSCAN_PX / 2}:${layout.contentY - COMPOSITION_OVERSCAN_PX / 2}:color=black,setsar=1[base]`,
       `[base][1:v]overlay=0:0:shortest=1,${settings.postScaleFormat}[outv]`,
     ].join(";");
 
