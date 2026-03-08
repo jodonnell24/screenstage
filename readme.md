@@ -107,10 +107,7 @@ export default {
   },
   output: {
     dir: "./output",
-    width: 1920,
-    height: 1080,
-    fps: 30,
-    formats: ["mp4", "prores"],
+    preset: "release-hero",
   },
   camera: {
     zoom: 1.7,
@@ -131,12 +128,22 @@ export default {
 ### Config Notes
 
 - `url` can point to any reachable web app, including local HTML files, local dev servers, or deployed apps.
+- `output.preset` gives you sensible defaults for common delivery targets. You can still override `width`, `height`, `fps`, or `formats` manually when a preset is close but not exact.
 - `output.formats` accepts:
   - `"mp4"` for lightweight H.264 output
   - `"prores"` for high-quality `.mov` output that is better suited for Motion / Final Cut
 - `camera.zoom` is the default follow-cam zoom when you are not manually keyframing the camera.
 - `camera.padding` keeps the target away from the crop edge.
+- `camera.smoothingMs` softens raw cursor-led camera tracking.
+- `camera.deadzonePx` prevents tiny cursor changes from nudging the camera.
 - `composition.preset` controls the presentation shell around the app capture.
+
+Current output presets:
+
+- `"release-hero"`: 1920x1080, 30 fps, `mp4` + `prores`
+- `"social-square"`: 1080x1080, 30 fps, `mp4`
+- `"social-vertical"`: 1080x1920, 30 fps, `mp4`
+- `"motion-edit"`: 2560x1440, 30 fps, `mp4` + `prores`
 
 Current composition presets:
 
@@ -289,8 +296,10 @@ Supported scene types:
 For strong release-style captures:
 
 - Use a source viewport around `1440x900` and render at `1920x1080`.
+- Use `output.preset` for repeatable delivery targets instead of hand-tuning every new config.
 - Pause deliberately with `cursor.wait()` or `camera.wait()` so the camera has time to settle.
 - Use `camera.focusSelector()` before important interactions instead of letting every shot be cursor-led.
+- Increase `camera.smoothingMs` if a cursor-led sequence still feels twitchy, or reduce it if the camera feels too lazy.
 - Use `cursor.typeSelector()` for form entries so the footage reads like a real person using the app.
 - Export `prores` when the clip is headed into Motion or Final Cut for finishing.
 
@@ -305,6 +314,8 @@ Implemented now:
 - declarative scene arrays
 - local dev-server lifecycle
 - browser-shell composition presets
+- smoother cursor-led camera tracking
+- reusable output presets
 - MP4 + ProRes rendering
 - starter scaffold
 
@@ -312,5 +323,4 @@ Not implemented yet:
 
 - Remotion pipeline
 - transparent-alpha export
-- browser-frame compositing
 - timeline editor / scene DSL beyond the current script API

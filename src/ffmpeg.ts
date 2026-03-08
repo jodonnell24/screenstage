@@ -136,7 +136,7 @@ function buildFrameStatesFromCursor(
   config: LoadedMotionConfig,
   layout: CompositionLayout,
 ): FrameState[] {
-  return samples.map((sample) => {
+  const frames = samples.map((sample) => {
     const { cropHeight, cropWidth } = getCropSizeForZoom(
       config,
       layout,
@@ -151,6 +151,8 @@ function buildFrameStatesFromCursor(
       y: sample.y,
     };
   });
+
+  return smoothFrameStates(frames, config);
 }
 
 function buildFrameStatesFromCamera(
@@ -224,6 +226,122 @@ function buildNumericPoints(
       };
     }),
   };
+}
+
+function gaussianWeight(distanceMs: number, smoothingMs: number): number {
+  const sigma = Math.max(smoothingMs / 2, 1);
+  return Math.exp(-0.5 * Math.pow(distanceMs / sigma, 2));
+}
+
+function smoothSeries(
+  frames: FrameState[],
+  valueAt: (frame: FrameState) => number,
+  smoothingMs: number,
+): number[] {
+  if (frames.length <= 2 || smoothingMs <= 0) {
+    return frames.map(valueAt);
+  }
+
+  const windowMs = Math.max(smoothingMs * 2.5, 1);
+
+  return frames.map((frame, index) => {
+    let weightedTotal = 0;
+    let weightTotal = 0;
+
+    for (let neighborIndex = index; neighborIndex >= 0; neighborIndex -= 1) {
+      const neighbor = frames[neighborIndex];
+      const distanceMs = frame.timeMs - neighbor.timeMs;
+
+      if (distanceMs > windowMs) {
+        break;
+      }
+
+      const weight = gaussianWeight(distanceMs, smoothingMs);
+      weightedTotal += valueAt(neighbor) * weight;
+      weightTotal += weight;
+    }
+
+    for (
+      let neighborIndex = index + 1;
+      neighborIndex < frames.length;
+      neighborIndex += 1
+    ) {
+      const neighbor = frames[neighborIndex];
+      const distanceMs = neighbor.timeMs - frame.timeMs;
+
+      if (distanceMs > windowMs) {
+        break;
+      }
+
+      const weight = gaussianWeight(distanceMs, smoothingMs);
+      weightedTotal += valueAt(neighbor) * weight;
+      weightTotal += weight;
+    }
+
+    return weightTotal > 0 ? weightedTotal / weightTotal : valueAt(frame);
+  });
+}
+
+function stabilizePoints(
+  xValues: number[],
+  yValues: number[],
+  deadzonePx: number,
+): { xValues: number[]; yValues: number[] } {
+  if (xValues.length <= 1 || deadzonePx <= 0) {
+    return {
+      xValues: [...xValues],
+      yValues: [...yValues],
+    };
+  }
+
+  const stabilizedX = [xValues[0]];
+  const stabilizedY = [yValues[0]];
+
+  for (let index = 1; index < xValues.length; index += 1) {
+    const previousX = stabilizedX[index - 1];
+    const previousY = stabilizedY[index - 1];
+    const nextX = xValues[index];
+    const nextY = yValues[index];
+    const distance = Math.hypot(
+      nextX - previousX,
+      nextY - previousY,
+    );
+
+    if (distance < deadzonePx) {
+      stabilizedX.push(previousX);
+      stabilizedY.push(previousY);
+      continue;
+    }
+
+    stabilizedX.push(nextX);
+    stabilizedY.push(nextY);
+  }
+
+  return {
+    xValues: stabilizedX,
+    yValues: stabilizedY,
+  };
+}
+
+function smoothFrameStates(
+  frames: FrameState[],
+  config: LoadedMotionConfig,
+): FrameState[] {
+  if (frames.length <= 2) {
+    return frames;
+  }
+
+  const smoothingMs = config.camera.smoothingMs;
+  const deadzonePx = config.camera.deadzonePx;
+  const xValues = smoothSeries(frames, (frame) => frame.x, smoothingMs);
+  const yValues = smoothSeries(frames, (frame) => frame.y, smoothingMs);
+  const stabilized = stabilizePoints(xValues, yValues, deadzonePx);
+
+  return frames.map((frame, index) => ({
+    ...frame,
+    x: stabilized.xValues[index],
+    y: stabilized.yValues[index],
+  }));
 }
 
 function condensePoints(

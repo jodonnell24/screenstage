@@ -7,7 +7,43 @@ import type {
   LoadedMotionConfig,
   MotionConfig,
   OutputFormat,
+  OutputPreset,
 } from "./types.js";
+
+const OUTPUT_PRESETS: Record<
+  OutputPreset,
+  {
+    formats: OutputFormat[];
+    fps: number;
+    height: number;
+    width: number;
+  }
+> = {
+  "motion-edit": {
+    formats: ["mp4", "prores"],
+    fps: 30,
+    height: 1440,
+    width: 2560,
+  },
+  "release-hero": {
+    formats: ["mp4", "prores"],
+    fps: 30,
+    height: 1080,
+    width: 1920,
+  },
+  "social-square": {
+    formats: ["mp4"],
+    fps: 30,
+    height: 1080,
+    width: 1080,
+  },
+  "social-vertical": {
+    formats: ["mp4"],
+    fps: 30,
+    height: 1920,
+    width: 1080,
+  },
+};
 
 const DEFAULTS = {
   browser: {
@@ -15,7 +51,9 @@ const DEFAULTS = {
     slowMo: 0,
   },
   camera: {
+    deadzonePx: 18,
     padding: 96,
+    smoothingMs: 180,
     zoom: 1.65,
   },
   composition: {
@@ -33,10 +71,7 @@ const DEFAULTS = {
     preset: "studio-browser" as CompositionPreset,
   },
   output: {
-    fps: 30,
-    formats: ["mp4"] as OutputFormat[],
-    height: 1080,
-    width: 1920,
+    preset: "release-hero" as OutputPreset,
   },
   timing: {
     navigationTimeoutMs: 30_000,
@@ -52,6 +87,9 @@ const DEFAULTS = {
 };
 
 const VALID_OUTPUT_FORMATS = new Set<OutputFormat>(["mp4", "prores"]);
+const VALID_OUTPUT_PRESETS = new Set<OutputPreset>(
+  Object.keys(OUTPUT_PRESETS) as OutputPreset[],
+);
 const VALID_COMPOSITION_PRESETS = new Set<CompositionPreset>([
   "none",
   "studio-browser",
@@ -108,9 +146,17 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
       ? config.name.trim()
       : path.basename(absoluteConfigPath, path.extname(absoluteConfigPath));
 
-  const formats = config.output?.formats ?? DEFAULTS.output.formats;
+  const outputPreset = config.output?.preset ?? DEFAULTS.output.preset;
   const compositionPreset =
     config.composition?.preset ?? DEFAULTS.composition.preset;
+
+  assertCondition(
+    VALID_OUTPUT_PRESETS.has(outputPreset),
+    "Config output.preset must be 'release-hero', 'social-square', 'social-vertical', or 'motion-edit'.",
+  );
+
+  const presetOutput = OUTPUT_PRESETS[outputPreset];
+  const formats = config.output?.formats ?? presetOutput.formats;
 
   assertCondition(
     Array.isArray(formats) && formats.length > 0,
@@ -132,7 +178,10 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
       slowMo: config.browser?.slowMo ?? DEFAULTS.browser.slowMo,
     },
     camera: {
+      deadzonePx: config.camera?.deadzonePx ?? DEFAULTS.camera.deadzonePx,
       padding: config.camera?.padding ?? DEFAULTS.camera.padding,
+      smoothingMs:
+        config.camera?.smoothingMs ?? DEFAULTS.camera.smoothingMs,
       zoom: config.camera?.zoom ?? DEFAULTS.camera.zoom,
     },
     composition: {
@@ -179,10 +228,11 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
       : undefined,
     output: {
       dir: path.resolve(configDir, config.output?.dir ?? "output"),
-      fps: config.output?.fps ?? DEFAULTS.output.fps,
+      fps: config.output?.fps ?? presetOutput.fps,
       formats,
-      height: config.output?.height ?? DEFAULTS.output.height,
-      width: config.output?.width ?? DEFAULTS.output.width,
+      height: config.output?.height ?? presetOutput.height,
+      preset: outputPreset,
+      width: config.output?.width ?? presetOutput.width,
     },
     timing: {
       navigationTimeoutMs:

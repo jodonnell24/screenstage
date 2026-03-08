@@ -12,6 +12,11 @@ export type Size = {
 
 export type MouseButton = "left" | "middle" | "right";
 export type OutputFormat = "mp4" | "prores";
+export type OutputPreset =
+  | "release-hero"
+  | "social-square"
+  | "social-vertical"
+  | "motion-edit";
 export type CompositionPreset =
   | "none"
   | "studio-browser"
@@ -32,14 +37,17 @@ export type MotionConfig = {
   viewport?: Partial<Size>;
   output?: {
     dir?: string;
+    preset?: OutputPreset;
     width?: number;
     height?: number;
     fps?: number;
     formats?: OutputFormat[];
   };
   camera?: {
+    deadzonePx?: number;
     zoom?: number;
     padding?: number;
+    smoothingMs?: number;
   };
   composition?: {
     background?: {
@@ -81,7 +89,9 @@ export type LoadedMotionConfig = {
     slowMo: number;
   };
   camera: {
+    deadzonePx: number;
     padding: number;
+    smoothingMs: number;
     zoom: number;
   };
   composition: {
@@ -115,6 +125,7 @@ export type LoadedMotionConfig = {
     fps: number;
     formats: OutputFormat[];
     height: number;
+    preset: OutputPreset;
     width: number;
   };
   timing: {

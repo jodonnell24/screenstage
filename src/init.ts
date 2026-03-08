@@ -18,10 +18,7 @@ const CONFIG_TEMPLATE = `export default {
   },
   output: {
     dir: "./output",
-    width: 1920,
-    height: 1080,
-    fps: 30,
-    formats: ["mp4", "prores"],
+    preset: "release-hero",
   },
   camera: {
     zoom: 1.7,

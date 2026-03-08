@@ -19,6 +19,7 @@ export type {
   MotionScene,
   MotionConfig,
   OutputFormat,
+  OutputPreset,
   Point,
   SceneProgram,
   Size,
