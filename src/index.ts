@@ -9,6 +9,7 @@ export type {
   CameraMode,
   CameraController,
   CameraFocusOptions,
+  CompositionCaptionAlign,
   CompositionLayout,
   CompositionPreset,
   CameraSample,

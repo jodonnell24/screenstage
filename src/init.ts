@@ -27,6 +27,12 @@ const CONFIG_TEMPLATE = `export default {
   },
   composition: {
     preset: "studio-browser",
+    // Optional launch/feature label rendered outside the browser frame:
+    // caption: {
+    //   eyebrow: "Spring Release",
+    //   title: "Inventory Automation",
+    //   align: "top-left",
+    // },
   },
   browser: {
     headless: true,

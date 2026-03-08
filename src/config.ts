@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url";
 
 import type {
   CameraMode,
+  CompositionCaptionAlign,
   CompositionPreset,
   DemoModule,
   LoadedMotionConfig,
@@ -69,6 +70,11 @@ const DEFAULTS = {
       showAddressBar: true,
       showTrafficLights: true,
       toolbarHeight: 56,
+    },
+    caption: {
+      align: "top-left" as CompositionCaptionAlign,
+      eyebrow: undefined,
+      title: undefined,
     },
     preset: "studio-browser" as CompositionPreset,
   },
@@ -218,6 +224,21 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
         toolbarHeight:
           config.composition?.browser?.toolbarHeight ??
           DEFAULTS.composition.browser.toolbarHeight,
+      },
+      caption: {
+        align:
+          config.composition?.caption?.align ??
+          DEFAULTS.composition.caption.align,
+        eyebrow:
+          typeof config.composition?.caption?.eyebrow === "string" &&
+          config.composition.caption.eyebrow.trim().length > 0
+            ? config.composition.caption.eyebrow.trim()
+            : undefined,
+        title:
+          typeof config.composition?.caption?.title === "string" &&
+          config.composition.caption.title.trim().length > 0
+            ? config.composition.caption.title.trim()
+            : undefined,
       },
       preset: compositionPreset,
     },

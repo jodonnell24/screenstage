@@ -22,6 +22,7 @@ export type CompositionPreset =
   | "none"
   | "studio-browser"
   | "spotlight-browser";
+export type CompositionCaptionAlign = "bottom-left" | "top-left";
 
 export type CursorSampleKind = "move" | "wait" | "click";
 export type CameraSampleKind = "focus" | "wait";
@@ -62,6 +63,11 @@ export type MotionConfig = {
       showAddressBar?: boolean;
       showTrafficLights?: boolean;
       toolbarHeight?: number;
+    };
+    caption?: {
+      align?: CompositionCaptionAlign;
+      eyebrow?: string;
+      title?: string;
     };
     preset?: CompositionPreset;
   };
@@ -108,6 +114,11 @@ export type LoadedMotionConfig = {
       showAddressBar: boolean;
       showTrafficLights: boolean;
       toolbarHeight: number;
+    };
+    caption: {
+      align: CompositionCaptionAlign;
+      eyebrow?: string;
+      title?: string;
     };
     preset: CompositionPreset;
   };

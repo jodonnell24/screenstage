@@ -125,6 +125,12 @@ export default {
   },
   composition: {
     preset: "studio-browser",
+    // Optional:
+    // caption: {
+    //   eyebrow: "Spring Release",
+    //   title: "Inventory Automation",
+    //   align: "top-left",
+    // },
   },
   browser: {
     headless: true,
@@ -148,6 +154,7 @@ export default {
 - `camera.smoothingMs` softens raw cursor-led camera tracking.
 - `camera.deadzonePx` prevents tiny cursor changes from nudging the camera.
 - `composition.preset` controls the presentation shell around the app capture.
+- `composition.caption` lets you add a simple release/feature label directly into the shell background.
 
 Current output presets:
 
@@ -161,6 +168,19 @@ Current composition presets:
 - `"none"`: raw full-frame render with no presentation shell
 - `"studio-browser"`: soft light background with polished browser chrome
 - `"spotlight-browser"`: darker, more cinematic presentation shell
+
+Caption example:
+
+```js
+composition: {
+  preset: "studio-browser",
+  caption: {
+    eyebrow: "Spring Release",
+    title: "Inventory Automation",
+    align: "top-left",
+  },
+}
+```
 
 For local apps you can add a `serve` block:
 
@@ -387,6 +407,7 @@ Implemented now:
 - declarative scene arrays
 - local dev-server lifecycle
 - browser-shell composition presets
+- composition caption cards
 - smoother cursor-led camera tracking
 - reusable output presets
 - reusable scene templates
