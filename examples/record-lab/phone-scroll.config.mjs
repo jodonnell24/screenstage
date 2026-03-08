@@ -1,7 +1,7 @@
 export default {
-  name: "record-lab-phone-scroll",
-  url: new URL("./demo-site/scroll-journey.html", import.meta.url).href,
-  demo: "./demo/manual-scroll.mjs",
+  name: "record-lab-phone-journey",
+  url: new URL("./demo-site/phone-journey.html", import.meta.url).href,
+  demo: "./demo/manual-phone.mjs",
   viewport: {
     width: 430,
     height: 932,
@@ -19,11 +19,11 @@ export default {
     preset: "studio-browser",
     device: "phone",
     background: {
-      colors: ["#f3ecdf", "#e7edf4", "#f1f5ed"],
-      angle: 126,
+      colors: ["#09131d", "#102638", "#14212f"],
+      angle: 144,
     },
     phone: {
-      color: "#10141a",
+      color: "#0b1117",
     },
   },
   browser: {

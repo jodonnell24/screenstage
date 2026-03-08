@@ -20,6 +20,13 @@ There is also a mobile-shell variant:
 npm run dev -- record ./examples/record-lab/phone-scroll.config.mjs
 ```
 
+That phone config now points at a dedicated mobile-first fixture rather than the desktop page in a phone shell. It is designed for:
+
+- sticky top controls and a narrow search path
+- thumb-sized tap targets in the middle
+- expandable lower-page proof blocks
+- a bottom CTA after a real vertical scroll
+
 This config is intentionally a little sharper than the default starter:
 
 - source viewport: `1728x1080`
