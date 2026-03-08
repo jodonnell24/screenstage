@@ -14,6 +14,8 @@ import type {
   MotionConfig,
   OutputFormat,
   OutputPreset,
+  SetupModule,
+  SetupQueryValue,
 } from "./types.js";
 
 const OUTPUT_PRESETS: Record<
@@ -227,6 +229,18 @@ function resolveBrowserDomain(url: string): string | undefined {
   }
 }
 
+function normalizeSetupQuery(
+  value: Record<string, SetupQueryValue> | undefined,
+): Record<string, SetupQueryValue> {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).filter(([key]) => key.trim().length > 0),
+  ) as Record<string, SetupQueryValue>;
+}
+
 export async function loadConfig(configPath: string): Promise<LoadedMotionConfig> {
   const absoluteConfigPath = path.resolve(configPath);
   const configModule = await import(pathToFileURL(absoluteConfigPath).href);
@@ -295,6 +309,11 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
       : DEFAULTS.browser.capture.fps);
   const browserCaptureJpegQuality =
     config.browser?.capture?.jpegQuality ?? DEFAULTS.browser.capture.jpegQuality;
+  const setupModulePath =
+    typeof config.setup?.module === "string" && config.setup.module.trim().length > 0
+      ? path.resolve(configDir, config.setup.module)
+      : undefined;
+  const setupQuery = normalizeSetupQuery(config.setup?.query);
 
   assertCondition(
     Array.isArray(formats) && formats.length > 0,
@@ -329,6 +348,12 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
   assertCondition(
     VALID_COMPOSITION_BROWSER_STYLES.has(compositionBrowserStyle),
     "Config composition.browser.style must be 'polished', 'minimal', or 'glass'.",
+  );
+  assertCondition(
+    !config.setup?.colorScheme ||
+      config.setup.colorScheme === "light" ||
+      config.setup.colorScheme === "dark",
+    "Config setup.colorScheme must be 'light' or 'dark'.",
   );
 
   return {
@@ -429,6 +454,53 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
           timeoutMs: config.serve.timeoutMs ?? DEFAULTS.serve.timeoutMs,
         }
       : undefined,
+    setup:
+      config.setup || setupModulePath
+        ? {
+            colorScheme: config.setup?.colorScheme,
+            cookies: Array.isArray(config.setup?.cookies)
+              ? config.setup.cookies
+              : [],
+            hash:
+              typeof config.setup?.hash === "string" &&
+              config.setup.hash.trim().length > 0
+                ? config.setup.hash.trim()
+                : undefined,
+            localStorage:
+              config.setup?.localStorage && typeof config.setup.localStorage === "object"
+                ? config.setup.localStorage
+                : {},
+            modulePath: setupModulePath,
+            query: setupQuery,
+            route:
+              typeof config.setup?.route === "string" &&
+              config.setup.route.trim().length > 0
+                ? config.setup.route.trim()
+                : undefined,
+            sessionStorage:
+              config.setup?.sessionStorage &&
+              typeof config.setup.sessionStorage === "object"
+                ? config.setup.sessionStorage
+                : {},
+            waitFor:
+              config.setup?.waitFor?.selector || config.setup?.waitFor?.text
+                ? {
+                    selector:
+                      typeof config.setup.waitFor?.selector === "string" &&
+                      config.setup.waitFor.selector.trim().length > 0
+                        ? config.setup.waitFor.selector.trim()
+                        : undefined,
+                    text:
+                      typeof config.setup.waitFor?.text === "string" &&
+                      config.setup.waitFor.text.trim().length > 0
+                        ? config.setup.waitFor.text.trim()
+                        : undefined,
+                    timeoutMs:
+                      config.setup?.waitFor?.timeoutMs ?? DEFAULTS.timing.navigationTimeoutMs,
+                  }
+                : undefined,
+          }
+        : undefined,
     output: {
       dir: path.resolve(configDir, config.output?.dir ?? "output"),
       fps: config.output?.fps ?? presetOutput.fps,
@@ -460,6 +532,20 @@ export async function loadDemoModule(demoPath: string): Promise<DemoModule> {
   );
 
   return demoModule as DemoModule;
+}
+
+export async function loadSetupModule(
+  setupModulePath: string,
+): Promise<SetupModule> {
+  const absoluteSetupPath = path.resolve(setupModulePath);
+  const setupModule = await import(pathToFileURL(absoluteSetupPath).href);
+
+  assertCondition(
+    typeof setupModule.default === "function",
+    "Setup module must export a default async function.",
+  );
+
+  return setupModule as SetupModule;
 }
 
 export function defineConfig(config: MotionConfig): MotionConfig {

@@ -186,6 +186,7 @@ export default {
 - `browser.studio.controlsWidth` and `browser.studio.padding` tune that wrapper layout.
 - `browser.capture.mode` controls manual recording fidelity:
   `video` is the stable default, `balanced` is a higher-fidelity middle tier, and `rgb-frames` is the highest-quality but heaviest option.
+- `setup` lets you put the app into the right pre-record state before capture starts.
 
 Current camera presets:
 
@@ -276,6 +277,64 @@ Camera preset example:
 camera: {
   preset: "lazy-follow",
   zoom: 1.45,
+}
+```
+
+## Setup Hooks
+
+`setup` is the pre-capture state layer. It is meant for getting a real app into the right browser state before recording starts, not for editing the final video.
+
+Declarative example:
+
+```js
+setup: {
+  route: "/docs/palette-lab",
+  query: {
+    mode: "dark",
+    panel: "tokens",
+  },
+  colorScheme: "dark",
+  localStorage: {
+    "duotone:theme": "dark",
+    "duotone:last-tab": "tokens",
+  },
+  sessionStorage: {
+    "motion:capture": "true",
+  },
+  waitFor: {
+    selector: "[data-ready='true']",
+    timeoutMs: 10000,
+  },
+},
+```
+
+Optional hook module:
+
+```js
+setup: {
+  module: "./demo/setup-app.mjs",
+},
+```
+
+Setup modules export a default async function and receive:
+
+- `config`
+- `context`
+- `page`
+- `target`
+- `sessionDir`
+- `url`
+
+`target` is the actual app surface:
+- the page itself in normal captures
+- the embedded app frame in studio mode
+
+Example:
+
+```js
+export default async function setup({ target }) {
+  await target.click("[data-demo='open-auth-bypass']");
+  await target.waitForSelector("[data-demo='dashboard']");
 }
 ```
 

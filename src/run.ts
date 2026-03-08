@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import type { BrowserContext } from "playwright";
 import { chromium } from "playwright";
 
 import { DemoCameraController } from "./camera-controller.js";
@@ -17,6 +18,14 @@ import {
 } from "./ffmpeg.js";
 import { runScenes } from "./scenes.js";
 import { startManagedService } from "./serve.js";
+import {
+  applyContextSetup,
+  applyPageEmulation,
+  applyPageSetup,
+  resolveCaptureUrl,
+} from "./setup.js";
+
+type StorageState = Awaited<ReturnType<BrowserContext["storageState"]>>;
 
 function stamp(): string {
   return new Date().toISOString().replaceAll(":", "-");
@@ -25,6 +34,7 @@ function stamp(): string {
 export async function runMotion(configPath: string): Promise<void> {
   const config = await loadConfig(configPath);
   const demoModule = await loadDemoModule(config.demoPath);
+  const captureUrl = resolveCaptureUrl(config);
   const sessionName = `${config.name}-${stamp()}`;
   const sessionDir = path.join(config.output.dir, sessionName);
   const recordingsDir = path.join(sessionDir, "recordings");
@@ -40,15 +50,44 @@ export async function runMotion(configPath: string): Promise<void> {
     slowMo: config.browser.slowMo,
   });
 
+  let storageState: StorageState | undefined;
+
+  if (config.setup) {
+    const setupContext = await browser.newContext({
+      viewport: config.viewport,
+    });
+    await applyContextSetup(config, setupContext, captureUrl);
+    const setupPage = await setupContext.newPage();
+    await applyPageEmulation(config, setupPage);
+    setupPage.setDefaultNavigationTimeout(config.timing.navigationTimeoutMs);
+    await setupPage.goto(captureUrl, { waitUntil: "load" });
+    await applyPageSetup(
+      config,
+      setupContext,
+      setupPage,
+      setupPage,
+      sessionDir,
+      captureUrl,
+    );
+    storageState = await setupContext.storageState({
+      path: path.join(sessionDir, "setup-state.json"),
+    });
+    await setupPage.close();
+    await setupContext.close();
+  }
+
   const context = await browser.newContext({
+    ...(storageState ? { storageState } : {}),
     recordVideo: {
       dir: recordingsDir,
       size: config.viewport,
     },
     viewport: config.viewport,
   });
+  await applyContextSetup(config, context, captureUrl);
 
   const page = await context.newPage();
+  await applyPageEmulation(config, page);
   page.setDefaultNavigationTimeout(config.timing.navigationTimeoutMs);
 
   const initialPoint = {
@@ -84,7 +123,10 @@ export async function runMotion(configPath: string): Promise<void> {
 
   try {
     await installCursorOverlay(page);
-    await page.goto(config.url, { waitUntil: "load" });
+    await page.goto(captureUrl, { waitUntil: "load" });
+    await applyPageSetup(config, context, page, page, sessionDir, captureUrl, {
+      includeModule: false,
+    });
     await moveCursorOverlay(page, initialPoint.x, initialPoint.y);
 
     const demoContext = {
@@ -131,6 +173,7 @@ export async function runMotion(configPath: string): Promise<void> {
     JSON.stringify(
       {
         config,
+        captureUrl,
         demoProgramType: Array.isArray(demoModule.default) ? "scenes" : "function",
         ffmpegPlans,
         cameraSamples: camera.samples,

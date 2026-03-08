@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import type { Page } from "playwright";
+import type { BrowserContext, Page } from "playwright";
 import { chromium } from "playwright";
 
 import { prepareComposition } from "./composition.js";
@@ -25,9 +25,12 @@ import {
 } from "./manual-recorder.js";
 import { buildGeneratedDemoSource } from "./record-script.js";
 import { startManagedService } from "./serve.js";
+import { applyContextSetup, applyPageEmulation, applyPageSetup, resolveCaptureUrl } from "./setup.js";
 import { startStudioSession } from "./studio.js";
 import type { CameraSample, CursorSample, Point } from "./types.js";
 import { installCursorOverlay, moveCursorOverlay } from "./cursor-overlay.js";
+
+type StorageState = Awaited<ReturnType<BrowserContext["storageState"]>>;
 
 type RecordMotionOptions = {
   automation?: (
@@ -558,6 +561,7 @@ export async function recordMotion(
   options: RecordMotionOptions = {},
 ): Promise<void> {
   const config = await loadConfig(configPath);
+  const captureUrl = resolveCaptureUrl(config);
   const ffmpegAvailable = await commandExists("ffmpeg");
   const requestedCaptureMode = config.browser.capture.mode;
   const effectiveCaptureMode = ffmpegAvailable ? requestedCaptureMode : "video";
@@ -585,7 +589,8 @@ export async function recordMotion(
     sessionName,
   );
   const managedService = await startManagedService(config);
-  const studioSession = await startStudioSession(config);
+  const studioSession = await startStudioSession(config, captureUrl);
+  const navigationUrl = studioSession?.wrapperUrl ?? captureUrl;
 
   await fs.mkdir(recordingsDir, { recursive: true });
 
@@ -595,7 +600,55 @@ export async function recordMotion(
     slowMo: config.browser.slowMo,
   });
 
+  let storageState: StorageState | undefined;
+
+  if (config.setup) {
+    const setupContext = await browser.newContext({
+      viewport: studioSession?.viewport ?? config.viewport,
+    });
+    await applyContextSetup(config, setupContext, navigationUrl);
+    const setupPage = await setupContext.newPage();
+    await applyPageEmulation(config, setupPage);
+    setupPage.setDefaultNavigationTimeout(config.timing.navigationTimeoutMs);
+    await setupPage.goto(navigationUrl, { waitUntil: "load" });
+
+    if (studioSession) {
+      await setupPage.waitForSelector("#__motion_stage");
+      const setupFrame = setupPage.frame({ name: "motion-stage" });
+
+      if (!setupFrame) {
+        throw new Error("Studio mode could not find the embedded app frame during setup.");
+      }
+
+      await setupFrame.waitForLoadState("load");
+      await applyPageSetup(
+        config,
+        setupContext,
+        setupPage,
+        setupFrame,
+        sessionDir,
+        captureUrl,
+      );
+    } else {
+      await applyPageSetup(
+        config,
+        setupContext,
+        setupPage,
+        setupPage,
+        sessionDir,
+        captureUrl,
+      );
+    }
+
+    storageState = await setupContext.storageState({
+      path: path.join(sessionDir, "setup-state.json"),
+    });
+    await setupPage.close();
+    await setupContext.close();
+  }
+
   const context = await browser.newContext({
+    ...(storageState ? { storageState } : {}),
     ...(useFrameCapture
       ? {}
       : {
@@ -606,8 +659,10 @@ export async function recordMotion(
         }),
     viewport: studioSession?.viewport ?? config.viewport,
   });
+  await applyContextSetup(config, context, navigationUrl);
 
   const page = await context.newPage();
+  await applyPageEmulation(config, page);
   page.setDefaultNavigationTimeout(config.timing.navigationTimeoutMs);
 
   const initialPoint = {
@@ -621,7 +676,7 @@ export async function recordMotion(
   let frameCapture: ManualFrameCapture | undefined;
 
   try {
-    await page.goto(studioSession?.wrapperUrl ?? config.url, { waitUntil: "load" });
+    await page.goto(navigationUrl, { waitUntil: "load" });
 
     let controls: ManualRecorderControls;
 
@@ -634,6 +689,9 @@ export async function recordMotion(
       }
 
       await frame.waitForLoadState("load");
+      await applyPageSetup(config, context, page, frame, sessionDir, captureUrl, {
+        includeModule: false,
+      });
 
       await installCursorOverlay(frame);
       await moveCursorOverlay(frame, initialPoint.x, initialPoint.y);
@@ -680,6 +738,9 @@ export async function recordMotion(
         },
       });
     } else {
+      await applyPageSetup(config, context, page, page, sessionDir, captureUrl, {
+        includeModule: false,
+      });
       await installCursorOverlay(page);
       await moveCursorOverlay(page, initialPoint.x, initialPoint.y);
       if (useFrameCapture) {
@@ -806,6 +867,7 @@ export async function recordMotion(
     JSON.stringify(
       {
         config,
+        captureUrl,
         generatedDemoPath: editableGeneratedDemoPath,
         generatedSessionDemoPath: sessionGeneratedDemoPath,
         mode: "manual-record",

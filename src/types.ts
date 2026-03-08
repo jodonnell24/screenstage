@@ -1,4 +1,4 @@
-import type { Page } from "playwright";
+import type { BrowserContext, Page } from "playwright";
 import type { Frame } from "playwright";
 
 export type Point = {
@@ -41,6 +41,24 @@ export type CompositionBackgroundPreset =
   | "midnight-fade";
 export type CompositionBrowserStyle = "polished" | "minimal" | "glass";
 export type BrowserCaptureMode = "balanced" | "rgb-frames" | "video";
+export type SetupColorScheme = "light" | "dark";
+export type SetupCookie = {
+  domain?: string;
+  expires?: number;
+  httpOnly?: boolean;
+  name: string;
+  path?: string;
+  sameSite?: "Lax" | "None" | "Strict";
+  secure?: boolean;
+  url?: string;
+  value: string;
+};
+export type SetupQueryValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined;
 
 export type CursorSampleKind = "move" | "wait" | "click";
 export type CameraSampleKind = "focus" | "wait" | "follow";
@@ -119,6 +137,21 @@ export type MotionConfig = {
     shell?: string;
     timeoutMs?: number;
   };
+  setup?: {
+    colorScheme?: SetupColorScheme;
+    cookies?: SetupCookie[];
+    hash?: string;
+    localStorage?: Record<string, string>;
+    module?: string;
+    query?: Record<string, SetupQueryValue>;
+    route?: string;
+    sessionStorage?: Record<string, string>;
+    waitFor?: {
+      selector?: string;
+      text?: string;
+      timeoutMs?: number;
+    };
+  };
   timing?: {
     navigationTimeoutMs?: number;
     settleMs?: number;
@@ -185,6 +218,21 @@ export type LoadedMotionConfig = {
     readyText?: string;
     shell?: string;
     timeoutMs: number;
+  };
+  setup?: {
+    colorScheme?: SetupColorScheme;
+    cookies: SetupCookie[];
+    hash?: string;
+    localStorage: Record<string, string>;
+    modulePath?: string;
+    query: Record<string, SetupQueryValue>;
+    route?: string;
+    sessionStorage: Record<string, string>;
+    waitFor?: {
+      selector?: string;
+      text?: string;
+      timeoutMs: number;
+    };
   };
   output: {
     dir: string;
@@ -504,6 +552,19 @@ export type FfmpegPlan = {
 export type CaptureRegion = Size & Point;
 
 export type EvaluatedPageTarget = Page | Frame;
+
+export type SetupContext = {
+  config: LoadedMotionConfig;
+  context: BrowserContext;
+  page: Page;
+  sessionDir: string;
+  target: EvaluatedPageTarget;
+  url: string;
+};
+
+export type SetupModule = {
+  default: (context: SetupContext) => Promise<void>;
+};
 
 export type CompositionLayout = {
   assetPath?: string;

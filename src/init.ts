@@ -133,6 +133,11 @@ const RECORDING_PLACEHOLDER_TEMPLATE = `export default async function demo({ cam
 }
 `;
 
+const SETUP_PLACEHOLDER_TEMPLATE = `export default async function setup({ target }) {
+  await target.waitForSelector("body");
+}
+`;
+
 const HTML_TEMPLATE = `<!doctype html>
 <html lang="en">
   <head>
@@ -651,6 +656,14 @@ function buildConfigSource(answers: InitAnswers): string {
     );
   }
 
+  if (answers.projectKind === "local-app") {
+    lines.push(
+      "  setup: {",
+      '    module: "./demo/setup-app.mjs",',
+      "  },",
+    );
+  }
+
   lines.push("  timing: {", "    settleMs: 900,", "  },", "};", "");
   return lines.join("\n");
 }
@@ -754,6 +767,13 @@ async function writeGuidedProject(answers: InitAnswers): Promise<void> {
       ? DEMO_TEMPLATE
       : RECORDING_PLACEHOLDER_TEMPLATE,
   );
+
+  if (answers.projectKind === "local-app") {
+    await writeFileIfMissing(
+      path.join(targetDir, "demo", "setup-app.mjs"),
+      SETUP_PLACEHOLDER_TEMPLATE,
+    );
+  }
 
   if (answers.projectKind === "static-starter") {
     await writeFileIfMissing(

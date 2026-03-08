@@ -475,12 +475,13 @@ function copyResponseHeaders(response: Response, serverResponse: http.ServerResp
 
 export async function startStudioSession(
   config: LoadedMotionConfig,
+  targetUrlValue = config.url,
 ): Promise<StudioSession | undefined> {
   if (!config.browser.studio.enabled) {
     return undefined;
   }
 
-  const targetUrl = new URL(config.url);
+  const targetUrl = new URL(targetUrlValue);
   const layout = buildStudioLayout(config);
   const initialProxyPath = getInitialProxyPath(targetUrl);
   const fileResponder =
