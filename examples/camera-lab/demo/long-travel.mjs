@@ -6,11 +6,8 @@ export default async function demo({ cursor }) {
   await cursor.moveToSelector("[data-demo='search']", {
     camera: {
       follow: true,
-      followEnd: 0.92,
-      followStart: 0.12,
+      timingPreset: "late-arrival",
       zoomFrom: 1,
-      zoomEnd: 1,
-      zoomStart: 0.7,
       zoomTo: 1.75,
     },
     durationMs: 1700,
@@ -20,11 +17,8 @@ export default async function demo({ cursor }) {
   await cursor.moveToSelector("[data-demo='inspector-primary']", {
     camera: {
       follow: true,
-      followEnd: 0.82,
-      followStart: 0,
+      timingPreset: "depart-reveal",
       zoomFrom: 1.75,
-      zoomEnd: 0.34,
-      zoomStart: 0,
       zoomTo: 1.22,
     },
     durationMs: 1250,
@@ -34,6 +28,7 @@ export default async function demo({ cursor }) {
   await cursor.moveToSelector("[data-demo='inspector-primary']", {
     camera: {
       follow: true,
+      timingPreset: "continuous",
       zoomFrom: 1.22,
       zoomTo: 1.82,
     },
@@ -44,11 +39,9 @@ export default async function demo({ cursor }) {
   await cursor.moveToSelector("[data-demo='stat-left']", {
     camera: {
       follow: true,
+      timingPreset: "depart-reveal",
       followEnd: 0.88,
-      followStart: 0.08,
       zoomFrom: 1.82,
-      zoomEnd: 0.38,
-      zoomStart: 0,
       zoomTo: 1.18,
     },
     durationMs: 1380,
@@ -58,6 +51,7 @@ export default async function demo({ cursor }) {
   await cursor.moveToSelector("[data-demo='stat-left']", {
     camera: {
       follow: true,
+      timingPreset: "continuous",
       zoomFrom: 1.18,
       zoomTo: 1.58,
     },
@@ -68,11 +62,8 @@ export default async function demo({ cursor }) {
   await cursor.moveToSelector("[data-demo='inspector-secondary']", {
     camera: {
       follow: true,
-      followEnd: 0.82,
-      followStart: 0,
+      timingPreset: "depart-reveal",
       zoomFrom: 1.58,
-      zoomEnd: 0.42,
-      zoomStart: 0,
       zoomTo: 1.08,
     },
     durationMs: 1680,
@@ -82,6 +73,7 @@ export default async function demo({ cursor }) {
   await cursor.moveToSelector("[data-demo='inspector-secondary']", {
     camera: {
       follow: true,
+      timingPreset: "continuous",
       zoomFrom: 1.08,
       zoomTo: 1.42,
     },

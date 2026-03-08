@@ -2,6 +2,7 @@ import { performance } from "node:perf_hooks";
 
 import type { Page } from "playwright";
 
+import { resolveCameraMoveTiming } from "./camera-timing.js";
 import { clickCursorOverlay, moveCursorOverlay } from "./cursor-overlay.js";
 import { resolveLocatorCenter } from "./locator.js";
 import type {
@@ -107,10 +108,11 @@ export class DemoCursorController implements CursorController {
     const zoomFrom = options.camera?.zoomFrom ?? startingCamera?.zoom;
     const zoomTo =
       options.camera?.zoomTo ?? options.camera?.zoom ?? zoomFrom ?? startingCamera?.zoom;
-    const followStart = options.camera?.followStart ?? (cameraShouldFollow ? 0 : 1);
-    const followEnd = options.camera?.followEnd ?? 1;
-    const zoomStart = options.camera?.zoomStart ?? 0;
-    const zoomEnd = options.camera?.zoomEnd ?? 1;
+    const timing = resolveCameraMoveTiming(options.camera);
+    const followStart = cameraShouldFollow ? timing.followStart : 1;
+    const followEnd = cameraShouldFollow ? timing.followEnd : 1;
+    const zoomStart = timing.zoomStart;
+    const zoomEnd = timing.zoomEnd;
 
     for (let step = 1; step <= steps; step += 1) {
       const progress = easeInOutCubic(step / steps);

@@ -284,17 +284,22 @@ await cursor.moveToSelector("[data-demo='search']", {
   durationMs: 1600,
   camera: {
     follow: true,
-    followStart: 0.1,
-    followEnd: 0.92,
+    timingPreset: "late-arrival",
     zoomFrom: 1,
     zoomTo: 1.8,
-    zoomStart: 0.68,
-    zoomEnd: 1,
   },
 });
 ```
 
 `followStart` / `followEnd` and `zoomStart` / `zoomEnd` are normalized move-progress values from `0` to `1`.
+If you want the ratios explicitly, you can still override them on top of a preset.
+
+Built-in move timing presets:
+
+- `"continuous"`: follow and zoom through the whole move
+- `"late-arrival"`: stay wide through early travel, tighten near arrival
+- `"depart-reveal"`: pull out early as the cursor departs, then travel broader
+- `"settle"`: slower handoff suited to small local corrections or hover-heavy moves
 
 ## Scene API
 
@@ -329,11 +334,8 @@ export default [
     selector: "[data-demo='cta']",
     durationMs: 850,
     cameraFollow: true,
-    followStart: 0.15,
-    followEnd: 1,
+    timingPreset: "late-arrival",
     zoomFrom: 1,
-    zoomStart: 0.6,
-    zoomEnd: 1,
     zoomTo: 1.9,
   },
   {
@@ -432,6 +434,24 @@ export default createFeatureTour({
 - `cursor.typeSelector(selector, text, options)`
 - `cursor.wait(durationMs)`
 - `cursor.sample(kind)`
+
+You can also import move timing helpers directly:
+
+```js
+import { createCameraMoveTiming } from "motion-creator";
+
+await cursor.moveToSelector("[data-demo='search']", {
+  durationMs: 1600,
+  camera: {
+    follow: true,
+    zoomFrom: 1,
+    zoomTo: 1.8,
+    ...createCameraMoveTiming("late-arrival", {
+      followEnd: 0.96,
+    }),
+  },
+});
+```
 
 ### Camera Helpers
 

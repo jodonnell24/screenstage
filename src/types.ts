@@ -18,6 +18,11 @@ export type CameraPreset =
   | "tight-follow"
   | "lazy-follow"
   | "static";
+export type CameraMoveTimingPreset =
+  | "continuous"
+  | "late-arrival"
+  | "depart-reveal"
+  | "settle";
 export type OutputPreset =
   | "release-hero"
   | "social-square"
@@ -155,6 +160,7 @@ export type CursorMoveOptions = {
     follow?: boolean;
     followEnd?: number;
     followStart?: number;
+    timingPreset?: CameraMoveTimingPreset;
     zoom?: number;
     zoomFrom?: number;
     zoomEnd?: number;
@@ -194,6 +200,13 @@ export type CameraZoomOptions = {
   durationMs?: number;
   followCursor?: boolean;
   point?: Point;
+};
+
+export type CameraMoveTiming = {
+  followEnd?: number;
+  followStart?: number;
+  zoomEnd?: number;
+  zoomStart?: number;
 };
 
 export type CursorController = {
@@ -263,6 +276,7 @@ export type MotionScene =
       cameraFollow?: boolean;
       followEnd?: number;
       followStart?: number;
+      timingPreset?: CameraMoveTimingPreset;
       durationMs?: number;
       selector: string;
       steps?: number;
@@ -277,6 +291,7 @@ export type MotionScene =
       cameraFollow?: boolean;
       followEnd?: number;
       followStart?: number;
+      timingPreset?: CameraMoveTimingPreset;
       durationMs?: number;
       point: Point;
       steps?: number;
@@ -355,6 +370,7 @@ export type FeatureTourStep = {
   steps?: number;
   submit?: boolean;
   text?: string;
+  timingPreset?: CameraMoveTimingPreset;
   typingDelayMs?: number;
   typingDurationMs?: number;
   zoomFrom?: number;

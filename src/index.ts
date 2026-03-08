@@ -1,3 +1,7 @@
+export {
+  CAMERA_MOVE_TIMINGS,
+  createCameraMoveTiming,
+} from "./camera-timing.js";
 export { defineConfig } from "./config.js";
 export { defineScenes } from "./scenes.js";
 export {
@@ -7,6 +11,8 @@ export {
 } from "./templates.js";
 export type {
   CameraMode,
+  CameraMoveTiming,
+  CameraMoveTimingPreset,
   CameraController,
   CameraFocusOptions,
   CameraZoomOptions,
