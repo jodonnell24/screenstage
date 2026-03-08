@@ -140,10 +140,11 @@ export default {
     preset: "studio-browser",
     device: "desktop",
     background: {
-      colors: ["#eef4ef", "#e7edf5"],
+      preset: "soft-studio",
     },
     browser: {
       domain: "app.example.com",
+      style: "polished",
     },
   },
   browser: {
@@ -178,7 +179,9 @@ export default {
 - `composition.preset` controls the presentation shell around the app capture.
 - `composition.device` controls whether that shell is a desktop browser or a phone frame.
 - `composition.background.colors` and `composition.background.angle` control the shell background.
+- `composition.background.preset` gives you named backdrop looks without hand-picking gradient stops.
 - `composition.browser.domain` sets the label shown in the browser address bar.
+- `composition.browser.style` changes the desktop browser chrome mood.
 - `browser.studio.enabled` wraps local targets in a same-origin studio shell so the recorder controls sit outside the captured app stage.
 - `browser.studio.controlsWidth` and `browser.studio.padding` tune that wrapper layout.
 - `browser.capture.mode` controls manual recording fidelity:
@@ -216,14 +219,27 @@ composition: {
   preset: "studio-browser",
   device: "desktop",
   background: {
-    colors: ["#f6eadf", "#d9e8f6"],
-    angle: 120,
+    preset: "warm-editor",
   },
   browser: {
     domain: "launch.example.com",
+    style: "glass",
   },
 }
 ```
+
+Background presets:
+
+- `"soft-studio"`: airy neutral green-blue backdrop
+- `"warm-editor"`: warmer editorial paper-and-sky mix
+- `"cool-stage"`: cooler product-launch backdrop
+- `"midnight-fade"`: dark cinematic stage
+
+Browser styles:
+
+- `"polished"`: balanced default with fuller chrome and depth
+- `"minimal"`: quieter shell with less glow and ornament
+- `"glass"`: brighter, more luminous shell treatment
 
 Phone shell example:
 

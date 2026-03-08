@@ -5,6 +5,8 @@ import type {
   BrowserCaptureMode,
   CameraMode,
   CameraPreset,
+  CompositionBackgroundPreset,
+  CompositionBrowserStyle,
   CompositionDevice,
   CompositionPreset,
   DemoModule,
@@ -116,6 +118,7 @@ const DEFAULTS = {
     background: {
       angle: 135,
       colors: ["#eef4ef", "#e7edf5"],
+      preset: "soft-studio" as CompositionBackgroundPreset,
     },
     device: "desktop" as CompositionDevice,
     browser: {
@@ -123,6 +126,7 @@ const DEFAULTS = {
       padding: 72,
       radius: 28,
       showAddressBar: true,
+      style: "polished" as CompositionBrowserStyle,
       showTrafficLights: true,
       toolbarHeight: 56,
     },
@@ -166,6 +170,17 @@ const VALID_COMPOSITION_PRESETS = new Set<CompositionPreset>([
 const VALID_COMPOSITION_DEVICES = new Set<CompositionDevice>([
   "desktop",
   "phone",
+]);
+const VALID_COMPOSITION_BACKGROUND_PRESETS = new Set<CompositionBackgroundPreset>([
+  "soft-studio",
+  "warm-editor",
+  "cool-stage",
+  "midnight-fade",
+]);
+const VALID_COMPOSITION_BROWSER_STYLES = new Set<CompositionBrowserStyle>([
+  "polished",
+  "minimal",
+  "glass",
 ]);
 const VALID_BROWSER_CAPTURE_MODES = new Set<BrowserCaptureMode>([
   "balanced",
@@ -242,6 +257,11 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
     config.composition?.preset ?? DEFAULTS.composition.preset;
   const compositionDevice =
     config.composition?.device ?? DEFAULTS.composition.device;
+  const compositionBackgroundPreset =
+    config.composition?.background?.preset ??
+    DEFAULTS.composition.background.preset;
+  const compositionBrowserStyle =
+    config.composition?.browser?.style ?? DEFAULTS.composition.browser.style;
   const cameraPreset = config.camera?.preset ?? DEFAULTS.camera.preset;
   assertCondition(
     !config.camera?.preset || VALID_CAMERA_PRESETS.has(config.camera.preset),
@@ -302,6 +322,14 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
     VALID_COMPOSITION_DEVICES.has(compositionDevice),
     "Config composition.device must be 'desktop' or 'phone'.",
   );
+  assertCondition(
+    VALID_COMPOSITION_BACKGROUND_PRESETS.has(compositionBackgroundPreset),
+    "Config composition.background.preset must be 'soft-studio', 'warm-editor', 'cool-stage', or 'midnight-fade'.",
+  );
+  assertCondition(
+    VALID_COMPOSITION_BROWSER_STYLES.has(compositionBrowserStyle),
+    "Config composition.browser.style must be 'polished', 'minimal', or 'glass'.",
+  );
 
   return {
     browser: {
@@ -343,6 +371,7 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
         colors:
           config.composition?.background?.colors ??
           DEFAULTS.composition.background.colors,
+        preset: compositionBackgroundPreset,
       },
       device: compositionDevice,
       browser: {
@@ -360,6 +389,7 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
         showAddressBar:
           config.composition?.browser?.showAddressBar ??
           DEFAULTS.composition.browser.showAddressBar,
+        style: compositionBrowserStyle,
         showTrafficLights:
           config.composition?.browser?.showTrafficLights ??
           DEFAULTS.composition.browser.showTrafficLights,

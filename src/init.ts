@@ -44,10 +44,11 @@ const CONFIG_TEMPLATE = `export default {
   composition: {
     preset: "studio-browser",
     background: {
-      colors: ["#eef4ef", "#e7edf5"],
+      preset: "soft-studio",
     },
     browser: {
       domain: "app.example.com",
+      style: "polished",
     },
   },
   browser: {
@@ -623,10 +624,11 @@ function buildConfigSource(answers: InitAnswers): string {
     '    preset: "studio-browser",',
     `    device: ${quote(answers.device)},`,
     "    background: {",
-    '      colors: ["#eef4ef", "#e7edf5"],',
+    `      preset: ${quote(answers.projectKind === "local-app" ? "cool-stage" : "soft-studio")},`,
     "    },",
     "    browser: {",
-    `      domain: ${quote(domain ?? "app.example.com")},`,
+      `      domain: ${quote(domain ?? "app.example.com")},`,
+    `      style: ${quote(answers.projectKind === "local-app" ? "glass" : "polished")},`,
     "    },",
     "  },",
     "  browser: {",

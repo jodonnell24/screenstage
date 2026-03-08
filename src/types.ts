@@ -34,6 +34,12 @@ export type CompositionPreset =
   | "studio-browser"
   | "spotlight-browser";
 export type CompositionDevice = "desktop" | "phone";
+export type CompositionBackgroundPreset =
+  | "soft-studio"
+  | "warm-editor"
+  | "cool-stage"
+  | "midnight-fade";
+export type CompositionBrowserStyle = "polished" | "minimal" | "glass";
 export type BrowserCaptureMode = "balanced" | "rgb-frames" | "video";
 
 export type CursorSampleKind = "move" | "wait" | "click";
@@ -70,6 +76,7 @@ export type MotionConfig = {
     background?: {
       angle?: number;
       colors?: string[];
+      preset?: CompositionBackgroundPreset;
     };
     device?: CompositionDevice;
     browser?: {
@@ -77,6 +84,7 @@ export type MotionConfig = {
       padding?: number;
       radius?: number;
       showAddressBar?: boolean;
+      style?: CompositionBrowserStyle;
       showTrafficLights?: boolean;
       toolbarHeight?: number;
     };
@@ -146,6 +154,7 @@ export type LoadedMotionConfig = {
     background: {
       angle: number;
       colors: string[];
+      preset: CompositionBackgroundPreset;
     };
     device: CompositionDevice;
     browser: {
@@ -153,6 +162,7 @@ export type LoadedMotionConfig = {
       padding: number;
       radius: number;
       showAddressBar: boolean;
+      style: CompositionBrowserStyle;
       showTrafficLights: boolean;
       toolbarHeight: number;
     };

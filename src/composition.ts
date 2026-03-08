@@ -215,11 +215,69 @@ function getPresetColors(config: LoadedMotionConfig): string[] {
     return config.composition.background.colors;
   }
 
+  switch (config.composition.background.preset) {
+    case "warm-editor":
+      return ["#f4e3d5", "#eedfd7", "#dae8f2"];
+    case "cool-stage":
+      return ["#e4eef7", "#dfe9f4", "#dce7e1"];
+    case "midnight-fade":
+      return ["#141c27", "#223346", "#d3c8b8"];
+    case "soft-studio":
+    default:
+      break;
+  }
+
   if (config.composition.preset === "spotlight-browser") {
     return ["#151d24", "#243748", "#dfd5c5"];
   }
 
   return ["#eef4ef", "#e7edf5"];
+}
+
+function getDesktopChromeStyle(config: LoadedMotionConfig): {
+  accentPlateOpacity: number;
+  browserFill: string;
+  chromeFill: string;
+  toolbarGlowOpacity: number;
+  topSheenOpacity: number;
+  utilityDotsOpacity: number;
+  windowShadowOpacity: number;
+} {
+  switch (config.composition.browser.style) {
+    case "glass":
+      return {
+        accentPlateOpacity: 0.16,
+        browserFill: "#fbfdff",
+        chromeFill: "#f4f8fc",
+        toolbarGlowOpacity: 0.32,
+        topSheenOpacity: 0.86,
+        utilityDotsOpacity: 0.44,
+        windowShadowOpacity: 0.22,
+      };
+    case "minimal":
+      return {
+        accentPlateOpacity: 0.08,
+        browserFill: "#ffffff",
+        chromeFill: "#f7f9fc",
+        toolbarGlowOpacity: 0.14,
+        topSheenOpacity: 0.42,
+        utilityDotsOpacity: 0.22,
+        windowShadowOpacity: 0.12,
+      };
+    case "polished":
+    default:
+      return {
+        accentPlateOpacity: 0.12,
+        browserFill:
+          config.composition.preset === "spotlight-browser" ? "#f5f7fb" : "#ffffff",
+        chromeFill:
+          config.composition.preset === "spotlight-browser" ? "#eef2f7" : "#f8fafc",
+        toolbarGlowOpacity: 0.22,
+        topSheenOpacity: 0.74,
+        utilityDotsOpacity: 0.38,
+        windowShadowOpacity: 0.18,
+      };
+  }
 }
 
 function buildContentHolePath(layout: CompositionLayout, radius: number): string {
@@ -261,10 +319,9 @@ function buildDesktopCompositionSvg(
   const addressBarLabel = config.composition.browser.domain?.trim();
   const toolbarCenterY = windowY + toolbarHeight / 2;
   const toolbarGlowHeight = Math.max(toolbarHeight * 0.72, 24);
-  const browserFill =
-    config.composition.preset === "spotlight-browser" ? "#f5f7fb" : "#ffffff";
-  const chromeFill =
-    config.composition.preset === "spotlight-browser" ? "#eef2f7" : "#f8fafc";
+  const chromeStyle = getDesktopChromeStyle(config);
+  const browserFill = chromeStyle.browserFill;
+  const chromeFill = chromeStyle.chromeFill;
 
   const backgroundStops =
     colors.length === 1
@@ -348,7 +405,7 @@ function buildDesktopCompositionSvg(
       <stop offset="100%" stop-color="#eef3f9" stop-opacity="0.92"/>
     </linearGradient>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
-      <feDropShadow dx="0" dy="40" stdDeviation="34" flood-color="#152332" flood-opacity="0.18"/>
+      <feDropShadow dx="0" dy="40" stdDeviation="34" flood-color="#152332" flood-opacity="${formatNumber(chromeStyle.windowShadowOpacity)}"/>
       <feDropShadow dx="0" dy="14" stdDeviation="12" flood-color="#152332" flood-opacity="0.1"/>
     </filter>
     <filter id="softBlur" x="-20%" y="-20%" width="140%" height="140%">
@@ -386,12 +443,12 @@ function buildDesktopCompositionSvg(
       height="${formatNumber(windowHeight * 0.42)}"
       rx="${formatNumber(Math.max(radius - 1, 0))}"
       fill="url(#windowSheen)"
-      fill-opacity="0.74"
+      fill-opacity="${formatNumber(chromeStyle.topSheenOpacity)}"
     />
 
     <path
       d="M ${formatNumber(windowX + radius)} ${formatNumber(windowY)} H ${formatNumber(windowX + windowWidth - radius)} A ${formatNumber(radius)} ${formatNumber(radius)} 0 0 1 ${formatNumber(windowX + windowWidth)} ${formatNumber(windowY + radius)} V ${formatNumber(windowY + toolbarHeight)} H ${formatNumber(windowX)} V ${formatNumber(windowY + radius)} A ${formatNumber(radius)} ${formatNumber(radius)} 0 0 1 ${formatNumber(windowX + radius)} ${formatNumber(windowY)} Z"
-      fill="url(#toolbarWash)"
+      fill="${chromeFill}"
       fill-opacity="0.98"
     />
 
@@ -402,7 +459,7 @@ function buildDesktopCompositionSvg(
       height="${formatNumber(toolbarGlowHeight)}"
       rx="${formatNumber(toolbarGlowHeight / 2)}"
       fill="#ffffff"
-      fill-opacity="0.22"
+      fill-opacity="${formatNumber(chromeStyle.toolbarGlowOpacity)}"
     />
 
     <path
@@ -429,11 +486,11 @@ function buildDesktopCompositionSvg(
       height="${formatNumber(24)}"
       rx="12"
       fill="#6f8195"
-      fill-opacity="0.12"
+      fill-opacity="${formatNumber(chromeStyle.accentPlateOpacity)}"
     />
-    <circle cx="${formatNumber(windowX + windowWidth - 92)}" cy="${formatNumber(toolbarCenterY)}" r="3" fill="#6f8195" fill-opacity="0.38"/>
-    <circle cx="${formatNumber(windowX + windowWidth - 76)}" cy="${formatNumber(toolbarCenterY)}" r="3" fill="#6f8195" fill-opacity="0.3"/>
-    <circle cx="${formatNumber(windowX + windowWidth - 60)}" cy="${formatNumber(toolbarCenterY)}" r="3" fill="#6f8195" fill-opacity="0.22"/>
+    <circle cx="${formatNumber(windowX + windowWidth - 92)}" cy="${formatNumber(toolbarCenterY)}" r="3" fill="#6f8195" fill-opacity="${formatNumber(chromeStyle.utilityDotsOpacity)}"/>
+    <circle cx="${formatNumber(windowX + windowWidth - 76)}" cy="${formatNumber(toolbarCenterY)}" r="3" fill="#6f8195" fill-opacity="${formatNumber(chromeStyle.utilityDotsOpacity * 0.8)}"/>
+    <circle cx="${formatNumber(windowX + windowWidth - 60)}" cy="${formatNumber(toolbarCenterY)}" r="3" fill="#6f8195" fill-opacity="${formatNumber(chromeStyle.utilityDotsOpacity * 0.58)}"/>
 
     <rect
       x="${formatNumber(windowX + 0.5)}"
