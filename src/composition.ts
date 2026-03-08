@@ -41,9 +41,6 @@ function degreesToGradientPoint(angle: number): {
 function fitBrowserWindow(config: LoadedMotionConfig): CompositionLayout {
   const outputWidth = config.output.width;
   const outputHeight = config.output.height;
-  const hasCaption =
-    typeof config.composition.caption.title === "string" ||
-    typeof config.composition.caption.eyebrow === "string";
 
   if (config.composition.preset === "none") {
     return {
@@ -60,17 +57,8 @@ function fitBrowserWindow(config: LoadedMotionConfig): CompositionLayout {
 
   const padding = config.composition.browser.padding;
   const toolbarHeight = config.composition.browser.toolbarHeight;
-  const captionReserve =
-    hasCaption && config.composition.caption.align === "top-left"
-      ? 140
-      : 0;
-  const bottomCaptionReserve =
-    hasCaption && config.composition.caption.align === "bottom-left"
-      ? 140
-      : 0;
   const availableWidth = outputWidth - padding * 2;
-  const availableHeight =
-    outputHeight - padding * 2 - captionReserve - bottomCaptionReserve;
+  const availableHeight = outputHeight - padding * 2;
   const sourceAspect = config.viewport.width / config.viewport.height;
 
   let windowWidth = availableWidth;
@@ -85,9 +73,7 @@ function fitBrowserWindow(config: LoadedMotionConfig): CompositionLayout {
 
   const contentWidth = windowWidth;
   const windowX = (outputWidth - windowWidth) / 2;
-  const windowY =
-    captionReserve +
-    (outputHeight - captionReserve - bottomCaptionReserve - windowHeight) / 2;
+  const windowY = (outputHeight - windowHeight) / 2;
 
   return {
     contentHeight: Math.round(contentHeight),
@@ -135,84 +121,6 @@ function buildContentHolePath(layout: CompositionLayout, radius: number): string
   ].join(" ");
 }
 
-function buildCaptionMarkup(config: LoadedMotionConfig, layout: CompositionLayout): string {
-  const title = config.composition.caption.title?.trim();
-  const eyebrow = config.composition.caption.eyebrow?.trim();
-
-  if (!title && !eyebrow) {
-    return "";
-  }
-
-  const isSpotlight = config.composition.preset === "spotlight-browser";
-  const panelWidth = Math.min(Math.max(layout.outputWidth * 0.24, 320), 460);
-  const eyebrowHeight = eyebrow ? 22 : 0;
-  const titleHeight = title ? 44 : 0;
-  const panelHeight = 44 + eyebrowHeight + titleHeight;
-  const margin = Math.max(config.composition.browser.padding, 56);
-  const x = margin;
-  const y =
-    config.composition.caption.align === "bottom-left"
-      ? layout.outputHeight - panelHeight - margin
-      : margin;
-  const panelFill = isSpotlight ? "#10202d" : "#ffffff";
-  const panelFillOpacity = isSpotlight ? "0.84" : "0.82";
-  const textFill = isSpotlight ? "#f7fbff" : "#182126";
-  const textMuted = isSpotlight ? "#96adbf" : "#5f6a6f";
-  const accentFill = isSpotlight ? "#7be0c6" : "#1f8f72";
-
-  return `
-    <g filter="url(#shadow)">
-      <rect
-        x="${formatNumber(x)}"
-        y="${formatNumber(y)}"
-        width="${formatNumber(panelWidth)}"
-        height="${formatNumber(panelHeight)}"
-        rx="24"
-        fill="${panelFill}"
-        fill-opacity="${panelFillOpacity}"
-      />
-      ${
-        eyebrow
-          ? `
-      <text
-        x="${formatNumber(x + 28)}"
-        y="${formatNumber(y + 34)}"
-        fill="${accentFill}"
-        font-family="DejaVu Sans, Arial, sans-serif"
-        font-size="14"
-        font-weight="700"
-        letter-spacing="1.8"
-      >${escapeXml(eyebrow.toUpperCase())}</text>
-      `
-          : ""
-      }
-      ${
-        title
-          ? `
-      <text
-        x="${formatNumber(x + 28)}"
-        y="${formatNumber(y + (eyebrow ? 74 : 56))}"
-        fill="${textFill}"
-        font-family="DejaVu Sans, Arial, sans-serif"
-        font-size="32"
-        font-weight="700"
-      >${escapeXml(title)}</text>
-      `
-          : ""
-      }
-      <text
-        x="${formatNumber(x + panelWidth - 28)}"
-        y="${formatNumber(y + panelHeight - 20)}"
-        fill="${textMuted}"
-        font-family="DejaVu Sans, Arial, sans-serif"
-        font-size="12"
-        font-weight="600"
-        text-anchor="end"
-      >motion-creator</text>
-    </g>
-  `;
-}
-
 function buildCompositionSvg(
   config: LoadedMotionConfig,
   layout: CompositionLayout,
@@ -227,11 +135,11 @@ function buildCompositionSvg(
   const windowWidth = layout.windowWidth!;
   const windowHeight = layout.windowHeight!;
   const holePath = buildContentHolePath(layout, radius);
-  const captionMarkup = buildCaptionMarkup(config, layout);
   const addressBarWidth = windowWidth * 0.38;
   const addressBarHeight = Math.max(18, toolbarHeight * 0.34);
   const addressBarX = windowX + (windowWidth - addressBarWidth) / 2;
   const addressBarY = windowY + (toolbarHeight - addressBarHeight) / 2;
+  const addressBarLabel = config.composition.browser.domain?.trim();
 
   const backgroundStops =
     colors.length === 1
@@ -270,6 +178,20 @@ function buildCompositionSvg(
         fill="#5e6d80"
         fill-opacity="0.52"
       />
+      ${
+        addressBarLabel
+          ? `
+      <text
+        x="${formatNumber(addressBarX + 28)}"
+        y="${formatNumber(addressBarY + addressBarHeight / 2 + 4.5)}"
+        fill="#6b7789"
+        font-family="DejaVu Sans, Arial, sans-serif"
+        font-size="12"
+        font-weight="600"
+      >${escapeXml(addressBarLabel)}</text>
+      `
+          : ""
+      }
     `
     : "";
 
@@ -326,7 +248,6 @@ function buildCompositionSvg(
 
     ${trafficLights}
     ${addressBar}
-    ${captionMarkup}
 
     <rect
       x="${formatNumber(windowX + 0.5)}"

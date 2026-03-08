@@ -1,4 +1,5 @@
 node_modules/
 dist/
 output/
+examples/template-showcases/renders/
 playwright/.cache/

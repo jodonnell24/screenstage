@@ -3,7 +3,6 @@ import { pathToFileURL } from "node:url";
 
 import type {
   CameraMode,
-  CompositionCaptionAlign,
   CompositionPreset,
   DemoModule,
   LoadedMotionConfig,
@@ -65,16 +64,12 @@ const DEFAULTS = {
       colors: ["#eef4ef", "#e7edf5"],
     },
     browser: {
+      domain: undefined,
       padding: 72,
       radius: 28,
       showAddressBar: true,
       showTrafficLights: true,
       toolbarHeight: 56,
-    },
-    caption: {
-      align: "top-left" as CompositionCaptionAlign,
-      eyebrow: undefined,
-      title: undefined,
     },
     preset: "studio-browser" as CompositionPreset,
   },
@@ -130,6 +125,20 @@ function asMotionConfig(moduleValue: unknown): MotionConfig {
   return candidate as MotionConfig;
 }
 
+function resolveBrowserDomain(url: string): string | undefined {
+  try {
+    const parsed = new URL(url);
+
+    if (parsed.protocol === "file:") {
+      return "local-preview";
+    }
+
+    return parsed.host || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function loadConfig(configPath: string): Promise<LoadedMotionConfig> {
   const absoluteConfigPath = path.resolve(configPath);
   const configModule = await import(pathToFileURL(absoluteConfigPath).href);
@@ -159,6 +168,7 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
   const compositionPreset =
     config.composition?.preset ?? DEFAULTS.composition.preset;
   const cameraMode = config.camera?.mode ?? DEFAULTS.camera.mode;
+  const defaultBrowserDomain = resolveBrowserDomain(config.url);
 
   assertCondition(
     VALID_OUTPUT_PRESETS.has(outputPreset),
@@ -209,6 +219,11 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
           DEFAULTS.composition.background.colors,
       },
       browser: {
+        domain:
+          typeof config.composition?.browser?.domain === "string" &&
+          config.composition.browser.domain.trim().length > 0
+            ? config.composition.browser.domain.trim()
+            : defaultBrowserDomain ?? DEFAULTS.composition.browser.domain,
         padding:
           config.composition?.browser?.padding ??
           DEFAULTS.composition.browser.padding,
@@ -224,21 +239,6 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
         toolbarHeight:
           config.composition?.browser?.toolbarHeight ??
           DEFAULTS.composition.browser.toolbarHeight,
-      },
-      caption: {
-        align:
-          config.composition?.caption?.align ??
-          DEFAULTS.composition.caption.align,
-        eyebrow:
-          typeof config.composition?.caption?.eyebrow === "string" &&
-          config.composition.caption.eyebrow.trim().length > 0
-            ? config.composition.caption.eyebrow.trim()
-            : undefined,
-        title:
-          typeof config.composition?.caption?.title === "string" &&
-          config.composition.caption.title.trim().length > 0
-            ? config.composition.caption.title.trim()
-            : undefined,
       },
       preset: compositionPreset,
     },
