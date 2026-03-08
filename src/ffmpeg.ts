@@ -398,6 +398,24 @@ function getFormatOutputPath(
   return `${sessionDir}/${settings.suffix}.${settings.extension}`;
 }
 
+function renderFfmpegArgs(args: string[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn("ffmpeg", args, {
+      stdio: "inherit",
+    });
+
+    child.once("error", (error) => reject(error));
+    child.once("exit", (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+
+      reject(new Error(`ffmpeg exited with code ${code ?? "unknown"}.`));
+    });
+  });
+}
+
 export function buildFfmpegPlans(
   sourcePath: string,
   sessionDir: string,
@@ -510,19 +528,57 @@ export function commandExists(command: string): Promise<boolean> {
 }
 
 export function renderWithFfmpeg(plan: FfmpegPlan): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const child = spawn("ffmpeg", plan.args, {
-      stdio: "inherit",
-    });
+  return renderFfmpegArgs(plan.args);
+}
 
-    child.once("error", (error) => reject(error));
-    child.once("exit", (code) => {
-      if (code === 0) {
-        resolve();
-        return;
-      }
+export async function renderPosterFrame(
+  sourcePath: string,
+  outputPath: string,
+  durationSeconds: number,
+): Promise<void> {
+  const timestampSeconds = Number(
+    Math.min(Math.max(durationSeconds * 0.35, 0.2), Math.max(durationSeconds - 0.2, 0.2))
+      .toFixed(3),
+  );
 
-      reject(new Error(`ffmpeg exited with code ${code ?? "unknown"}.`));
-    });
-  });
+  await renderFfmpegArgs([
+    "-y",
+    "-ss",
+    String(timestampSeconds),
+    "-i",
+    sourcePath,
+    "-update",
+    "1",
+    "-frames:v",
+    "1",
+    outputPath,
+  ]);
+}
+
+export async function renderContactSheet(
+  sourcePath: string,
+  outputPath: string,
+  durationSeconds: number,
+): Promise<void> {
+  const frameCount = 12;
+  const intervalSeconds = Math.max(durationSeconds / frameCount, 0.5);
+  const fpsExpression = `fps=1/${formatNumber(intervalSeconds)}`;
+  const filter = [
+    fpsExpression,
+    "scale=320:-1:flags=lanczos",
+    "tile=4x3:padding=18:margin=28:color=white",
+  ].join(",");
+
+  await renderFfmpegArgs([
+    "-y",
+    "-i",
+    sourcePath,
+    "-update",
+    "1",
+    "-frames:v",
+    "1",
+    "-vf",
+    filter,
+    outputPath,
+  ]);
 }

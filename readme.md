@@ -33,6 +33,7 @@ This is a Playwright + FFmpeg pipeline. It works with React apps and non-React w
   - a composed browser presentation shell with background and chrome presets
   - `mp4` for fast review/sharing
   - `prores` for Motion / Final Cut editing
+  - review artifacts like a poster frame and contact sheet
 
 Pipeline 2, the fully rendered Remotion approach, is still not implemented.
 
@@ -48,6 +49,12 @@ Install:
 npm install
 npx playwright install chromium
 ```
+
+## Open Source Readiness
+
+- The project is licensed under MIT. See [LICENSE](/home/jackie/projects/motion/LICENSE).
+- Basic contribution guidelines live in [CONTRIBUTING.md](/home/jackie/projects/motion/CONTRIBUTING.md).
+- CI runs `npm run check` and `npm run build` on pushes and pull requests.
 
 ## Quick Start
 
@@ -74,6 +81,8 @@ Each run creates a timestamped folder inside the configured output directory wit
 - `source.webm`
 - `final.mp4`
 - `final-prores.mov`
+- `poster.png`
+- `contact-sheet.png`
 - `timeline.json`
 
 ## CLI
@@ -316,6 +325,7 @@ Implemented now:
 - browser-shell composition presets
 - smoother cursor-led camera tracking
 - reusable output presets
+- poster frame + contact sheet review artifacts
 - MP4 + ProRes rendering
 - starter scaffold
 

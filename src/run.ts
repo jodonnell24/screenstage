@@ -8,7 +8,13 @@ import { prepareComposition } from "./composition.js";
 import { loadConfig, loadDemoModule } from "./config.js";
 import { DemoCursorController } from "./cursor-controller.js";
 import { installCursorOverlay, moveCursorOverlay } from "./cursor-overlay.js";
-import { buildFfmpegPlans, commandExists, renderWithFfmpeg } from "./ffmpeg.js";
+import {
+  buildFfmpegPlans,
+  commandExists,
+  renderContactSheet,
+  renderPosterFrame,
+  renderWithFfmpeg,
+} from "./ffmpeg.js";
 import { runScenes } from "./scenes.js";
 import { startManagedService } from "./serve.js";
 
@@ -133,6 +139,23 @@ export async function runMotion(configPath: string): Promise<void> {
       await renderWithFfmpeg(plan);
       console.log(`Rendered ${plan.format} video: ${plan.outputPath}`);
     }
+
+    const reviewSourcePath =
+      ffmpegPlans.find((plan) => plan.format === "mp4")?.outputPath ??
+      ffmpegPlans[0]?.outputPath;
+    const durationSeconds = ffmpegPlans[0]?.durationSeconds ?? 0;
+
+    if (reviewSourcePath && durationSeconds > 0) {
+      const posterPath = path.join(sessionDir, "poster.png");
+      const contactSheetPath = path.join(sessionDir, "contact-sheet.png");
+
+      await renderPosterFrame(reviewSourcePath, posterPath, durationSeconds);
+      console.log(`Rendered poster frame: ${posterPath}`);
+
+      await renderContactSheet(reviewSourcePath, contactSheetPath, durationSeconds);
+      console.log(`Rendered contact sheet: ${contactSheetPath}`);
+    }
+
     return;
   }
 
