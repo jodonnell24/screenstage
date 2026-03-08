@@ -12,8 +12,8 @@ export default {
     formats: ["mp4"],
   },
   camera: {
-    mode: "follow",
-    zoom: 1.8,
+    mode: "static",
+    zoom: 1,
   },
   composition: {
     preset: "studio-browser",

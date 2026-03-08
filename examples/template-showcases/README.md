@@ -2,6 +2,10 @@
 
 These examples use the shared starter site in [demo-site/index.html](/home/jackie/projects/motion/examples/template-showcases/demo-site/index.html) and save renders into `./renders/`.
 
+- `hero-walkthrough`: staged launch-style sequence with a wide open, focused conversion, and proof reveal
+- `feature-tour`: more kinetic product tour with camera-follow travel between UI regions
+- `form-fill`: static square form demo that keeps the whole browser shell in frame
+
 Run them with:
 
 ```bash

@@ -310,9 +310,9 @@ Supported scene types:
 
 The template helpers generate scene arrays for common release/demo flows:
 
-- `createFeatureTour()`: generic selector-by-selector product tour
-- `createFormFillCapture()`: form entry plus optional submit CTA
-- `createHeroWalkthrough()`: headline form-fill, CTA click, and optional proof-point pan
+- `createFeatureTour()`: a traveling product tour that can keep the camera attached to cursor moves between distant selectors
+- `createFormFillCapture()`: a steadier form-entry flow with optional submit, suited to static or lightly directed framing
+- `createHeroWalkthrough()`: a release-style sequence that opens wide, converts in the hero area, then reveals a proof point
 
 Example:
 
@@ -349,6 +349,7 @@ export default createFeatureTour({
     {
       selector: "[data-demo='card-2']",
       action: "move",
+      cameraFollow: true,
       zoom: 1.8,
       pauseMs: 900,
       pauseTarget: "camera",

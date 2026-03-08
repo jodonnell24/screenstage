@@ -44,27 +44,23 @@ function appendFeatureTourStep(
 
     case "move":
       scenes.push({
-        durationMs: step.handoffDurationMs ?? 250,
-        type: "follow-cursor",
-      });
-      scenes.push({
+        cameraFollow: step.cameraFollow ?? true,
         durationMs: step.moveDurationMs ?? 800,
         selector: step.selector,
         steps: step.steps,
         type: "move-selector",
+        zoom,
       });
       break;
 
     case "click":
       scenes.push({
-        durationMs: step.handoffDurationMs ?? 250,
-        type: "follow-cursor",
-      });
-      scenes.push({
+        cameraFollow: step.cameraFollow ?? false,
         durationMs: step.moveDurationMs ?? 800,
         selector: step.selector,
         steps: step.steps,
         type: "move-selector",
+        zoom,
       });
       scenes.push({
         delayMs: step.clickDelayMs,
@@ -118,79 +114,122 @@ export function createFeatureTour(options: FeatureTourOptions): SceneProgram {
 export function createFormFillCapture(
   options: FormFillCaptureOptions,
 ): SceneProgram {
-  const steps: FeatureTourStep[] = options.fields.map((field) => ({
-    action: "type",
-    label: field.label,
-    pauseMs: field.pauseMs ?? 250,
-    selector: field.selector,
-    submit: field.submit,
-    text: field.text,
-    typingDelayMs: field.typingDelayMs,
-    typingDurationMs: field.typingDurationMs,
-    zoom: field.zoom ?? 2,
-  }));
+  const scenes: MotionScene[] = [];
 
-  if (options.submitSelector) {
-    steps.push({
-      action: "click",
-      clickDelayMs: options.submitClickDelayMs,
-      moveDurationMs: options.submitMoveDurationMs ?? 850,
-      pauseMs: options.submitPauseMs ?? 900,
-      selector: options.submitSelector,
-      zoom: options.submitZoom ?? 1.8,
+  if (options.includeEstablishingShot !== false) {
+    scenes.push({
+      durationMs: options.establishDurationMs ?? 450,
+      label: "Frame the complete form before interacting",
+      type: "wide",
     });
   }
 
-  return createFeatureTour({
-    establishDurationMs: options.establishDurationMs,
-    includeEstablishingShot: options.includeEstablishingShot,
-    introPauseMs: options.introPauseMs,
-    outroPauseMs: options.outroPauseMs,
-    steps,
-  });
+  appendPause(scenes, options.introPauseMs ?? 350, "camera");
+
+  for (const field of options.fields) {
+    scenes.push({
+      durationMs: 550,
+      label: field.label ?? "Set up the field for typing",
+      selector: field.selector,
+      type: "focus-selector",
+      zoom: field.zoom ?? 1.85,
+    });
+    scenes.push({
+      delayMs: field.typingDelayMs ?? 85,
+      durationMs: field.typingDurationMs ?? 900,
+      selector: field.selector,
+      steps: 28,
+      submit: field.submit,
+      text: field.text,
+      type: "type-selector",
+    });
+    appendPause(scenes, field.pauseMs ?? 250);
+  }
+
+  if (options.submitSelector) {
+    scenes.push({
+      durationMs: 500,
+      label: "Frame the submit action",
+      selector: options.submitSelector,
+      type: "focus-selector",
+      zoom: options.submitZoom ?? 1.65,
+    });
+    scenes.push({
+      delayMs: options.submitClickDelayMs,
+      durationMs: options.submitMoveDurationMs ?? 750,
+      selector: options.submitSelector,
+      steps: 24,
+      type: "click-selector",
+    });
+  }
+
+  appendPause(scenes, options.submitPauseMs ?? options.outroPauseMs ?? 900, "both");
+  return scenes;
 }
 
 export function createHeroWalkthrough(
   options: HeroWalkthroughOptions,
 ): SceneProgram {
-  const steps: FeatureTourStep[] = [
+  const scenes: MotionScene[] = [
     {
-      action: "type",
-      label: "Fill the lead form",
-      pauseMs: 300,
-      selector: options.fieldSelector,
-      text: options.fieldText,
-      typingDelayMs: 75,
-      typingDurationMs: 900,
-      zoom: options.fieldZoom ?? 2,
-    },
-    {
-      action: "click",
-      label: "Commit the CTA",
-      moveDurationMs: options.ctaMoveDurationMs ?? 850,
-      pauseMs: options.metricSelector ? 850 : options.outroPauseMs ?? 1000,
-      selector: options.ctaSelector,
-      zoom: options.ctaZoom ?? 1.8,
+      durationMs: 600,
+      label: "Open on the full product frame",
+      type: "wide",
     },
   ];
 
+  appendPause(scenes, options.introPauseMs ?? 650, "camera");
+
+  scenes.push(
+    {
+      durationMs: 650,
+      label: "Move into the lead capture field",
+      selector: options.fieldSelector,
+      type: "focus-selector",
+      zoom: options.fieldZoom ?? 1.9,
+    },
+    {
+      durationMs: 1000,
+      label: "Fill the lead form",
+      selector: options.fieldSelector,
+      text: options.fieldText,
+      type: "type-selector",
+      delayMs: 75,
+      steps: 30,
+    },
+    {
+      durationMs: 550,
+      label: "Reframe to the CTA before committing",
+      selector: options.ctaSelector,
+      type: "focus-selector",
+      zoom: options.ctaZoom ?? 1.7,
+    },
+    {
+      durationMs: options.ctaMoveDurationMs ?? 700,
+      label: "Commit the CTA",
+      selector: options.ctaSelector,
+      steps: 22,
+      type: "click-selector",
+    },
+  );
+
   if (options.metricSelector) {
-    steps.push({
-      action: "move",
-      label: "Shift toward the supporting proof point",
-      moveDurationMs: options.metricMoveDurationMs ?? 900,
-      pauseMs: options.metricPauseMs ?? options.outroPauseMs ?? 800,
-      pauseTarget: "camera",
+    appendPause(scenes, 250, "both");
+    scenes.push({
+      durationMs: options.metricMoveDurationMs ?? 900,
+      label: "Reveal the supporting proof point",
       selector: options.metricSelector,
-      zoom: options.metricZoom ?? 1.8,
+      type: "focus-selector",
+      zoom: options.metricZoom ?? 1.65,
     });
+    appendPause(
+      scenes,
+      options.metricPauseMs ?? options.outroPauseMs ?? 900,
+      "camera",
+    );
+  } else {
+    appendPause(scenes, options.outroPauseMs ?? 1000, "camera");
   }
 
-  return createFeatureTour({
-    establishDurationMs: 400,
-    includeEstablishingShot: true,
-    introPauseMs: options.introPauseMs ?? 600,
-    outroPauseMs: 0,
-    steps,
-  });
+  return scenes;
 }
