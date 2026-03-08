@@ -1,4 +1,4 @@
-import type { Page } from "playwright";
+import type { EvaluatedPageTarget } from "./types.js";
 
 const CURSOR_OVERLAY_SCRIPT = `
 (() => {
@@ -286,17 +286,20 @@ const CURSOR_OVERLAY_SCRIPT = `
 })();
 `;
 
-export async function installCursorOverlay(page: Page): Promise<void> {
-  await page.addInitScript({ content: CURSOR_OVERLAY_SCRIPT });
-  await page.evaluate(CURSOR_OVERLAY_SCRIPT);
+export async function installCursorOverlay(target: EvaluatedPageTarget): Promise<void> {
+  if ("addInitScript" in target) {
+    await target.addInitScript({ content: CURSOR_OVERLAY_SCRIPT });
+  }
+
+  await target.evaluate(CURSOR_OVERLAY_SCRIPT);
 }
 
 export async function moveCursorOverlay(
-  page: Page,
+  target: EvaluatedPageTarget,
   x: number,
   y: number,
 ): Promise<void> {
-  await page.evaluate(
+  await target.evaluate(
     ({ nextX, nextY }) => {
       (
         window as Window & {
@@ -308,8 +311,8 @@ export async function moveCursorOverlay(
   );
 }
 
-export async function clickCursorOverlay(page: Page): Promise<void> {
-  await page.evaluate(() => {
+export async function clickCursorOverlay(target: EvaluatedPageTarget): Promise<void> {
+  await target.evaluate(() => {
     (
       window as Window & {
         __motionCursorOverlay?: { click: () => void };

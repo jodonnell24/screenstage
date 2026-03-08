@@ -9,18 +9,21 @@ import { loadConfig } from "./config.js";
 import {
   buildFfmpegPlans,
   commandExists,
+  cropVideoSource,
   renderContactSheet,
   renderPosterFrame,
   renderWithFfmpeg,
 } from "./ffmpeg.js";
 import {
   installManualRecorder,
+  installManualRecorderInFrame,
   type ManualRecorderControls,
   type RecordedMarker,
   type ManualRecording,
 } from "./manual-recorder.js";
 import { buildGeneratedDemoSource } from "./record-script.js";
 import { startManagedService } from "./serve.js";
+import { startStudioSession } from "./studio.js";
 import type { CameraSample, CursorSample, Point } from "./types.js";
 import { installCursorOverlay, moveCursorOverlay } from "./cursor-overlay.js";
 
@@ -550,6 +553,7 @@ export async function recordMotion(
   const sessionDir = path.join(config.output.dir, sessionName);
   const recordingsDir = path.join(sessionDir, "recordings");
   const sourceVideoPath = path.join(sessionDir, "source.webm");
+  const croppedSourceVideoPath = path.join(sessionDir, "source-stage.mp4");
   const recordingPath = path.join(sessionDir, "recording.json");
   const sessionGeneratedDemoPath = path.join(sessionDir, "generated-demo.mjs");
   const editableGeneratedDemoPath = buildGeneratedDemoFilePath(
@@ -557,6 +561,7 @@ export async function recordMotion(
     sessionName,
   );
   const managedService = await startManagedService(config);
+  const studioSession = await startStudioSession(config);
 
   await fs.mkdir(recordingsDir, { recursive: true });
 
@@ -569,9 +574,9 @@ export async function recordMotion(
   const context = await browser.newContext({
     recordVideo: {
       dir: recordingsDir,
-      size: config.viewport,
+      size: studioSession?.viewport ?? config.viewport,
     },
-    viewport: config.viewport,
+    viewport: studioSession?.viewport ?? config.viewport,
   });
 
   const page = await context.newPage();
@@ -587,25 +592,62 @@ export async function recordMotion(
   let controllerWindow: ManualControllerWindow | undefined;
 
   try {
-    await installCursorOverlay(page);
-    await page.goto(config.url, { waitUntil: "load" });
-    await moveCursorOverlay(page, initialPoint.x, initialPoint.y);
+    await page.goto(studioSession?.wrapperUrl ?? config.url, { waitUntil: "load" });
 
-    let controllerFocusRequested = false;
-    const controls = await installManualRecorder(page, {
-      onControlsFocusRequest: async () => {
-        controllerFocusRequested = true;
-        await controllerWindow?.focus();
-      },
-      onMarkerStatusChange: async (label) => {
-        await controllerWindow?.setLastCue(label);
-      },
-    });
-    controllerWindow = await openManualRecorderController(browser, controls, page);
+    let controls: ManualRecorderControls;
 
-    if (controllerFocusRequested) {
-      await controllerWindow.focus();
-      controllerFocusRequested = false;
+    if (studioSession) {
+      await page.waitForSelector("#__motion_stage");
+      const frame = page.frame({ name: "motion-stage" });
+
+      if (!frame) {
+        throw new Error("Studio mode could not find the embedded app frame.");
+      }
+
+      await frame.waitForLoadState("load");
+
+      await installCursorOverlay(frame);
+      await moveCursorOverlay(frame, initialPoint.x, initialPoint.y);
+      controls = await installManualRecorderInFrame(page, frame, {
+        onControlsFocusRequest: async () => {
+          await page.evaluate(() => {
+            (
+              window as Window & {
+                __motionStudioFocusControls?: () => void;
+              }
+            ).__motionStudioFocusControls?.();
+          });
+        },
+        onMarkerStatusChange: async (label) => {
+          await page.evaluate((value) => {
+            (
+              window as Window & {
+                __motionStudioSetLastCue?: (label: string) => void;
+              }
+            ).__motionStudioSetLastCue?.(value);
+          }, label);
+        },
+      });
+    } else {
+      await installCursorOverlay(page);
+      await moveCursorOverlay(page, initialPoint.x, initialPoint.y);
+
+      let controllerFocusRequested = false;
+      controls = await installManualRecorder(page, {
+        onControlsFocusRequest: async () => {
+          controllerFocusRequested = true;
+          await controllerWindow?.focus();
+        },
+        onMarkerStatusChange: async (label) => {
+          await controllerWindow?.setLastCue(label);
+        },
+      });
+      controllerWindow = await openManualRecorderController(browser, controls, page);
+
+      if (controllerFocusRequested) {
+        await controllerWindow.focus();
+        controllerFocusRequested = false;
+      }
     }
 
     if (options.automation) {
@@ -628,6 +670,7 @@ export async function recordMotion(
     await page.close();
     await context.close();
     await browser.close();
+    await studioSession?.stop().catch(() => undefined);
     await managedService?.stop();
   }
 
@@ -649,6 +692,15 @@ export async function recordMotion(
     return;
   }
 
+  const renderSourcePath = studioSession
+    ? (await cropVideoSource(
+        sourceVideoPath,
+        croppedSourceVideoPath,
+        studioSession.captureRegion,
+      ),
+      croppedSourceVideoPath)
+    : sourceVideoPath;
+
   const cursorSamples = withRenderableCursorSamples(
     recording,
     config.viewport.width,
@@ -663,7 +715,7 @@ export async function recordMotion(
 
   const compositionLayout = await prepareComposition(sessionDir, config);
   const ffmpegPlans = buildFfmpegPlans(
-    sourceVideoPath,
+    renderSourcePath,
     sessionDir,
     config,
     cursorSamples,
@@ -684,6 +736,13 @@ export async function recordMotion(
         cursorSamples,
         ffmpegPlans,
         compositionLayout,
+        studioSession: studioSession
+          ? {
+              captureRegion: studioSession.captureRegion,
+              viewport: studioSession.viewport,
+              wrapperUrl: studioSession.wrapperUrl,
+            }
+          : undefined,
       },
       null,
       2,
@@ -719,7 +778,7 @@ export async function recordMotion(
   }
 
   console.log("ffmpeg was not found on PATH. Generated plan only.");
-  console.log(`Source video: ${sourceVideoPath}`);
+  console.log(`Source video: ${renderSourcePath}`);
 
   for (const plan of ffmpegPlans) {
     console.log(`Planned ${plan.format} output: ${plan.outputPath}`);

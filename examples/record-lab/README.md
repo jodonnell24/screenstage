@@ -14,11 +14,15 @@ Use it with:
 npm run dev -- record ./examples/record-lab/scroll-journey.config.mjs
 ```
 
+That config now enables embedded studio mode, so the local page sits inside a wrapper and the recorder controls stay outside the captured stage.
+
 There is also a mobile-shell variant:
 
 ```bash
 npm run dev -- record ./examples/record-lab/phone-scroll.config.mjs
 ```
+
+The phone config also uses studio mode for the same reason: you can drive the app from an embedded local stage instead of having controls inside the recorded viewport.
 
 That phone config now points at a dedicated mobile-first fixture rather than the desktop page in a phone shell. It is designed for:
 

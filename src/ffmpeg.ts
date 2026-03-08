@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 
 import type {
   CameraSample,
+  CaptureRegion,
   CompositionLayout,
   CursorSample,
   FfmpegPlan,
@@ -668,6 +669,28 @@ export function commandExists(command: string): Promise<boolean> {
 
 export function renderWithFfmpeg(plan: FfmpegPlan): Promise<void> {
   return renderFfmpegArgs(plan.args);
+}
+
+export async function cropVideoSource(
+  sourcePath: string,
+  outputPath: string,
+  region: CaptureRegion,
+): Promise<void> {
+  await renderFfmpegArgs([
+    "-y",
+    "-i",
+    sourcePath,
+    "-vf",
+    `crop=${region.width}:${region.height}:${region.x}:${region.y}`,
+    "-c:v",
+    "libx264",
+    "-preset",
+    "veryfast",
+    "-crf",
+    "12",
+    "-an",
+    outputPath,
+  ]);
 }
 
 export async function renderPosterFrame(

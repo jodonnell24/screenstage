@@ -28,5 +28,8 @@ export default {
   },
   browser: {
     headless: true,
+    studio: {
+      enabled: true,
+    },
   },
 };

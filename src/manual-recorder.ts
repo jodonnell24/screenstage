@@ -1,4 +1,4 @@
-import type { Page } from "playwright";
+import type { Frame, Page } from "playwright";
 
 import type { CursorSample, MouseButton } from "./types.js";
 
@@ -58,6 +58,16 @@ export type ManualRecorderControls = {
 type ManualRecorderInstallOptions = {
   onControlsFocusRequest?: () => void | Promise<void>;
   onMarkerStatusChange?: (label: string) => void | Promise<void>;
+};
+
+type RecorderExportTarget = {
+  exportRecording: () => Promise<ManualRecording | undefined>;
+};
+
+type RecorderCommandTarget = {
+  cancel: () => Promise<void>;
+  finish: () => Promise<void>;
+  mark: (kind: ManualMarkerKind) => Promise<void>;
 };
 
 const RECORDER_SCRIPT = `
@@ -320,6 +330,15 @@ const RECORDER_SCRIPT = `
 
   const updateMarkerStatus = (label) => {
     window.__motionManualRecorderStatus?.(label);
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage(
+        {
+          type: "motion-recorder-status",
+          label,
+        },
+        "*",
+      );
+    }
   };
 
   const recordMarker = (kind) => {
@@ -379,6 +398,28 @@ const RECORDER_SCRIPT = `
       recordMarker("hold");
     }
   }, true);
+
+  window.addEventListener("message", (event) => {
+    const payload = event.data;
+
+    if (!payload || payload.type !== "motion-recorder-command") {
+      return;
+    }
+
+    if (payload.action === "wide" || payload.action === "follow" || payload.action === "hold") {
+      recordMarker(payload.action);
+      return;
+    }
+
+    if (payload.action === "finish") {
+      finish(false);
+      return;
+    }
+
+    if (payload.action === "cancel") {
+      finish(true);
+    }
+  });
 
   document.addEventListener("pointermove", (event) => {
     if (isInsideRecorderUi(event.target)) {
@@ -528,8 +569,10 @@ function normalizeRecording(recording: ManualRecording): ManualRecording {
   };
 }
 
-export async function installManualRecorder(
+async function createManualRecorderControls(
   page: Page,
+  exportTarget: RecorderExportTarget,
+  commandTarget: RecorderCommandTarget,
   options: ManualRecorderInstallOptions = {},
 ): Promise<ManualRecorderControls> {
   let finishResolver: ((recording: ManualRecording) => void) | undefined;
@@ -541,13 +584,7 @@ export async function installManualRecorder(
   await page.exposeFunction(
     "__motionManualRecorderNotify",
     async (cancelled: boolean) => {
-      const payload = await page.evaluate(() => {
-        return (
-          window as Window & {
-            __motionManualRecorder?: { export: () => ManualRecording };
-          }
-        ).__motionManualRecorder?.export();
-      });
+      const payload = await exportTarget.exportRecording();
 
       if (!payload) {
         throw new Error("Manual recorder payload was not available.");
@@ -571,39 +608,116 @@ export async function installManualRecorder(
     },
   );
 
-  await page.addInitScript({ content: RECORDER_SCRIPT });
-  await page.evaluate(RECORDER_SCRIPT);
-
   return {
     async cancel() {
-      await page.evaluate(() => {
-        (
-          window as Window & {
-            __motionManualRecorder?: { cancel: () => void };
-          }
-        ).__motionManualRecorder?.cancel();
-      });
+      await commandTarget.cancel();
     },
     async finish() {
-      await page.evaluate(() => {
-        (
-          window as Window & {
-            __motionManualRecorder?: { finish: () => void };
-          }
-        ).__motionManualRecorder?.finish();
-      });
+      await commandTarget.finish();
     },
     async mark(kind) {
-      await page.evaluate((markerKind) => {
-        (
-          window as Window & {
-            __motionManualRecorder?: { mark: (kind: ManualMarkerKind) => void };
-          }
-        ).__motionManualRecorder?.mark(markerKind);
-      }, kind);
+      await commandTarget.mark(kind);
     },
     async waitForFinish() {
       return finishPromise;
     },
   };
+}
+
+export async function installManualRecorder(
+  page: Page,
+  options: ManualRecorderInstallOptions = {},
+): Promise<ManualRecorderControls> {
+  await page.addInitScript({ content: RECORDER_SCRIPT });
+  await page.evaluate(RECORDER_SCRIPT);
+  const controls = await createManualRecorderControls(
+    page,
+    {
+      exportRecording: () =>
+        page.evaluate(() => {
+          return (
+            window as Window & {
+              __motionManualRecorder?: { export: () => ManualRecording };
+            }
+          ).__motionManualRecorder?.export();
+        }),
+    },
+    {
+      cancel: () =>
+        page.evaluate(() => {
+          (
+            window as Window & {
+              __motionManualRecorder?: { cancel: () => void };
+            }
+          ).__motionManualRecorder?.cancel();
+        }),
+      finish: () =>
+        page.evaluate(() => {
+          (
+            window as Window & {
+              __motionManualRecorder?: { finish: () => void };
+            }
+          ).__motionManualRecorder?.finish();
+        }),
+      mark: (kind) =>
+        page.evaluate((markerKind) => {
+          (
+            window as Window & {
+              __motionManualRecorder?: { mark: (kind: ManualMarkerKind) => void };
+            }
+          ).__motionManualRecorder?.mark(markerKind);
+        }, kind),
+    },
+    options,
+  );
+  return controls;
+}
+
+export async function installManualRecorderInFrame(
+  page: Page,
+  frame: Frame,
+  options: ManualRecorderInstallOptions = {},
+): Promise<ManualRecorderControls> {
+  await frame.evaluate(RECORDER_SCRIPT);
+  const controls = await createManualRecorderControls(
+    page,
+    {
+      exportRecording: () =>
+        frame.evaluate(() => {
+          return (
+            window as Window & {
+              __motionManualRecorder?: { export: () => ManualRecording };
+            }
+          ).__motionManualRecorder?.export();
+        }),
+    },
+    {
+      cancel: () =>
+        frame.evaluate(() => {
+          (
+            window as Window & {
+              __motionManualRecorder?: { cancel: () => void };
+            }
+          ).__motionManualRecorder?.cancel();
+        }),
+      finish: () =>
+        frame.evaluate(() => {
+          (
+            window as Window & {
+              __motionManualRecorder?: { finish: () => void };
+            }
+          ).__motionManualRecorder?.finish();
+        }),
+      mark: (kind) =>
+        frame.evaluate((markerKind) => {
+          (
+            window as Window & {
+              __motionManualRecorder?: { mark: (kind: ManualMarkerKind) => void };
+            }
+          ).__motionManualRecorder?.mark(markerKind);
+        }, kind),
+    },
+    options,
+  );
+  return controls;
 }

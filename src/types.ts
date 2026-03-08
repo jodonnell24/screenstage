@@ -1,4 +1,5 @@
 import type { Page } from "playwright";
+import type { Frame } from "playwright";
 
 export type Point = {
   x: number;
@@ -90,6 +91,11 @@ export type MotionConfig = {
     headless?: boolean;
     slowMo?: number;
     channel?: string;
+    studio?: {
+      controlsWidth?: number;
+      enabled?: boolean;
+      padding?: number;
+    };
   };
   serve?: {
     command: string;
@@ -110,6 +116,11 @@ export type LoadedMotionConfig = {
     channel?: string;
     headless: boolean;
     slowMo: number;
+    studio: {
+      controlsWidth: number;
+      enabled: boolean;
+      padding: number;
+    };
   };
   camera: {
     deadzonePx: number;
@@ -468,6 +479,10 @@ export type FfmpegPlan = {
   xExpression: string;
   yExpression: string;
 };
+
+export type CaptureRegion = Size & Point;
+
+export type EvaluatedPageTarget = Page | Frame;
 
 export type CompositionLayout = {
   assetPath?: string;

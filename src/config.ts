@@ -97,6 +97,11 @@ const DEFAULTS = {
   browser: {
     headless: true,
     slowMo: 0,
+    studio: {
+      controlsWidth: 340,
+      enabled: false,
+      padding: 28,
+    },
   },
   camera: {
     preset: "showcase-follow" as CameraPreset,
@@ -269,6 +274,16 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
       channel: config.browser?.channel,
       headless: config.browser?.headless ?? DEFAULTS.browser.headless,
       slowMo: config.browser?.slowMo ?? DEFAULTS.browser.slowMo,
+      studio: {
+        controlsWidth:
+          config.browser?.studio?.controlsWidth ??
+          DEFAULTS.browser.studio.controlsWidth,
+        enabled:
+          config.browser?.studio?.enabled ?? DEFAULTS.browser.studio.enabled,
+        padding:
+          config.browser?.studio?.padding ??
+          DEFAULTS.browser.studio.padding,
+      },
     },
     camera: {
       deadzonePx: config.camera?.deadzonePx ?? presetCamera.deadzonePx,

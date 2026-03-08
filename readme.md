@@ -111,6 +111,7 @@ npm run dev -- run ./demo-project/motion.config.mjs
 
 `init` is non-destructive. It only writes starter files that do not already exist.
 `record` opens a visible browser, lets you perform the flow manually, then writes an editable demo module alongside the raw capture artifacts.
+For local apps and local fixtures, you can enable embedded studio mode so the controls live outside the captured app stage instead of inside the page or in a separate popup.
 
 ## Config
 
@@ -145,6 +146,9 @@ export default {
   },
   browser: {
     headless: true,
+    studio: {
+      enabled: true,
+    },
   },
   timing: {
     settleMs: 900,
@@ -170,6 +174,8 @@ export default {
 - `composition.device` controls whether that shell is a desktop browser or a phone frame.
 - `composition.background.colors` and `composition.background.angle` control the shell background.
 - `composition.browser.domain` sets the label shown in the browser address bar.
+- `browser.studio.enabled` wraps local targets in a same-origin studio shell so the recorder controls sit outside the captured app stage.
+- `browser.studio.controlsWidth` and `browser.studio.padding` tune that wrapper layout.
 
 Current camera presets:
 
@@ -278,11 +284,13 @@ For manual recorder testing, especially wheel/scroll behavior, there is a dedica
 `record` is the non-programmatic capture path:
 
 1. Launch the target app in a visible Chromium window.
-2. Inject the polished cursor overlay and a small recorder HUD.
+2. Inject the polished cursor overlay and recorder controls.
 3. Perform the flow manually.
-4. Tag camera beats from the HUD while you record.
-5. Finish from the HUD or press `Alt+Shift+R`.
+4. Tag camera beats while you record.
+5. Finish from the controls or press `Alt+Shift+R`.
 6. Get an immediate rendered video plus an editable generated demo file.
+
+When `browser.studio.enabled` is on, the app is loaded inside a local wrapper page and only the iframe stage is recorded. That is the recommended setup for local dev tools because the controls stay outside the shot while still feeling integrated.
 
 Built-in shot markers:
 
