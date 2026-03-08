@@ -2,6 +2,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import type {
+  BrowserCaptureMode,
   CameraMode,
   CameraPreset,
   CompositionDevice,
@@ -95,6 +96,11 @@ const CAMERA_PRESETS: Record<
 
 const DEFAULTS = {
   browser: {
+    capture: {
+      fps: 15,
+      jpegQuality: 90,
+      mode: "balanced" as BrowserCaptureMode,
+    },
     headless: true,
     slowMo: 0,
     studio: {
@@ -160,6 +166,11 @@ const VALID_COMPOSITION_PRESETS = new Set<CompositionPreset>([
 const VALID_COMPOSITION_DEVICES = new Set<CompositionDevice>([
   "desktop",
   "phone",
+]);
+const VALID_BROWSER_CAPTURE_MODES = new Set<BrowserCaptureMode>([
+  "balanced",
+  "rgb-frames",
+  "video",
 ]);
 
 function assertCondition(
@@ -240,6 +251,8 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
   const presetCamera = CAMERA_PRESETS[resolvedCameraPreset];
   const cameraMode = config.camera?.mode ?? presetCamera.mode;
   const defaultBrowserDomain = resolveBrowserDomain(config.url);
+  const browserCaptureMode =
+    config.browser?.capture?.mode ?? DEFAULTS.browser.capture.mode;
 
   assertCondition(
     VALID_OUTPUT_PRESETS.has(outputPreset),
@@ -249,8 +262,19 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
     VALID_CAMERA_MODES.has(cameraMode),
     "Config camera.mode must be 'follow' or 'static'.",
   );
+  assertCondition(
+    VALID_BROWSER_CAPTURE_MODES.has(browserCaptureMode),
+    "Config browser.capture.mode must be 'balanced', 'rgb-frames', or 'video'.",
+  );
   const presetOutput = OUTPUT_PRESETS[outputPreset];
   const formats = config.output?.formats ?? presetOutput.formats;
+  const browserCaptureFps =
+    config.browser?.capture?.fps ??
+    (browserCaptureMode === "rgb-frames"
+      ? presetOutput.fps
+      : DEFAULTS.browser.capture.fps);
+  const browserCaptureJpegQuality =
+    config.browser?.capture?.jpegQuality ?? DEFAULTS.browser.capture.jpegQuality;
 
   assertCondition(
     Array.isArray(formats) && formats.length > 0,
@@ -259,6 +283,16 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
   assertCondition(
     formats.every((format) => VALID_OUTPUT_FORMATS.has(format)),
     "Config output.formats must only include 'mp4' or 'prores'.",
+  );
+  assertCondition(
+    Number.isFinite(browserCaptureFps) && browserCaptureFps > 0,
+    "Config browser.capture.fps must be a positive number.",
+  );
+  assertCondition(
+    Number.isFinite(browserCaptureJpegQuality) &&
+      browserCaptureJpegQuality >= 1 &&
+      browserCaptureJpegQuality <= 100,
+    "Config browser.capture.jpegQuality must be between 1 and 100.",
   );
   assertCondition(
     VALID_COMPOSITION_PRESETS.has(compositionPreset),
@@ -271,6 +305,11 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
 
   return {
     browser: {
+      capture: {
+        fps: browserCaptureFps,
+        jpegQuality: browserCaptureJpegQuality,
+        mode: browserCaptureMode,
+      },
       channel: config.browser?.channel,
       headless: config.browser?.headless ?? DEFAULTS.browser.headless,
       slowMo: config.browser?.slowMo ?? DEFAULTS.browser.slowMo,

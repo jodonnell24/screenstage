@@ -7,13 +7,18 @@ type ScreenshotTarget = {
   screenshot: (options: Record<string, unknown>) => Promise<Buffer>;
 };
 
+type CaptureImageFormat = "png" | "jpeg";
+
 export type CapturedFrame = {
+  format: CaptureImageFormat;
   path: string;
   timeMs: number;
 };
 
 type ManualFrameCaptureOptions = {
   fps: number;
+  format?: CaptureImageFormat;
+  jpegQuality?: number;
   outputDir: string;
   target: ScreenshotTarget;
 };
@@ -25,6 +30,10 @@ export class ManualFrameCapture {
 
   readonly #outputDir: string;
 
+  readonly #format: CaptureImageFormat;
+
+  readonly #jpegQuality: number;
+
   readonly #target: ScreenshotTarget;
 
   #active = false;
@@ -35,9 +44,17 @@ export class ManualFrameCapture {
 
   #startedAt = 0;
 
-  constructor({ fps, outputDir, target }: ManualFrameCaptureOptions) {
+  constructor({
+    fps,
+    format = "png",
+    jpegQuality = 90,
+    outputDir,
+    target,
+  }: ManualFrameCaptureOptions) {
     this.#fps = fps;
     this.#intervalMs = 1000 / Math.max(fps, 1);
+    this.#format = format;
+    this.#jpegQuality = jpegQuality;
     this.#outputDir = outputDir;
     this.#target = target;
   }
@@ -91,7 +108,7 @@ export class ManualFrameCapture {
   async #captureFrame(forcedTimeMs?: number): Promise<void> {
     const filePath = path.join(
       this.#outputDir,
-      `frame-${String(this.#frames.length).padStart(6, "0")}.png`,
+      `frame-${String(this.#frames.length).padStart(6, "0")}.${this.#format === "jpeg" ? "jpg" : "png"}`,
     );
 
     await this.#target.screenshot({
@@ -99,6 +116,14 @@ export class ManualFrameCapture {
       caret: "hide",
       path: filePath,
       scale: "device",
+      ...(this.#format === "jpeg"
+        ? {
+            quality: this.#jpegQuality,
+            type: "jpeg",
+          }
+        : {
+            type: "png",
+          }),
     });
 
     const previousTimeMs = this.#frames.at(-1)?.timeMs ?? 0;
@@ -106,6 +131,7 @@ export class ManualFrameCapture {
       forcedTimeMs ?? Math.max(performance.now() - this.#startedAt, previousTimeMs);
 
     this.#frames.push({
+      format: this.#format,
       path: filePath,
       timeMs: Math.max(measuredTimeMs, previousTimeMs),
     });

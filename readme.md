@@ -112,7 +112,7 @@ npm run dev -- run ./demo-project/motion.config.mjs
 ```
 
 `init` is non-destructive. It only writes starter files that do not already exist, and in a normal terminal it now asks a few setup questions instead of making you hand-author the config.
-`record` opens a visible browser, lets you perform the flow manually, then writes an editable demo module alongside the raw capture artifacts. When `ffmpeg` is available, manual recording now captures PNG frames and assembles an RGB intermediate source first, which preserves color and gradient-heavy UIs better than the older browser-video path.
+`record` opens a visible browser, lets you perform the flow manually, then writes an editable demo module alongside the raw capture artifacts. When `ffmpeg` is available, manual recording uses the `browser.capture.mode` pipeline. The default `balanced` mode captures JPEG frames into a higher-fidelity intermediate, which preserves color and gradient-heavy UIs better than the older browser-video path without the full cost of RGB frame capture.
 For local apps and local fixtures, you can enable embedded studio mode so the controls live outside the captured app stage instead of inside the page or in a separate popup.
 
 ## Config
@@ -147,6 +147,9 @@ export default {
     },
   },
   browser: {
+    capture: {
+      mode: "balanced",
+    },
     headless: true,
     studio: {
       enabled: true,
@@ -178,6 +181,8 @@ export default {
 - `composition.browser.domain` sets the label shown in the browser address bar.
 - `browser.studio.enabled` wraps local targets in a same-origin studio shell so the recorder controls sit outside the captured app stage.
 - `browser.studio.controlsWidth` and `browser.studio.padding` tune that wrapper layout.
+- `browser.capture.mode` controls manual recording fidelity:
+  `balanced` is the default middle tier, `rgb-frames` is highest quality, and `video` uses the old Playwright browser-video path.
 
 Current camera presets:
 
@@ -294,7 +299,10 @@ For manual recorder testing, especially wheel/scroll behavior, there is a dedica
 
 When `browser.studio.enabled` is on, the app is loaded inside a local wrapper page and only the iframe stage is recorded. That is the recommended setup for local dev tools because the controls stay outside the shot while still feeling integrated.
 
-On machines with `ffmpeg` installed, manual recordings are captured as PNG frame sequences and assembled into a lossless RGB intermediate before the final render. That path is slower than browser video capture, but it keeps saturated colors, soft gradients, and translucent surfaces much closer to the live app.
+On machines with `ffmpeg` installed, manual recordings use one of three paths:
+- `balanced`: JPEG frames plus a high-quality intermediate, which is the default
+- `rgb-frames`: PNG frames plus a lossless RGB intermediate for maximum fidelity
+- `video`: the older Playwright browser-video path
 
 Built-in shot markers:
 

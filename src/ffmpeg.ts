@@ -706,6 +706,7 @@ export async function assembleFramesToVideo(
     throw new Error("No captured frames were available to assemble.");
   }
 
+  const frameFormat = frames[0]!.format;
   const manifestPath = path.join(path.dirname(outputPath), "frames.ffconcat");
   const lines = ["ffconcat version 1.0"];
 
@@ -737,14 +738,27 @@ export async function assembleFramesToVideo(
     manifestPath,
     "-fps_mode",
     "vfr",
-    "-pix_fmt",
-    "rgb24",
-    "-c:v",
-    "libx264rgb",
-    "-preset",
-    "ultrafast",
-    "-crf",
-    "0",
+    ...(frameFormat === "png"
+      ? ([
+          "-pix_fmt",
+          "rgb24",
+          "-c:v",
+          "libx264rgb",
+          "-preset",
+          "ultrafast",
+          "-crf",
+          "0",
+        ] as const)
+      : ([
+          "-pix_fmt",
+          "yuv444p",
+          "-c:v",
+          "libx264",
+          "-preset",
+          "ultrafast",
+          "-crf",
+          "10",
+        ] as const)),
     "-an",
     outputPath,
   ]);

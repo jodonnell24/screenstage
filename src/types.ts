@@ -34,6 +34,7 @@ export type CompositionPreset =
   | "studio-browser"
   | "spotlight-browser";
 export type CompositionDevice = "desktop" | "phone";
+export type BrowserCaptureMode = "balanced" | "rgb-frames" | "video";
 
 export type CursorSampleKind = "move" | "wait" | "click";
 export type CameraSampleKind = "focus" | "wait" | "follow";
@@ -88,6 +89,11 @@ export type MotionConfig = {
     preset?: CompositionPreset;
   };
   browser?: {
+    capture?: {
+      fps?: number;
+      jpegQuality?: number;
+      mode?: BrowserCaptureMode;
+    };
     headless?: boolean;
     slowMo?: number;
     channel?: string;
@@ -113,6 +119,11 @@ export type MotionConfig = {
 
 export type LoadedMotionConfig = {
   browser: {
+    capture: {
+      fps: number;
+      jpegQuality: number;
+      mode: BrowserCaptureMode;
+    };
     channel?: string;
     headless: boolean;
     slowMo: number;

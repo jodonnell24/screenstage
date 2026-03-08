@@ -559,6 +559,15 @@ export async function recordMotion(
 ): Promise<void> {
   const config = await loadConfig(configPath);
   const ffmpegAvailable = await commandExists("ffmpeg");
+  const requestedCaptureMode = config.browser.capture.mode;
+  const effectiveCaptureMode = ffmpegAvailable ? requestedCaptureMode : "video";
+  const useFrameCapture = effectiveCaptureMode !== "video";
+
+  if (!ffmpegAvailable && requestedCaptureMode !== "video") {
+    console.warn(
+      `ffmpeg was not available, so record fell back to browser video capture instead of '${requestedCaptureMode}'.`,
+    );
+  }
   const sessionName = `${config.name}-${stamp()}`;
   const sessionDir = path.join(config.output.dir, sessionName);
   const recordingsDir = path.join(sessionDir, "recordings");
@@ -587,7 +596,7 @@ export async function recordMotion(
   });
 
   const context = await browser.newContext({
-    ...(ffmpegAvailable
+    ...(useFrameCapture
       ? {}
       : {
           recordVideo: {
@@ -605,7 +614,7 @@ export async function recordMotion(
     x: config.viewport.width / 2,
     y: config.viewport.height / 2,
   };
-  const video = ffmpegAvailable ? undefined : page.video();
+  const video = useFrameCapture ? undefined : page.video();
   let recording: ManualRecording | undefined;
   let automationError: unknown;
   let controllerWindow: ManualControllerWindow | undefined;
@@ -628,9 +637,11 @@ export async function recordMotion(
 
       await installCursorOverlay(frame);
       await moveCursorOverlay(frame, initialPoint.x, initialPoint.y);
-      if (ffmpegAvailable) {
+      if (useFrameCapture) {
         frameCapture = new ManualFrameCapture({
-          fps: config.output.fps,
+          format: effectiveCaptureMode === "rgb-frames" ? "png" : "jpeg",
+          fps: config.browser.capture.fps,
+          jpegQuality: config.browser.capture.jpegQuality,
           outputDir: framesDir,
           target: {
             screenshot: (options) =>
@@ -643,7 +654,6 @@ export async function recordMotion(
                   y: studioSession.captureRegion.y,
                 },
                 fullPage: false,
-                type: "png",
               }),
           },
         });
@@ -672,16 +682,17 @@ export async function recordMotion(
     } else {
       await installCursorOverlay(page);
       await moveCursorOverlay(page, initialPoint.x, initialPoint.y);
-      if (ffmpegAvailable) {
+      if (useFrameCapture) {
         frameCapture = new ManualFrameCapture({
-          fps: config.output.fps,
+          format: effectiveCaptureMode === "rgb-frames" ? "png" : "jpeg",
+          fps: config.browser.capture.fps,
+          jpegQuality: config.browser.capture.jpegQuality,
           outputDir: framesDir,
           target: {
             screenshot: (options) =>
               page.screenshot({
                 ...options,
                 fullPage: false,
-                type: "png",
               }),
           },
         });
@@ -757,7 +768,7 @@ export async function recordMotion(
   }
 
   const renderSourcePath =
-    ffmpegAvailable && frameCapture
+    useFrameCapture && frameCapture
       ? sourceVideoPath
       : studioSession
         ? (await cropVideoSource(
