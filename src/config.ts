@@ -1,7 +1,12 @@
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import type { DemoModule, LoadedMotionConfig, MotionConfig } from "./types.js";
+import type {
+  DemoModule,
+  LoadedMotionConfig,
+  MotionConfig,
+  OutputFormat,
+} from "./types.js";
 
 const DEFAULTS = {
   browser: {
@@ -13,8 +18,8 @@ const DEFAULTS = {
     zoom: 1.65,
   },
   output: {
-    codec: "libx264" as const,
     fps: 30,
+    formats: ["mp4"] as OutputFormat[],
     height: 1080,
     width: 1920,
   },
@@ -27,6 +32,8 @@ const DEFAULTS = {
     width: 1440,
   },
 };
+
+const VALID_OUTPUT_FORMATS = new Set<OutputFormat>(["mp4", "prores"]);
 
 function assertCondition(
   condition: unknown,
@@ -74,6 +81,17 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
       ? config.name.trim()
       : path.basename(absoluteConfigPath, path.extname(absoluteConfigPath));
 
+  const formats = config.output?.formats ?? DEFAULTS.output.formats;
+
+  assertCondition(
+    Array.isArray(formats) && formats.length > 0,
+    "Config output.formats must be a non-empty array.",
+  );
+  assertCondition(
+    formats.every((format) => VALID_OUTPUT_FORMATS.has(format)),
+    "Config output.formats must only include 'mp4' or 'prores'.",
+  );
+
   return {
     browser: {
       channel: config.browser?.channel,
@@ -89,9 +107,9 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
     demoPath,
     name,
     output: {
-      codec: config.output?.codec ?? DEFAULTS.output.codec,
       dir: path.resolve(configDir, config.output?.dir ?? "output"),
       fps: config.output?.fps ?? DEFAULTS.output.fps,
+      formats,
       height: config.output?.height ?? DEFAULTS.output.height,
       width: config.output?.width ?? DEFAULTS.output.width,
     },

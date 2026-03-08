@@ -3,10 +3,11 @@ import path from "node:path";
 
 import { chromium } from "playwright";
 
+import { DemoCameraController } from "./camera-controller.js";
 import { loadConfig, loadDemoModule } from "./config.js";
 import { DemoCursorController } from "./cursor-controller.js";
 import { installCursorOverlay, moveCursorOverlay } from "./cursor-overlay.js";
-import { buildFfmpegPlan, commandExists, renderWithFfmpeg } from "./ffmpeg.js";
+import { buildFfmpegPlans, commandExists, renderWithFfmpeg } from "./ffmpeg.js";
 
 function stamp(): string {
   return new Date().toISOString().replaceAll(":", "-");
@@ -19,7 +20,6 @@ export async function runMotion(configPath: string): Promise<void> {
   const sessionDir = path.join(config.output.dir, sessionName);
   const recordingsDir = path.join(sessionDir, "recordings");
   const sourceVideoPath = path.join(sessionDir, "source.webm");
-  const outputVideoPath = path.join(sessionDir, "final.mp4");
 
   await fs.mkdir(recordingsDir, { recursive: true });
 
@@ -49,6 +49,15 @@ export async function runMotion(configPath: string): Promise<void> {
     initialPoint,
     page,
   });
+  const camera = new DemoCameraController({
+    getCursorPoint: () => cursor.current,
+    initialState: {
+      ...initialPoint,
+      zoom: config.camera.zoom,
+    },
+    page,
+    viewportCenter: initialPoint,
+  });
 
   const video = page.video();
 
@@ -58,6 +67,7 @@ export async function runMotion(configPath: string): Promise<void> {
     await moveCursorOverlay(page, initialPoint.x, initialPoint.y);
 
     await demoModule.default({
+      camera,
       config,
       cursor,
       page,
@@ -79,11 +89,12 @@ export async function runMotion(configPath: string): Promise<void> {
 
   await fs.rename(recordedVideoPath, sourceVideoPath);
 
-  const ffmpegPlan = buildFfmpegPlan(
+  const ffmpegPlans = buildFfmpegPlans(
     sourceVideoPath,
-    outputVideoPath,
+    sessionDir,
     config,
     cursor.samples,
+    camera.samples,
   );
 
   await fs.writeFile(
@@ -91,7 +102,8 @@ export async function runMotion(configPath: string): Promise<void> {
     JSON.stringify(
       {
         config,
-        ffmpegPlan,
+        ffmpegPlans,
+        cameraSamples: camera.samples,
         samples: cursor.samples,
       },
       null,
@@ -101,13 +113,18 @@ export async function runMotion(configPath: string): Promise<void> {
   );
 
   if (await commandExists("ffmpeg")) {
-    await renderWithFfmpeg(ffmpegPlan);
-    console.log(`Rendered final video: ${outputVideoPath}`);
+    for (const plan of ffmpegPlans) {
+      await renderWithFfmpeg(plan);
+      console.log(`Rendered ${plan.format} video: ${plan.outputPath}`);
+    }
     return;
   }
 
   console.log("ffmpeg was not found on PATH. Generated plan only.");
   console.log(`Source video: ${sourceVideoPath}`);
-  console.log(`Planned output: ${outputVideoPath}`);
-  console.log(`Run manually: ffmpeg ${ffmpegPlan.args.join(" ")}`);
+
+  for (const plan of ffmpegPlans) {
+    console.log(`Planned ${plan.format} output: ${plan.outputPath}`);
+    console.log(`Run manually: ffmpeg ${plan.args.join(" ")}`);
+  }
 }

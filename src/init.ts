@@ -14,6 +14,7 @@ const CONFIG_TEMPLATE = `export default {
     width: 1920,
     height: 1080,
     fps: 30,
+    formats: ["mp4", "prores"],
   },
   camera: {
     zoom: 1.7,
@@ -28,19 +29,35 @@ const CONFIG_TEMPLATE = `export default {
 };
 `;
 
-const DEMO_TEMPLATE = `export default async function starterDemo({ cursor, page }) {
+const DEMO_TEMPLATE = `export default async function starterDemo({ camera, cursor, page }) {
+  await camera.wide({ durationMs: 400 });
   await cursor.wait(600);
-  await cursor.moveToSelector("[data-demo='email']", { durationMs: 900 });
-  await cursor.click();
-  await page.locator("[data-demo='email']").fill("hello@getrestocky.com");
+
+  await camera.focusSelector("[data-demo='email']", {
+    durationMs: 850,
+    zoom: 2,
+  });
+  await cursor.typeSelector(
+    "[data-demo='email']",
+    "hello@getrestocky.com",
+    {
+      durationMs: 900,
+      delayMs: 75,
+    },
+  );
 
   await cursor.wait(350);
+  await camera.followCursor({ durationMs: 300 });
   await cursor.moveToSelector("[data-demo='cta']", { durationMs: 850 });
   await cursor.click();
 
   await cursor.wait(1000);
+  await camera.focusSelector("[data-demo='card-2']", {
+    durationMs: 900,
+    zoom: 1.8,
+  });
   await cursor.moveToSelector("[data-demo='card-2']", { durationMs: 900 });
-  await cursor.wait(800);
+  await camera.wait(800);
 }
 `;
 

@@ -1,46 +1,81 @@
 import { spawn } from "node:child_process";
 
-import type { CursorSample, FfmpegPlan, LoadedMotionConfig } from "./types.js";
+import type {
+  CameraSample,
+  CursorSample,
+  FfmpegPlan,
+  LoadedMotionConfig,
+  OutputFormat,
+} from "./types.js";
 
-type CropPoint = {
+type NumericPoint = {
   timeMs: number;
   value: number;
+};
+
+type FrameState = {
+  cropHeight: number;
+  cropWidth: number;
+  timeMs: number;
+  x: number;
+  y: number;
+};
+
+const FORMAT_SETTINGS: Record<
+  OutputFormat,
+  {
+    args: string[];
+    extension: "mov" | "mp4";
+    postScaleFormat: string;
+    suffix: string;
+  }
+> = {
+  mp4: {
+    args: [
+      "-c:v",
+      "libx264",
+      "-preset",
+      "slow",
+      "-crf",
+      "18",
+      "-movflags",
+      "+faststart",
+    ],
+    extension: "mp4",
+    postScaleFormat: "format=yuv420p",
+    suffix: "final",
+  },
+  prores: {
+    args: [
+      "-c:v",
+      "prores_ks",
+      "-profile:v",
+      "3",
+      "-pix_fmt",
+      "yuv422p10le",
+      "-vendor",
+      "apl0",
+    ],
+    extension: "mov",
+    postScaleFormat: "format=yuv422p10le",
+    suffix: "final-prores",
+  },
 };
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(Math.max(value, minimum), maximum);
 }
 
+function alignEven(value: number): number {
+  const rounded = Math.max(2, Math.round(value));
+  return rounded % 2 === 0 ? rounded : rounded - 1;
+}
+
 function formatNumber(value: number): string {
   return Number(value.toFixed(3)).toString();
 }
 
-function getCropSize(config: LoadedMotionConfig): {
-  cropHeight: number;
-  cropWidth: number;
-} {
-  const sourceAspect = config.viewport.width / config.viewport.height;
-  const outputAspect = config.output.width / config.output.height;
-  const targetZoom = config.camera.zoom;
-
-  if (sourceAspect >= outputAspect) {
-    const cropHeight = config.viewport.height / targetZoom;
-    const cropWidth = cropHeight * outputAspect;
-    return {
-      cropHeight: Math.round(cropHeight),
-      cropWidth: Math.round(cropWidth),
-    };
-  }
-
-  const cropWidth = config.viewport.width / targetZoom;
-  const cropHeight = cropWidth / outputAspect;
-  return {
-    cropHeight: Math.round(cropHeight),
-    cropWidth: Math.round(cropWidth),
-  };
-}
-
-function buildPiecewiseExpression(points: CropPoint[]): string {
+function buildPiecewiseExpression(points: NumericPoint[]): string {
   if (points.length === 0) {
     return "0";
   }
@@ -69,52 +104,130 @@ function buildPiecewiseExpression(points: CropPoint[]): string {
   return expression;
 }
 
-function buildCropPoints(
-  samples: CursorSample[],
+function getCropSizeForZoom(
   config: LoadedMotionConfig,
-  cropWidth: number,
-  cropHeight: number,
-): { xPoints: CropPoint[]; yPoints: CropPoint[] } {
-  const maxX = Math.max(config.viewport.width - cropWidth, 0);
-  const maxY = Math.max(config.viewport.height - cropHeight, 0);
-  const horizontalPadding = Math.min(config.camera.padding, cropWidth / 2);
-  const verticalPadding = Math.min(config.camera.padding, cropHeight / 2);
+  zoom: number,
+): { cropHeight: number; cropWidth: number } {
+  const safeZoom = Math.max(1, zoom);
+  const sourceAspect = config.viewport.width / config.viewport.height;
+  const outputAspect = config.output.width / config.output.height;
 
-  const xPoints = samples.map((sample) => ({
-    timeMs: sample.timeMs,
-    value: clamp(
-      clamp(
-        sample.x - cropWidth / 2,
-        sample.x - (cropWidth - horizontalPadding),
-        sample.x - horizontalPadding,
-      ),
-      0,
-      maxX,
-    ),
-  }));
+  if (sourceAspect >= outputAspect) {
+    const cropHeight = alignEven(config.viewport.height / safeZoom);
+    const cropWidth = alignEven(cropHeight * outputAspect);
+    return {
+      cropHeight,
+      cropWidth,
+    };
+  }
 
-  const yPoints = samples.map((sample) => ({
-    timeMs: sample.timeMs,
-    value: clamp(
-      clamp(
-        sample.y - cropHeight / 2,
-        sample.y - (cropHeight - verticalPadding),
-        sample.y - verticalPadding,
-      ),
-      0,
-      maxY,
-    ),
-  }));
-
-  return { xPoints, yPoints };
+  const cropWidth = alignEven(config.viewport.width / safeZoom);
+  const cropHeight = alignEven(cropWidth / outputAspect);
+  return {
+    cropHeight,
+    cropWidth,
+  };
 }
 
-function condensePoints(points: CropPoint[]): CropPoint[] {
+function buildFrameStatesFromCursor(
+  samples: CursorSample[],
+  config: LoadedMotionConfig,
+): FrameState[] {
+  return samples.map((sample) => {
+    const { cropHeight, cropWidth } = getCropSizeForZoom(config, config.camera.zoom);
+
+    return {
+      cropHeight,
+      cropWidth,
+      timeMs: sample.timeMs,
+      x: sample.x,
+      y: sample.y,
+    };
+  });
+}
+
+function buildFrameStatesFromCamera(
+  samples: CameraSample[],
+  config: LoadedMotionConfig,
+): FrameState[] {
+  return samples.map((sample) => {
+    const { cropHeight, cropWidth } = getCropSizeForZoom(config, sample.zoom);
+
+    return {
+      cropHeight,
+      cropWidth,
+      timeMs: sample.timeMs,
+      x: sample.x,
+      y: sample.y,
+    };
+  });
+}
+
+function buildNumericPoints(
+  frames: FrameState[],
+  config: LoadedMotionConfig,
+): {
+  cropHeightPoints: NumericPoint[];
+  cropWidthPoints: NumericPoint[];
+  xPoints: NumericPoint[];
+  yPoints: NumericPoint[];
+} {
+  return {
+    cropHeightPoints: frames.map((frame) => ({
+      timeMs: frame.timeMs,
+      value: frame.cropHeight,
+    })),
+    cropWidthPoints: frames.map((frame) => ({
+      timeMs: frame.timeMs,
+      value: frame.cropWidth,
+    })),
+    xPoints: frames.map((frame) => {
+      const maxX = Math.max(config.viewport.width - frame.cropWidth, 0);
+      const horizontalPadding = Math.min(config.camera.padding, frame.cropWidth / 2);
+
+      return {
+        timeMs: frame.timeMs,
+        value: clamp(
+          clamp(
+            frame.x - frame.cropWidth / 2,
+            frame.x - (frame.cropWidth - horizontalPadding),
+            frame.x - horizontalPadding,
+          ),
+          0,
+          maxX,
+        ),
+      };
+    }),
+    yPoints: frames.map((frame) => {
+      const maxY = Math.max(config.viewport.height - frame.cropHeight, 0);
+      const verticalPadding = Math.min(config.camera.padding, frame.cropHeight / 2);
+
+      return {
+        timeMs: frame.timeMs,
+        value: clamp(
+          clamp(
+            frame.y - frame.cropHeight / 2,
+            frame.y - (frame.cropHeight - verticalPadding),
+            frame.y - verticalPadding,
+          ),
+          0,
+          maxY,
+        ),
+      };
+    }),
+  };
+}
+
+function condensePoints(
+  points: NumericPoint[],
+  thresholdMs: number,
+  thresholdValue: number,
+): NumericPoint[] {
   if (points.length <= 2) {
     return points;
   }
 
-  const sampled: CropPoint[] = [points[0]];
+  const sampled: NumericPoint[] = [points[0]];
 
   for (let index = 1; index < points.length - 1; index += 1) {
     const point = points[index];
@@ -122,7 +235,7 @@ function condensePoints(points: CropPoint[]): CropPoint[] {
     const timeDelta = point.timeMs - previous.timeMs;
     const valueDelta = Math.abs(point.value - previous.value);
 
-    if (timeDelta < 120 && valueDelta < 10) {
+    if (timeDelta < thresholdMs && valueDelta < thresholdValue) {
       continue;
     }
 
@@ -134,13 +247,13 @@ function condensePoints(points: CropPoint[]): CropPoint[] {
     sampled.push(lastPoint);
   }
 
-  const condensed: CropPoint[] = [sampled[0]];
+  const condensed: NumericPoint[] = [sampled[0]];
 
   for (let index = 1; index < sampled.length; index += 1) {
     const point = sampled[index];
     const previous = condensed.at(-1)!;
 
-    if (Math.abs(point.value - previous.value) < 0.5) {
+    if (Math.abs(point.value - previous.value) < thresholdValue / 10) {
       condensed[condensed.length - 1] = point;
       continue;
     }
@@ -151,49 +264,63 @@ function condensePoints(points: CropPoint[]): CropPoint[] {
   return condensed;
 }
 
-export function buildFfmpegPlan(
+function getFormatOutputPath(
+  sessionDir: string,
+  format: OutputFormat,
+): string {
+  const settings = FORMAT_SETTINGS[format];
+  return `${sessionDir}/${settings.suffix}.${settings.extension}`;
+}
+
+export function buildFfmpegPlans(
   sourcePath: string,
-  outputPath: string,
+  sessionDir: string,
   config: LoadedMotionConfig,
-  samples: CursorSample[],
-): FfmpegPlan {
-  const { cropHeight, cropWidth } = getCropSize(config);
-  const rawPoints = buildCropPoints(samples, config, cropWidth, cropHeight);
-  const xPoints = condensePoints(rawPoints.xPoints);
-  const yPoints = condensePoints(rawPoints.yPoints);
+  cursorSamples: CursorSample[],
+  cameraSamples: CameraSample[],
+): FfmpegPlan[] {
+  const frames =
+    cameraSamples.length > 1
+      ? buildFrameStatesFromCamera(cameraSamples, config)
+      : buildFrameStatesFromCursor(cursorSamples, config);
+  const numericPoints = buildNumericPoints(frames, config);
+  const cropWidthPoints = condensePoints(numericPoints.cropWidthPoints, 150, 16);
+  const cropHeightPoints = condensePoints(numericPoints.cropHeightPoints, 150, 16);
+  const xPoints = condensePoints(numericPoints.xPoints, 120, 10);
+  const yPoints = condensePoints(numericPoints.yPoints, 120, 10);
+  const cropWidthExpression = buildPiecewiseExpression(cropWidthPoints);
+  const cropHeightExpression = buildPiecewiseExpression(cropHeightPoints);
   const xExpression = buildPiecewiseExpression(xPoints);
   const yExpression = buildPiecewiseExpression(yPoints);
-  const filter = [
-    `fps=${config.output.fps}`,
-    `crop=w=${cropWidth}:h=${cropHeight}:x='${xExpression}':y='${yExpression}'`,
-    `scale=${config.output.width}:${config.output.height}:flags=lanczos`,
-    "format=yuv420p",
-  ].join(",");
+  return config.output.formats.map((format) => {
+    const settings = FORMAT_SETTINGS[format];
+    const filter = [
+      `fps=${config.output.fps}`,
+      `crop=w='${cropWidthExpression}':h='${cropHeightExpression}':x='${xExpression}':y='${yExpression}'`,
+      `scale=${config.output.width}:${config.output.height}:flags=lanczos`,
+      "setsar=1",
+      settings.postScaleFormat,
+    ].join(",");
 
-  return {
-    args: [
-      "-y",
-      "-i",
+    return {
+      args: [
+        "-y",
+        "-i",
+        sourcePath,
+        "-vf",
+        filter,
+        ...settings.args,
+        getFormatOutputPath(sessionDir, format),
+      ],
+      cropHeightExpression,
+      cropWidthExpression,
+      format,
+      outputPath: getFormatOutputPath(sessionDir, format),
       sourcePath,
-      "-vf",
-      filter,
-      "-c:v",
-      config.output.codec,
-      "-preset",
-      "slow",
-      "-crf",
-      "18",
-      "-movflags",
-      "+faststart",
-      outputPath,
-    ],
-    cropHeight,
-    cropWidth,
-    outputPath,
-    sourcePath,
-    xExpression,
-    yExpression,
-  };
+      xExpression,
+      yExpression,
+    };
+  });
 }
 
 export function commandExists(command: string): Promise<boolean> {

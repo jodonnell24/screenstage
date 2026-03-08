@@ -1,14 +1,16 @@
 import { performance } from "node:perf_hooks";
 
-import type { Locator, Page } from "playwright";
+import type { Page } from "playwright";
 
 import { clickCursorOverlay, moveCursorOverlay } from "./cursor-overlay.js";
+import { resolveLocatorCenter } from "./locator.js";
 import type {
   CursorClickOptions,
   CursorController,
   CursorMoveOptions,
   CursorSample,
   CursorSampleKind,
+  CursorTypeOptions,
   Point,
 } from "./types.js";
 
@@ -19,20 +21,6 @@ type CursorControllerOptions = {
 
 function interpolate(start: number, end: number, progress: number): number {
   return start + (end - start) * progress;
-}
-
-async function resolveLocatorCenter(locator: Locator): Promise<Point> {
-  await locator.scrollIntoViewIfNeeded();
-  const box = await locator.boundingBox();
-
-  if (!box) {
-    throw new Error("Unable to resolve selector position; element has no box.");
-  }
-
-  return {
-    x: box.x + box.width / 2,
-    y: box.y + box.height / 2,
-  };
 }
 
 export class DemoCursorController implements CursorController {
@@ -120,6 +108,29 @@ export class DemoCursorController implements CursorController {
   ): Promise<void> {
     await this.moveToSelector(selector, options);
     await this.click(options);
+  }
+
+  async type(text: string, options: CursorTypeOptions = {}): Promise<void> {
+    await this.sample("wait");
+    await this.#page.keyboard.type(text, {
+      delay: options.delayMs ?? 90,
+    });
+
+    if (options.submit) {
+      await this.#page.keyboard.press("Enter");
+    }
+
+    await this.sample("wait");
+  }
+
+  async typeSelector(
+    selector: string,
+    text: string,
+    options: CursorTypeOptions = {},
+  ): Promise<void> {
+    await this.moveToSelector(selector, options);
+    await this.click();
+    await this.type(text, options);
   }
 
   async wait(durationMs: number): Promise<void> {

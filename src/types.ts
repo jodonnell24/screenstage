@@ -11,8 +11,10 @@ export type Size = {
 };
 
 export type MouseButton = "left" | "middle" | "right";
+export type OutputFormat = "mp4" | "prores";
 
 export type CursorSampleKind = "move" | "wait" | "click";
+export type CameraSampleKind = "focus" | "wait";
 
 export type CursorSample = Point & {
   kind: CursorSampleKind;
@@ -29,7 +31,7 @@ export type MotionConfig = {
     width?: number;
     height?: number;
     fps?: number;
-    codec?: "libx264";
+    formats?: OutputFormat[];
   };
   camera?: {
     zoom?: number;
@@ -61,9 +63,9 @@ export type LoadedMotionConfig = {
   demoPath: string;
   name: string;
   output: {
-    codec: "libx264";
     dir: string;
     fps: number;
+    formats: OutputFormat[];
     height: number;
     width: number;
   };
@@ -85,6 +87,25 @@ export type CursorClickOptions = {
   delayMs?: number;
 };
 
+export type CursorTypeOptions = CursorMoveOptions & {
+  delayMs?: number;
+  submit?: boolean;
+};
+
+export type CameraState = Point & {
+  zoom: number;
+};
+
+export type CameraSample = CameraState & {
+  kind: CameraSampleKind;
+  timeMs: number;
+};
+
+export type CameraFocusOptions = {
+  durationMs?: number;
+  zoom?: number;
+};
+
 export type CursorController = {
   click: (options?: CursorClickOptions) => Promise<void>;
   clickSelector: (
@@ -98,10 +119,30 @@ export type CursorController = {
     options?: CursorMoveOptions,
   ) => Promise<Point>;
   sample: (kind?: CursorSampleKind) => Promise<void>;
+  type: (text: string, options?: CursorTypeOptions) => Promise<void>;
+  typeSelector: (
+    selector: string,
+    text: string,
+    options?: CursorTypeOptions,
+  ) => Promise<void>;
   wait: (durationMs: number) => Promise<void>;
 };
 
+export type CameraController = {
+  current: CameraState;
+  focus: (point: Point, options?: CameraFocusOptions) => Promise<void>;
+  focusSelector: (
+    selector: string,
+    options?: CameraFocusOptions,
+  ) => Promise<Point>;
+  followCursor: (options?: CameraFocusOptions) => Promise<void>;
+  sample: (kind?: CameraSampleKind) => Promise<void>;
+  wait: (durationMs: number) => Promise<void>;
+  wide: (options?: Omit<CameraFocusOptions, "zoom">) => Promise<void>;
+};
+
 export type DemoContext = {
+  camera: CameraController;
   config: LoadedMotionConfig;
   cursor: CursorController;
   page: Page;
@@ -114,8 +155,9 @@ export type DemoModule = {
 
 export type FfmpegPlan = {
   args: string[];
-  cropHeight: number;
-  cropWidth: number;
+  cropHeightExpression: string;
+  cropWidthExpression: string;
+  format: OutputFormat;
   outputPath: string;
   sourcePath: string;
   xExpression: string;

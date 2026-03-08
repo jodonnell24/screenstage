@@ -1,16 +1,35 @@
 # Motion Creator
 
-TypeScript CLI for generating cursor-following product demos with Playwright and FFmpeg.
+TypeScript CLI for producing polished browser-product demos from any web app.
 
-The MVP implements Pipeline 1 from the original concept:
+It is designed for the workflow you described:
 
-- Playwright opens a real Chromium page and records the session.
-- A DOM cursor overlay is injected into the page so the cursor is visible in the recording.
-- Your demo script drives the interaction through a typed cursor API.
-- Cursor samples are converted into an FFmpeg crop expression that pans and zooms toward the action.
-- The final output is a standard H.264 MP4 that can be dropped into Apple Motion or Final Cut.
+- record real browser interactions against any web-based UI
+- keep the cursor visible in the footage with a professional-looking overlay
+- direct the camera toward important UI moments instead of relying only on raw cursor-following
+- export lightweight review MP4s and edit-friendly ProRes files for Apple Motion / Final Cut Pro
 
-Pipeline 2, the Remotion renderer, is not implemented yet.
+This is a Playwright + FFmpeg pipeline. It works with React apps and non-React web apps because it records the browser, not the framework.
+
+## What It Does
+
+- Opens a real Chromium page with Playwright.
+- Records the live session as source video.
+- Injects a cursor overlay that behaves more like a real mouse:
+  - arrow cursor by default
+  - hand cursor over interactive elements
+  - text caret over text inputs
+  - click ripple and press feedback
+- Lets your demo script control:
+  - cursor movement
+  - clicking
+  - human-looking typing
+  - camera focus / wide shots / reframing
+- Post-processes the recording in FFmpeg into:
+  - `mp4` for fast review/sharing
+  - `prores` for Motion / Final Cut editing
+
+Pipeline 2, the fully rendered Remotion approach, is still not implemented.
 
 ## Requirements
 
@@ -18,20 +37,14 @@ Pipeline 2, the Remotion renderer, is not implemented yet.
 - `ffmpeg` on `PATH`
 - Playwright Chromium runtime
 
-Install project dependencies:
+Install:
 
 ```bash
 npm install
 npx playwright install chromium
 ```
 
-## Quick start
-
-Scaffold a starter project:
-
-```bash
-node dist/cli.js init ./demo-project
-```
+## Quick Start
 
 Build the CLI:
 
@@ -39,31 +52,40 @@ Build the CLI:
 npm run build
 ```
 
-Run the starter render:
+Scaffold a starter project:
+
+```bash
+node dist/cli.js init ./demo-project
+```
+
+Run the starter demo:
 
 ```bash
 node dist/cli.js run ./demo-project/motion.config.mjs
 ```
 
-The run creates a timestamped folder under your configured output directory with:
+Each run creates a timestamped folder inside the configured output directory with artifacts like:
 
-- `source.webm`: raw Playwright capture
-- `final.mp4`: FFmpeg follow-cam render
-- `timeline.json`: recorded cursor samples and generated FFmpeg plan
+- `source.webm`
+- `final.mp4`
+- `final-prores.mov`
+- `timeline.json`
 
-## Commands
+## CLI
 
 ```bash
 motion-creator init [directory]
 motion-creator run <config-path>
 ```
 
-During development you can also use:
+Development shortcuts:
 
 ```bash
 npm run dev -- init ./demo-project
 npm run dev -- run ./demo-project/motion.config.mjs
 ```
+
+`init` is non-destructive. It only writes starter files that do not already exist.
 
 ## Config
 
@@ -83,6 +105,7 @@ export default {
     width: 1920,
     height: 1080,
     fps: 30,
+    formats: ["mp4", "prores"],
   },
   camera: {
     zoom: 1.7,
@@ -97,44 +120,93 @@ export default {
 };
 ```
 
-## Demo API
+### Config Notes
+
+- `url` can point to any reachable web app, including local HTML files, local dev servers, or deployed apps.
+- `output.formats` accepts:
+  - `"mp4"` for lightweight H.264 output
+  - `"prores"` for high-quality `.mov` output that is better suited for Motion / Final Cut
+- `camera.zoom` is the default follow-cam zoom when you are not manually keyframing the camera.
+- `camera.padding` keeps the target away from the crop edge.
+
+## Demo Script API
 
 Your demo module exports a default async function. It receives:
 
 - `page`: the Playwright page
-- `cursor`: a typed controller for visible motion
-- `config`: the resolved runtime config
-- `sessionDir`: the output folder for the active run
+- `cursor`: visible cursor controller
+- `camera`: framing controller for post-processing
+- `config`: resolved runtime config
+- `sessionDir`: output directory for the active run
 
 Example:
 
 ```js
-export default async function demo({ cursor, page }) {
+export default async function demo({ camera, cursor }) {
+  await camera.wide({ durationMs: 400 });
   await cursor.wait(600);
-  await cursor.moveToSelector("[data-demo='email']", { durationMs: 900 });
-  await cursor.click();
-  await page.locator("[data-demo='email']").fill("hello@getrestocky.com");
 
-  await cursor.wait(350);
+  await camera.focusSelector("[data-demo='email']", {
+    durationMs: 850,
+    zoom: 2,
+  });
+
+  await cursor.typeSelector(
+    "[data-demo='email']",
+    "hello@getrestocky.com",
+    { durationMs: 900, delayMs: 75 },
+  );
+
+  await camera.followCursor({ durationMs: 300 });
   await cursor.moveToSelector("[data-demo='cta']", { durationMs: 850 });
   await cursor.click();
-  await cursor.wait(1000);
 }
 ```
 
-Available cursor helpers:
+### Cursor Helpers
 
 - `cursor.move({ x, y }, options)`
 - `cursor.moveToSelector(selector, options)`
 - `cursor.click(options)`
 - `cursor.clickSelector(selector, options)`
+- `cursor.type(text, options)`
+- `cursor.typeSelector(selector, text, options)`
 - `cursor.wait(durationMs)`
 - `cursor.sample(kind)`
 
-For the camera to track smoothly, prefer the cursor helpers over raw `page.mouse` calls.
+### Camera Helpers
 
-## Notes
+- `camera.focus({ x, y }, options)`
+- `camera.focusSelector(selector, options)`
+- `camera.followCursor(options)`
+- `camera.wide(options)`
+- `camera.wait(durationMs)`
+- `camera.sample(kind)`
 
-- The camera expression is intentionally simplified for MVP reliability. It samples and condenses cursor motion before generating the FFmpeg crop formula.
-- Playwright records a raw WebM source. FFmpeg transcodes that into the final MP4.
-- The starter scaffold includes a deterministic local HTML page so the tool can be exercised without a dev server.
+## Recommended Workflow
+
+For strong release-style captures:
+
+- Use a source viewport around `1440x900` and render at `1920x1080`.
+- Pause deliberately with `cursor.wait()` or `camera.wait()` so the camera has time to settle.
+- Use `camera.focusSelector()` before important interactions instead of letting every shot be cursor-led.
+- Use `cursor.typeSelector()` for form entries so the footage reads like a real person using the app.
+- Export `prores` when the clip is headed into Motion or Final Cut for finishing.
+
+## Current Scope
+
+Implemented now:
+
+- real browser recording
+- realistic cursor overlay
+- hover-aware cursor variants
+- manual camera keyframes
+- MP4 + ProRes rendering
+- starter scaffold
+
+Not implemented yet:
+
+- Remotion pipeline
+- transparent-alpha export
+- browser-frame compositing
+- timeline editor / scene DSL beyond the current script API
