@@ -24,7 +24,7 @@ export type CompositionPreset =
   | "spotlight-browser";
 
 export type CursorSampleKind = "move" | "wait" | "click";
-export type CameraSampleKind = "focus" | "wait";
+export type CameraSampleKind = "focus" | "wait" | "follow";
 
 export type CursorSample = Point & {
   kind: CursorSampleKind;
@@ -143,6 +143,7 @@ export type LoadedMotionConfig = {
 
 export type CursorMoveOptions = {
   durationMs?: number;
+  onSample?: (point: Point) => Promise<void> | void;
   steps?: number;
 };
 
@@ -232,16 +233,20 @@ export type MotionScene =
       zoom?: number;
     })
   | (SceneBase & {
+      cameraFollow?: boolean;
       durationMs?: number;
       selector: string;
       steps?: number;
       type: "move-selector";
+      zoom?: number;
     })
   | (SceneBase & {
+      cameraFollow?: boolean;
       durationMs?: number;
       point: Point;
       steps?: number;
       type: "move-point";
+      zoom?: number;
     })
   | (SceneBase & {
       button?: MouseButton;
@@ -283,6 +288,7 @@ export type FeatureTourAction = "focus" | "move" | "click" | "type";
 
 export type FeatureTourStep = {
   action?: FeatureTourAction;
+  cameraFollow?: boolean;
   clickDelayMs?: number;
   focusDurationMs?: number;
   handoffDurationMs?: number;

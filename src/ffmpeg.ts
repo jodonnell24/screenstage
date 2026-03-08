@@ -279,58 +279,29 @@ function buildNumericPoints(
   };
 }
 
-function gaussianWeight(distanceMs: number, smoothingMs: number): number {
-  const sigma = Math.max(smoothingMs / 2, 1);
-  return Math.exp(-0.5 * Math.pow(distanceMs / sigma, 2));
-}
-
 function smoothSeries(
   frames: FrameState[],
   valueAt: (frame: FrameState) => number,
   smoothingMs: number,
 ): number[] {
-  if (frames.length <= 2 || smoothingMs <= 0) {
+  if (frames.length <= 1 || smoothingMs <= 0) {
     return frames.map(valueAt);
   }
 
-  const windowMs = Math.max(smoothingMs * 2.5, 1);
+  const smoothed = [valueAt(frames[0])];
 
-  return frames.map((frame, index) => {
-    let weightedTotal = 0;
-    let weightTotal = 0;
+  for (let index = 1; index < frames.length; index += 1) {
+    const previous = frames[index - 1];
+    const current = frames[index];
+    const deltaMs = Math.max(current.timeMs - previous.timeMs, 1);
+    const alpha = 1 - Math.exp(-deltaMs / Math.max(smoothingMs, 1));
+    const nextValue =
+      smoothed[index - 1] + (valueAt(current) - smoothed[index - 1]) * alpha;
 
-    for (let neighborIndex = index; neighborIndex >= 0; neighborIndex -= 1) {
-      const neighbor = frames[neighborIndex];
-      const distanceMs = frame.timeMs - neighbor.timeMs;
+    smoothed.push(nextValue);
+  }
 
-      if (distanceMs > windowMs) {
-        break;
-      }
-
-      const weight = gaussianWeight(distanceMs, smoothingMs);
-      weightedTotal += valueAt(neighbor) * weight;
-      weightTotal += weight;
-    }
-
-    for (
-      let neighborIndex = index + 1;
-      neighborIndex < frames.length;
-      neighborIndex += 1
-    ) {
-      const neighbor = frames[neighborIndex];
-      const distanceMs = neighbor.timeMs - frame.timeMs;
-
-      if (distanceMs > windowMs) {
-        break;
-      }
-
-      const weight = gaussianWeight(distanceMs, smoothingMs);
-      weightedTotal += valueAt(neighbor) * weight;
-      weightTotal += weight;
-    }
-
-    return weightTotal > 0 ? weightedTotal / weightTotal : valueAt(frame);
-  });
+  return smoothed;
 }
 
 function stabilizePoints(
@@ -358,14 +329,17 @@ function stabilizePoints(
       nextY - previousY,
     );
 
-    if (distance < deadzonePx) {
+    if (distance <= deadzonePx) {
       stabilizedX.push(previousX);
       stabilizedY.push(previousY);
       continue;
     }
 
-    stabilizedX.push(nextX);
-    stabilizedY.push(nextY);
+    const releaseDistance = distance - deadzonePx;
+    const ratio = releaseDistance / distance;
+
+    stabilizedX.push(previousX + (nextX - previousX) * ratio);
+    stabilizedY.push(previousY + (nextY - previousY) * ratio);
   }
 
   return {

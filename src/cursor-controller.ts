@@ -79,6 +79,7 @@ export class DemoCursorController implements CursorController {
       await this.#page.mouse.move(nextPoint.x, nextPoint.y);
       this.current = nextPoint;
       await this.sample("move");
+      await options.onSample?.(nextPoint);
 
       if (step < steps && delayMs > 0) {
         await this.#page.waitForTimeout(delayMs);
