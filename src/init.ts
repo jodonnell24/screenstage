@@ -1,17 +1,33 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { stdin as input, stdout as output } from "node:process";
+import { createInterface } from "node:readline/promises";
+
+import type { CompositionDevice, OutputPreset } from "./types.js";
+
+type ProjectKind = "local-app" | "static-starter";
+
+type DetectedProject = {
+  packageJsonDir?: string;
+  packageName?: string;
+  recommendedCommand?: string;
+  recommendedUrl?: string;
+};
+
+type InitAnswers = {
+  device: CompositionDevice;
+  directory: string;
+  outputPreset: OutputPreset;
+  projectKind: ProjectKind;
+  serveCommand?: string;
+  studioEnabled: boolean;
+  url: string;
+};
 
 const CONFIG_TEMPLATE = `export default {
   name: "starter-demo",
   url: new URL("./demo-site/index.html", import.meta.url).href,
   demo: "./demo/starter-demo.mjs",
-  // For local apps, switch url to your local server and uncomment serve:
-  // url: "http://127.0.0.1:3000",
-  // serve: {
-  //   command: "npm run dev",
-  //   cwd: ".",
-  //   readyText: "ready",
-  // },
   viewport: {
     width: 1440,
     height: 900,
@@ -108,6 +124,12 @@ const DEMO_TEMPLATE = `export default [
     target: "camera",
   },
 ];
+`;
+
+const RECORDING_PLACEHOLDER_TEMPLATE = `export default async function demo({ camera, cursor }) {
+  await camera.wide({ durationMs: 0 });
+  await cursor.wait(1200);
+}
 `;
 
 const HTML_TEMPLATE = `<!doctype html>
@@ -331,6 +353,283 @@ const HTML_TEMPLATE = `<!doctype html>
 </html>
 `;
 
+function defaultViewportFor(device: CompositionDevice): {
+  height: number;
+  width: number;
+} {
+  return device === "phone"
+    ? {
+        height: 932,
+        width: 430,
+      }
+    : {
+        height: 900,
+        width: 1440,
+      };
+}
+
+function defaultOutputPresetFor(device: CompositionDevice): OutputPreset {
+  return device === "phone" ? "social-vertical" : "motion-edit";
+}
+
+function defaultUrlFor(projectKind: ProjectKind, detected?: DetectedProject): string {
+  if (projectKind === "local-app") {
+    return detected?.recommendedUrl ?? "http://127.0.0.1:3000";
+  }
+
+  return 'new URL("./demo-site/index.html", import.meta.url).href';
+}
+
+function defaultNameFor(targetDir: string, projectKind: ProjectKind): string {
+  const basename = path.basename(targetDir) || "motion-project";
+  const normalized = basename
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
+
+  return normalized || (projectKind === "local-app" ? "local-app-demo" : "starter-demo");
+}
+
+function inferDomainLabel(url: string): string | undefined {
+  if (url.startsWith("new URL(")) {
+    return "app.example.com";
+  }
+
+  try {
+    const parsed = new URL(url);
+    return parsed.host || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function quote(value: string): string {
+  return JSON.stringify(value);
+}
+
+function parseBooleanAnswer(value: string, defaultValue: boolean): boolean {
+  const normalized = value.trim().toLowerCase();
+
+  if (normalized.length === 0) {
+    return defaultValue;
+  }
+
+  if (["y", "yes", "true", "1"].includes(normalized)) {
+    return true;
+  }
+
+  if (["n", "no", "false", "0"].includes(normalized)) {
+    return false;
+  }
+
+  return defaultValue;
+}
+
+function parseChoice<T extends string>(
+  value: string,
+  options: T[],
+  defaultValue: T,
+): T {
+  const normalized = value.trim().toLowerCase();
+
+  if (normalized.length === 0) {
+    return defaultValue;
+  }
+
+  return (
+    options.find((option) => option.toLowerCase() === normalized) ?? defaultValue
+  );
+}
+
+function parseOutputPreset(value: string, defaultValue: OutputPreset): OutputPreset {
+  return parseChoice(
+    value,
+    ["motion-edit", "release-hero", "social-square", "social-vertical"],
+    defaultValue,
+  );
+}
+
+function parseDevice(value: string, defaultValue: CompositionDevice): CompositionDevice {
+  return parseChoice(value, ["desktop", "phone"], defaultValue);
+}
+
+function parseProjectKind(value: string, defaultValue: ProjectKind): ProjectKind {
+  return parseChoice(value, ["local-app", "static-starter"], defaultValue);
+}
+
+async function pathExists(targetPath: string): Promise<boolean> {
+  try {
+    await fs.access(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function findNearestPackageJson(startDir: string): Promise<string | undefined> {
+  let current = path.resolve(startDir);
+
+  while (true) {
+    const candidate = path.join(current, "package.json");
+
+    if (await pathExists(candidate)) {
+      return candidate;
+    }
+
+    const parent = path.dirname(current);
+
+    if (parent === current) {
+      return undefined;
+    }
+
+    current = parent;
+  }
+}
+
+function inferCommandFromScripts(
+  scripts: Record<string, string>,
+): string | undefined {
+  const orderedKeys = [
+    "dev",
+    "start",
+    "preview",
+    "web",
+    "serve",
+  ];
+
+  for (const key of orderedKeys) {
+    const script = scripts[key];
+
+    if (typeof script === "string" && script.trim().length > 0) {
+      return `npm run ${key}`;
+    }
+  }
+
+  return undefined;
+}
+
+function inferPortFromScript(script: string): number | undefined {
+  const explicit =
+    script.match(/(?:--port|--ports?|--host-port|-p)\s+(\d{3,5})/) ??
+    script.match(/PORT=(\d{3,5})/) ??
+    script.match(/localhost:(\d{3,5})/) ??
+    script.match(/127\.0\.0\.1:(\d{3,5})/);
+
+  if (explicit?.[1]) {
+    return Number(explicit[1]);
+  }
+
+  const normalized = script.toLowerCase();
+
+  if (normalized.includes("vite")) {
+    return 5173;
+  }
+
+  if (normalized.includes("astro")) {
+    return 4321;
+  }
+
+  if (normalized.includes("next")) {
+    return 3000;
+  }
+
+  if (normalized.includes("react-scripts")) {
+    return 3000;
+  }
+
+  if (
+    normalized.includes("nuxt") ||
+    normalized.includes("remix") ||
+    normalized.includes("react-router") ||
+    normalized.includes("svelte-kit") ||
+    normalized.includes("webpack")
+  ) {
+    return 3000;
+  }
+
+  return undefined;
+}
+
+async function detectProject(targetDir: string): Promise<DetectedProject | undefined> {
+  const packageJsonPath = await findNearestPackageJson(targetDir);
+
+  if (!packageJsonPath) {
+    return undefined;
+  }
+
+  const packageJson = JSON.parse(await fs.readFile(packageJsonPath, "utf8")) as {
+    name?: string;
+    scripts?: Record<string, string>;
+  };
+  const scripts = packageJson.scripts ?? {};
+  const recommendedCommand = inferCommandFromScripts(scripts);
+  const scriptSource =
+    recommendedCommand?.replace(/^npm run /, "") &&
+    scripts[recommendedCommand.replace(/^npm run /, "")];
+  const port = scriptSource ? inferPortFromScript(scriptSource) : undefined;
+
+  return {
+    packageJsonDir: path.dirname(packageJsonPath),
+    packageName: packageJson.name,
+    recommendedCommand,
+    recommendedUrl: port ? `http://127.0.0.1:${port}` : undefined,
+  };
+}
+
+function buildConfigSource(answers: InitAnswers): string {
+  const viewport = defaultViewportFor(answers.device);
+  const domain = inferDomainLabel(answers.url);
+  const lines = [
+    "export default {",
+    `  name: ${quote(defaultNameFor(answers.directory, answers.projectKind))},`,
+    `  url: ${answers.projectKind === "static-starter" ? answers.url : quote(answers.url)},`,
+    `  demo: "./demo/${answers.projectKind === "static-starter" ? "starter-demo" : "recording-demo"}.mjs",`,
+    "  viewport: {",
+    `    width: ${viewport.width},`,
+    `    height: ${viewport.height},`,
+    "  },",
+    "  output: {",
+    '    dir: "./output",',
+    `    preset: ${quote(answers.outputPreset)},`,
+    "  },",
+    "  camera: {",
+    '    mode: "follow",',
+    `    zoom: ${answers.device === "phone" ? "1.45" : "1.7"},`,
+    `    padding: ${answers.device === "phone" ? "84" : "96"},`,
+    "  },",
+    "  composition: {",
+    '    preset: "studio-browser",',
+    `    device: ${quote(answers.device)},`,
+    "    background: {",
+    '      colors: ["#eef4ef", "#e7edf5"],',
+    "    },",
+    "    browser: {",
+    `      domain: ${quote(domain ?? "app.example.com")},`,
+    "    },",
+    "  },",
+    "  browser: {",
+    "    headless: true,",
+  ];
+
+  if (answers.studioEnabled) {
+    lines.push("    studio: {", "      enabled: true,", "    },");
+  }
+
+  lines.push("  },");
+
+  if (answers.projectKind === "local-app" && answers.serveCommand) {
+    lines.push(
+      "  serve: {",
+      `    command: ${quote(answers.serveCommand)},`,
+      '    cwd: ".",',
+      "  },",
+    );
+  }
+
+  lines.push("  timing: {", "    settleMs: 900,", "  },", "};", "");
+  return lines.join("\n");
+}
+
 async function writeFileIfMissing(filePath: string, contents: string): Promise<void> {
   try {
     await fs.access(filePath);
@@ -340,19 +639,113 @@ async function writeFileIfMissing(filePath: string, contents: string): Promise<v
   }
 }
 
-export async function initProject(directory = "."): Promise<void> {
-  const targetDir = path.resolve(directory);
+function canPrompt(): boolean {
+  return Boolean(input.isTTY && output.isTTY);
+}
+
+async function promptForInit(
+  directoryArg: string | undefined,
+  detected?: DetectedProject,
+): Promise<InitAnswers> {
+  const rl = createInterface({ input, output });
+  const initialDirectory = directoryArg ?? ".";
+  const defaultProjectKind: ProjectKind = detected?.recommendedCommand
+    ? "local-app"
+    : "static-starter";
+  const defaultDevice: CompositionDevice = "desktop";
+
+  try {
+    const directoryAnswer = await rl.question(
+      `Project directory (${initialDirectory}): `,
+    );
+    const directory = directoryAnswer.trim() || initialDirectory;
+    const projectKindAnswer = await rl.question(
+      `Project type [local-app/static-starter] (${defaultProjectKind}): `,
+    );
+    const projectKind = parseProjectKind(projectKindAnswer, defaultProjectKind);
+    const deviceAnswer = await rl.question(
+      `Device [desktop/phone] (${defaultDevice}): `,
+    );
+    const device = parseDevice(deviceAnswer, defaultDevice);
+    const outputPresetDefault = defaultOutputPresetFor(device);
+    const outputPresetAnswer = await rl.question(
+      `Output preset [motion-edit/release-hero/social-square/social-vertical] (${outputPresetDefault}): `,
+    );
+    const outputPreset = parseOutputPreset(outputPresetAnswer, outputPresetDefault);
+    const studioDefault = projectKind === "local-app";
+    const studioAnswer = await rl.question(
+      `Enable studio mode controls outside the shot? [Y/n] (${studioDefault ? "Y" : "N"}): `,
+    );
+    const studioEnabled = parseBooleanAnswer(studioAnswer, studioDefault);
+    const urlDefault = defaultUrlFor(projectKind, detected);
+    const urlPrompt =
+      projectKind === "local-app"
+        ? `App URL (${urlDefault}): `
+        : `Starter URL expression (${urlDefault}): `;
+    const urlAnswer = await rl.question(urlPrompt);
+    const url = urlAnswer.trim() || urlDefault;
+    let serveCommand: string | undefined;
+
+    if (projectKind === "local-app") {
+      const serveDefault = detected?.recommendedCommand ?? "";
+      const serveAnswer = await rl.question(
+        `Dev command to start the app (${serveDefault || "leave blank"}): `,
+      );
+      serveCommand = (serveAnswer.trim() || serveDefault || "").trim() || undefined;
+    }
+
+    return {
+      device,
+      directory,
+      outputPreset,
+      projectKind,
+      serveCommand,
+      studioEnabled,
+      url,
+    };
+  } finally {
+    rl.close();
+  }
+}
+
+async function writeStarterProject(targetDir: string): Promise<void> {
+  await writeFileIfMissing(path.join(targetDir, "motion.config.mjs"), CONFIG_TEMPLATE);
+  await writeFileIfMissing(path.join(targetDir, "demo", "starter-demo.mjs"), DEMO_TEMPLATE);
+  await writeFileIfMissing(path.join(targetDir, "demo-site", "index.html"), HTML_TEMPLATE);
+}
+
+async function writeGuidedProject(answers: InitAnswers): Promise<void> {
+  const targetDir = path.resolve(answers.directory);
+  const demoFilename =
+    answers.projectKind === "static-starter" ? "starter-demo.mjs" : "recording-demo.mjs";
 
   await writeFileIfMissing(
     path.join(targetDir, "motion.config.mjs"),
-    CONFIG_TEMPLATE,
+    buildConfigSource(answers),
   );
   await writeFileIfMissing(
-    path.join(targetDir, "demo", "starter-demo.mjs"),
-    DEMO_TEMPLATE,
+    path.join(targetDir, "demo", demoFilename),
+    answers.projectKind === "static-starter"
+      ? DEMO_TEMPLATE
+      : RECORDING_PLACEHOLDER_TEMPLATE,
   );
-  await writeFileIfMissing(
-    path.join(targetDir, "demo-site", "index.html"),
-    HTML_TEMPLATE,
-  );
+
+  if (answers.projectKind === "static-starter") {
+    await writeFileIfMissing(
+      path.join(targetDir, "demo-site", "index.html"),
+      HTML_TEMPLATE,
+    );
+  }
+}
+
+export async function initProject(directoryArg = "."): Promise<void> {
+  if (!canPrompt()) {
+    await writeStarterProject(path.resolve(directoryArg));
+    return;
+  }
+
+  const targetDir = path.resolve(directoryArg);
+  const detected = await detectProject(targetDir);
+  const answers = await promptForInit(directoryArg, detected);
+  await writeGuidedProject(answers);
 }

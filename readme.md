@@ -70,6 +70,8 @@ Scaffold a starter project:
 node dist/cli.js init ./demo-project
 ```
 
+If you run `init` in a terminal, it opens a short wizard and writes `motion.config.mjs` for you. In non-interactive shells it falls back to the old starter scaffold.
+
 Run the starter demo:
 
 ```bash
@@ -109,7 +111,7 @@ npm run dev -- record ./demo-project/motion.config.mjs
 npm run dev -- run ./demo-project/motion.config.mjs
 ```
 
-`init` is non-destructive. It only writes starter files that do not already exist.
+`init` is non-destructive. It only writes starter files that do not already exist, and in a normal terminal it now asks a few setup questions instead of making you hand-author the config.
 `record` opens a visible browser, lets you perform the flow manually, then writes an editable demo module alongside the raw capture artifacts.
 For local apps and local fixtures, you can enable embedded studio mode so the controls live outside the captured app stage instead of inside the page or in a separate popup.
 

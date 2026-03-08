@@ -11,7 +11,7 @@ Usage:
   motion-creator run <config-path>
 
 Commands:
-  init   Scaffold a starter config, demo script, and sample page.
+  init   Run the guided config wizard or scaffold a starter project in non-interactive shells.
   record Capture a manual browser session and generate an editable demo file.
   run    Record a demo session and generate an FFmpeg follow-cam render.
 `);
@@ -28,7 +28,7 @@ async function main(): Promise<void> {
 
   if (command === "init") {
     await initProject(value);
-    console.log("Starter files created.");
+    console.log("Init complete.");
     return;
   }
 
