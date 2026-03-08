@@ -251,6 +251,7 @@ If you want repeatable release-style captures, the scene array is now the recomm
 If you want to avoid hand-building scene arrays for every launch asset, you can also generate them from the built-in templates.
 
 For camera tuning and regression checks, there is also a dedicated lab under [examples/camera-lab/README.md](/home/jackie/projects/motion/examples/camera-lab/README.md).
+For manual recorder testing, especially wheel/scroll behavior, there is a dedicated tall fixture under [examples/record-lab/README.md](/home/jackie/projects/motion/examples/record-lab/README.md).
 
 ## Manual Record Mode
 

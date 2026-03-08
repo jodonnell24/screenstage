@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Scroll Journey Record Lab</title>
+    <style>
+      /*
+       * bg: #f3ecdf
+       * surface: rgba(255, 252, 247, 0.84)
+       * accent: #177c69
+       * text: #1d262a / #617177
+       */
+
+      :root {
+        color-scheme: light;
+        --bg: #f3ecdf;
+        --bg-cool: #dfe8f0;
+        --surface: rgba(255, 252, 247, 0.84);
+        --surface-strong: rgba(255, 255, 255, 0.92);
+        --surface-tint: rgba(242, 247, 244, 0.96);
+        --line: rgba(29, 38, 42, 0.08);
+        --accent: #177c69;
+        --accent-strong: #0f5a4b;
+        --accent-soft: rgba(23, 124, 105, 0.12);
+        --warm: #d6a15f;
+        --text: #1d262a;
+        --muted: #617177;
+        --shadow: 0 26px 60px rgba(84, 95, 102, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Instrument Sans", "Avenir Next", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(255, 255, 255, 0.95), transparent 28%),
+          radial-gradient(circle at 88% 14%, rgba(223, 232, 240, 0.86), transparent 22%),
+          linear-gradient(142deg, var(--bg) 0%, #eef3ec 48%, var(--bg-cool) 100%);
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .page {
+        padding: 36px;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: 260px minmax(0, 1fr);
+        gap: 24px;
+        align-items: start;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 30px;
+        background: var(--surface);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+      }
+
+      .rail {
+        position: sticky;
+        top: 36px;
+        padding: 28px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 14px;
+        border-radius: 999px;
+        background: rgba(23, 124, 105, 0.12);
+        color: var(--accent-strong);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .rail h1 {
+        margin: 22px 0 12px;
+        font-size: 54px;
+        line-height: 0.9;
+        letter-spacing: -0.07em;
+      }
+
+      .rail p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.65;
+      }
+
+      .rail-nav {
+        margin-top: 28px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .rail-nav a {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.42);
+        color: var(--muted);
+        text-decoration: none;
+      }
+
+      .rail-nav a strong {
+        color: var(--text);
+        font-size: 14px;
+      }
+
+      .rail-notes {
+        margin-top: 28px;
+        padding: 18px;
+        border-radius: 22px;
+        background: rgba(20, 35, 34, 0.92);
+        color: white;
+      }
+
+      .rail-notes strong {
+        display: block;
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.58);
+      }
+
+      .rail-notes p {
+        margin-top: 10px;
+        color: rgba(255, 255, 255, 0.82);
+      }
+
+      .content {
+        display: grid;
+        gap: 22px;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 24px;
+        z-index: 3;
+        padding: 18px 20px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+      }
+
+      .search-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+      }
+
+      .search-row input {
+        width: 100%;
+        border: 1px solid rgba(29, 38, 42, 0.1);
+        border-radius: 18px;
+        padding: 16px 18px;
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--text);
+      }
+
+      .button-primary,
+      .button-soft {
+        border: 0;
+        border-radius: 18px;
+        padding: 16px 20px;
+        font-weight: 800;
+      }
+
+      .button-primary {
+        background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+        color: white;
+      }
+
+      .button-soft {
+        background: rgba(255, 255, 255, 0.68);
+        color: var(--text);
+      }
+
+      .top-meta {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.56);
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .hero {
+        padding: 34px;
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 26px;
+      }
+
+      .hero-copy h2 {
+        margin: 18px 0 14px;
+        max-width: 10ch;
+        font-size: 84px;
+        line-height: 0.88;
+        letter-spacing: -0.08em;
+      }
+
+      .hero-copy p {
+        max-width: 46ch;
+        margin: 0;
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.68;
+      }
+
+      .hero-actions {
+        margin-top: 26px;
+        display: flex;
+        gap: 12px;
+      }
+
+      .hero-proof {
+        display: grid;
+        grid-template-rows: auto auto 1fr;
+        gap: 16px;
+      }
+
+      .proof-card,
+      .proof-card-wide,
+      .stat-card,
+      .section-card,
+      .story-card,
+      .faq-card,
+      .cta-banner {
+        border: 1px solid var(--line);
+        border-radius: 26px;
+        background: var(--surface-strong);
+      }
+
+      .proof-card {
+        padding: 22px;
+      }
+
+      .proof-card strong {
+        display: block;
+        font-size: 44px;
+        letter-spacing: -0.06em;
+      }
+
+      .proof-card span,
+      .proof-card p {
+        color: var(--muted);
+      }
+
+      .proof-wave {
+        height: 118px;
+        margin-top: 14px;
+        border-radius: 22px;
+        background:
+          linear-gradient(120deg, rgba(23, 124, 105, 0.22), rgba(214, 161, 95, 0.16)),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(232, 242, 238, 0.96));
+        position: relative;
+        overflow: hidden;
+      }
+
+      .proof-wave::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 14% 72%, rgba(23, 124, 105, 0.26) 0 18px, transparent 19px),
+          linear-gradient(100deg, transparent 0 14%, rgba(15, 90, 75, 0.28) 18% 24%, transparent 28% 100%);
+        transform: skewX(-18deg);
+      }
+
+      .proof-card-wide {
+        padding: 22px;
+      }
+
+      .proof-card-wide ul {
+        margin: 16px 0 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 14px;
+      }
+
+      .proof-card-wide li {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        color: var(--muted);
+      }
+
+      .proof-card-wide strong {
+        color: var(--text);
+      }
+
+      .filters {
+        padding: 16px 20px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .filter-pill {
+        border: 1px solid rgba(29, 38, 42, 0.08);
+        border-radius: 999px;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.62);
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .filter-pill.active {
+        background: var(--accent-soft);
+        color: var(--accent-strong);
+      }
+
+      .section-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+      }
+
+      .section-card {
+        padding: 26px;
+      }
+
+      .section-card h3 {
+        margin: 0;
+        font-size: 34px;
+        line-height: 0.94;
+        letter-spacing: -0.05em;
+      }
+
+      .section-card p {
+        margin: 12px 0 0;
+        color: var(--muted);
+        line-height: 1.66;
+      }
+
+      .story-stack,
+      .checklist,
+      .gallery,
+      .faq-list {
+        margin-top: 22px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .story-card,
+      .faq-card {
+        padding: 18px 20px;
+      }
+
+      .story-card strong,
+      .faq-card strong {
+        display: block;
+        font-size: 18px;
+      }
+
+      .story-card p,
+      .faq-card p {
+        margin-top: 8px;
+        color: var(--muted);
+      }
+
+      .story-card .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 22px;
+      }
+
+      .stat-card {
+        padding: 20px;
+      }
+
+      .stat-card strong {
+        display: block;
+        font-size: 34px;
+        letter-spacing: -0.05em;
+      }
+
+      .stat-card span {
+        display: block;
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .check-item {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 14px;
+        align-items: center;
+        padding: 18px 20px;
+        border-radius: 22px;
+        background: var(--surface-tint);
+        border: 1px solid rgba(29, 38, 42, 0.06);
+      }
+
+      .check-badge {
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      }
+
+      .gallery {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .gallery-card {
+        min-height: 220px;
+        padding: 22px;
+        border-radius: 26px;
+        background:
+          linear-gradient(160deg, rgba(255, 255, 255, 0.88), rgba(236, 243, 239, 0.98)),
+          linear-gradient(135deg, rgba(23, 124, 105, 0.14), rgba(214, 161, 95, 0.14));
+        border: 1px solid rgba(29, 38, 42, 0.08);
+      }
+
+      .gallery-card strong {
+        display: block;
+        font-size: 24px;
+      }
+
+      .gallery-card p {
+        color: var(--muted);
+      }
+
+      .gallery-card .preview {
+        margin-top: 18px;
+        height: 124px;
+        border-radius: 22px;
+        background:
+          linear-gradient(135deg, rgba(23, 124, 105, 0.14), rgba(214, 161, 95, 0.18)),
+          linear-gradient(120deg, rgba(255, 255, 255, 0.92), rgba(233, 241, 237, 0.96));
+      }
+
+      .cta-banner {
+        padding: 28px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 20px;
+        align-items: center;
+      }
+
+      .cta-banner h3 {
+        margin: 0;
+        font-size: 44px;
+        line-height: 0.94;
+        letter-spacing: -0.06em;
+      }
+
+      .cta-banner p {
+        margin: 10px 0 0;
+        color: var(--muted);
+        max-width: 44ch;
+      }
+
+      .section-anchor {
+        position: relative;
+        top: -140px;
+      }
+
+      @media (max-width: 1200px) {
+        .shell,
+        .hero,
+        .section-grid,
+        .cta-banner {
+          grid-template-columns: 1fr;
+        }
+
+        .rail {
+          position: relative;
+          top: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <div class="shell">
+        <aside class="panel rail">
+          <div class="eyebrow">Record lab</div>
+          <h1>Scroll a launch system that actually goes somewhere.</h1>
+          <p>
+            This page is intentionally tall so you can test wheel capture, mid-scroll
+            clicks, lower-page targets, and wide-to-tight marker timing on a realistic path.
+          </p>
+          <nav class="rail-nav">
+            <a href="#overview"><strong>Overview</strong><span>Top</span></a>
+            <a href="#queue"><strong>Queue</strong><span>Middle</span></a>
+            <a href="#proof"><strong>Proof</strong><span>Lower</span></a>
+            <a href="#finish"><strong>Finish</strong><span>Bottom</span></a>
+          </nav>
+          <section class="rail-notes">
+            <strong>Good scroll path</strong>
+            <p>
+              Search at the top, scroll into the queue, approve a story card, keep going into
+              proof, then finish on the final CTA.
+            </p>
+          </section>
+        </aside>
+
+        <section class="content">
+          <header class="panel topbar">
+            <div class="search-row">
+              <input
+                data-demo="search"
+                placeholder="Find a launch moment, owner, or story card"
+              />
+              <button class="button-primary" data-demo="search-button">Queue scene</button>
+            </div>
+            <div class="top-meta">
+              <div class="chip">6 hours left</div>
+              <button class="button-soft" data-demo="export-top">Export draft</button>
+            </div>
+          </header>
+
+          <span class="section-anchor" id="overview"></span>
+          <section class="panel hero">
+            <article class="hero-copy">
+              <div class="eyebrow">Launch planning board</div>
+              <h2>Direct the release story while you scroll the real page.</h2>
+              <p>
+                Use this fixture to test a top search, mid-page checklist, lower proof gallery,
+                and a final CTA commit. The layout is built for long record sessions rather than
+                tiny hover moves.
+              </p>
+              <div class="hero-actions">
+                <button class="button-primary" data-demo="hero-primary">Approve hero cut</button>
+                <button class="button-soft" data-demo="hero-secondary">Share with marketing</button>
+              </div>
+            </article>
+
+            <aside class="hero-proof">
+              <section class="proof-card" data-demo="proof-top">
+                <span>Hero lift</span>
+                <strong>+34%</strong>
+                <p>Teams that tuned the launch cut before export shipped faster review rounds.</p>
+                <div class="proof-wave"></div>
+              </section>
+              <section class="proof-card-wide" data-demo="proof-notes">
+                <span class="eyebrow">This week</span>
+                <ul>
+                  <li><strong>5 stories ready</strong><span>Needs motion pass</span></li>
+                  <li><strong>3 proof cards</strong><span>Waiting on captions</span></li>
+                  <li><strong>2 CTA variants</strong><span>Ready for record</span></li>
+                </ul>
+              </section>
+            </aside>
+          </section>
+
+          <section class="panel filters">
+            <button class="filter-pill active" data-demo="filter-launch">Launch</button>
+            <button class="filter-pill" data-demo="filter-proof">Proof</button>
+            <button class="filter-pill" data-demo="filter-convert">Convert</button>
+            <button class="filter-pill" data-demo="filter-social">Social</button>
+          </section>
+
+          <span class="section-anchor" id="queue"></span>
+          <section class="section-grid">
+            <article class="panel section-card">
+              <span class="eyebrow">Queue</span>
+              <h3>Story cards worth scrolling down for.</h3>
+              <p>
+                These cards sit far enough below the hero to force a real travel path and let you
+                test a click after mid-page settling.
+              </p>
+              <div class="story-stack">
+                <article class="story-card" data-demo="story-map">
+                  <div class="row">
+                    <strong>Map the before/after path</strong>
+                    <button class="button-soft" data-demo="story-map-action">Mark ready</button>
+                  </div>
+                  <p>Good for a wide start, gentle scroll, then a click after the camera settles.</p>
+                </article>
+                <article class="story-card" data-demo="story-proof">
+                  <div class="row">
+                    <strong>Proof cards with visible deltas</strong>
+                    <button class="button-soft" data-demo="story-proof-action">Add to reel</button>
+                  </div>
+                  <p>Use this for a punch-in after the travel so the queue feels deliberate.</p>
+                </article>
+                <article class="story-card" data-demo="story-social">
+                  <div class="row">
+                    <strong>Social snippets that loop cleanly</strong>
+                    <button class="button-soft" data-demo="story-social-action">Ship clip</button>
+                  </div>
+                  <p>Long enough to test a second scroll beat before the lower proof gallery.</p>
+                </article>
+              </div>
+            </article>
+
+            <article class="panel section-card">
+              <span class="eyebrow">Checklist</span>
+              <h3>Controls that feel like a real review pass.</h3>
+              <p>
+                The checklist is here so the page is not just decorative. Scroll to it, click
+                one or two actions, and keep going.
+              </p>
+              <div class="checklist">
+                <div class="check-item" data-demo="check-framing">
+                  <div class="check-badge"></div>
+                  <div>
+                    <strong>Release framing approved</strong>
+                    <p>Keep the zoom calm on arrivals and departures.</p>
+                  </div>
+                  <button class="button-soft" data-demo="check-framing-action">Review</button>
+                </div>
+                <div class="check-item" data-demo="check-copy">
+                  <div class="check-badge"></div>
+                  <div>
+                    <strong>CTA copy locked</strong>
+                    <p>No last-second label changes before export.</p>
+                  </div>
+                  <button class="button-soft" data-demo="check-copy-action">Approve</button>
+                </div>
+                <div class="check-item" data-demo="check-proof">
+                  <div class="check-badge"></div>
+                  <div>
+                    <strong>Proof section still readable</strong>
+                    <p>Good target for testing scroll plus click on one continuous pass.</p>
+                  </div>
+                  <button class="button-soft" data-demo="check-proof-action">Pin</button>
+                </div>
+              </div>
+              <div class="stat-grid">
+                <article class="stat-card" data-demo="stat-one">
+                  <strong>18</strong>
+                  <span>Queued scenes</span>
+                </article>
+                <article class="stat-card" data-demo="stat-two">
+                  <strong>06</strong>
+                  <span>Approval rounds</span>
+                </article>
+                <article class="stat-card" data-demo="stat-three">
+                  <strong>92%</strong>
+                  <span>Ready for export</span>
+                </article>
+              </div>
+            </article>
+          </section>
+
+          <span class="section-anchor" id="proof"></span>
+          <section class="section-grid">
+            <article class="panel section-card">
+              <span class="eyebrow">Proof gallery</span>
+              <h3>Lower-page evidence and final decision points.</h3>
+              <p>
+                This section is far enough down that you should feel the scroll in the recording.
+                It gives you a second cluster of targets after the queue.
+              </p>
+              <div class="gallery">
+                <article class="gallery-card" data-demo="gallery-proof-a">
+                  <strong>Metric reveal</strong>
+                  <p>Use a wide marker before you arrive, then punch in on the approval click.</p>
+                  <div class="preview"></div>
+                </article>
+                <article class="gallery-card" data-demo="gallery-proof-b">
+                  <strong>Launch before/after</strong>
+                  <p>Useful for testing another stop before the final CTA row.</p>
+                  <div class="preview"></div>
+                </article>
+              </div>
+            </article>
+
+            <article class="panel section-card">
+              <span class="eyebrow">Questions</span>
+              <h3>FAQ blocks to force a longer tail on the page.</h3>
+              <p>
+                Scroll beyond the obvious cards so the session has a believable lower-half route.
+              </p>
+              <div class="faq-list">
+                <article class="faq-card" data-demo="faq-scroll">
+                  <strong>Does the recorder keep up with a slower wheel pass?</strong>
+                  <p>That is the main reason this fixture exists.</p>
+                </article>
+                <article class="faq-card" data-demo="faq-markers">
+                  <strong>Can you hide the HUD and still use markers?</strong>
+                  <p>Yes. Hide it and keep working from the keyboard.</p>
+                </article>
+                <article class="faq-card" data-demo="faq-quality">
+                  <strong>Why does this example render sharper?</strong>
+                  <p>It uses a larger source viewport and the `motion-edit` output preset.</p>
+                </article>
+              </div>
+            </article>
+          </section>
+
+          <span class="section-anchor" id="finish"></span>
+          <section class="cta-banner" data-demo="final-banner">
+            <div>
+              <span class="eyebrow">Final commit</span>
+              <h3>Finish with a bottom-of-page CTA so the record actually earns the scroll.</h3>
+              <p>
+                If the recorder can handle this whole path cleanly, the scroll workflow is in a good place.
+              </p>
+            </div>
+            <div style="display: flex; gap: 12px">
+              <button class="button-soft" data-demo="final-secondary">Send preview</button>
+              <button class="button-primary" data-demo="final-primary">Approve launch reel</button>
+            </div>
+          </section>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>
