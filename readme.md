@@ -7,6 +7,7 @@ It is designed for the workflow you described:
 - record real browser interactions against any web-based UI
 - keep the cursor visible in the footage with a professional-looking overlay
 - direct the camera toward important UI moments instead of relying only on raw cursor-following
+- author demos as a sequence of named shots instead of one long imperative script
 - export lightweight review MP4s and edit-friendly ProRes files for Apple Motion / Final Cut Pro
 
 This is a Playwright + FFmpeg pipeline. It works with React apps and non-React web apps because it records the browser, not the framework.
@@ -25,6 +26,7 @@ This is a Playwright + FFmpeg pipeline. It works with React apps and non-React w
   - clicking
   - human-looking typing
   - camera focus / wide shots / reframing
+  - shot-by-shot scene sequencing
 - Post-processes the recording in FFmpeg into:
   - `mp4` for fast review/sharing
   - `prores` for Motion / Final Cut editing
@@ -129,9 +131,18 @@ export default {
 - `camera.zoom` is the default follow-cam zoom when you are not manually keyframing the camera.
 - `camera.padding` keeps the target away from the crop edge.
 
-## Demo Script API
+## Authoring Model
 
-Your demo module exports a default async function. It receives:
+Your demo module can export either:
+
+- a default async function for full manual control
+- a default scene array for declarative shot sequencing
+
+If you want repeatable release-style captures, the scene array is now the recommended default.
+
+## Demo Runtime API
+
+Async demo functions receive:
 
 - `page`: the Playwright page
 - `cursor`: visible cursor controller
@@ -139,7 +150,7 @@ Your demo module exports a default async function. It receives:
 - `config`: resolved runtime config
 - `sessionDir`: output directory for the active run
 
-Example:
+Manual example:
 
 ```js
 export default async function demo({ camera, cursor }) {
@@ -162,6 +173,66 @@ export default async function demo({ camera, cursor }) {
   await cursor.click();
 }
 ```
+
+## Scene API
+
+Scene programs are exported as a plain array:
+
+```js
+export default [
+  {
+    type: "wide",
+    durationMs: 400,
+    label: "Start on a broad establishing shot",
+  },
+  {
+    type: "focus-selector",
+    selector: "[data-demo='email']",
+    durationMs: 850,
+    zoom: 2,
+  },
+  {
+    type: "type-selector",
+    selector: "[data-demo='email']",
+    text: "hello@getrestocky.com",
+    durationMs: 900,
+    delayMs: 75,
+  },
+  {
+    type: "follow-cursor",
+    durationMs: 300,
+  },
+  {
+    type: "move-selector",
+    selector: "[data-demo='cta']",
+    durationMs: 850,
+  },
+  {
+    type: "click",
+  },
+  {
+    type: "wait",
+    durationMs: 800,
+    target: "camera",
+  },
+];
+```
+
+Supported scene types:
+
+- `wide`
+- `follow-cursor`
+- `focus-selector`
+- `focus-point`
+- `move-selector`
+- `move-point`
+- `click`
+- `click-selector`
+- `type`
+- `type-selector`
+- `wait`
+
+`wait.target` accepts `"cursor"`, `"camera"`, or `"both"`.
 
 ### Cursor Helpers
 
@@ -201,6 +272,7 @@ Implemented now:
 - realistic cursor overlay
 - hover-aware cursor variants
 - manual camera keyframes
+- declarative scene arrays
 - MP4 + ProRes rendering
 - starter scaffold
 

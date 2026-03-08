@@ -1,4 +1,5 @@
 export { defineConfig } from "./config.js";
+export { defineScenes } from "./scenes.js";
 export type {
   CameraController,
   CameraFocusOptions,
@@ -9,11 +10,14 @@ export type {
   CursorMoveOptions,
   CursorSample,
   CursorTypeOptions,
+  DemoProgram,
   DemoContext,
   FfmpegPlan,
   LoadedMotionConfig,
+  MotionScene,
   MotionConfig,
   OutputFormat,
   Point,
+  SceneProgram,
   Size,
 } from "./types.js";

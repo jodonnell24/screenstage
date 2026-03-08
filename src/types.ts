@@ -141,6 +141,80 @@ export type CameraController = {
   wide: (options?: Omit<CameraFocusOptions, "zoom">) => Promise<void>;
 };
 
+export type SceneBase = {
+  label?: string;
+};
+
+export type MotionScene =
+  | (SceneBase & {
+      durationMs?: number;
+      type: "wide";
+    })
+  | (SceneBase & {
+      durationMs?: number;
+      type: "follow-cursor";
+      zoom?: number;
+    })
+  | (SceneBase & {
+      durationMs?: number;
+      selector: string;
+      type: "focus-selector";
+      zoom?: number;
+    })
+  | (SceneBase & {
+      durationMs?: number;
+      point: Point;
+      type: "focus-point";
+      zoom?: number;
+    })
+  | (SceneBase & {
+      durationMs?: number;
+      selector: string;
+      steps?: number;
+      type: "move-selector";
+    })
+  | (SceneBase & {
+      durationMs?: number;
+      point: Point;
+      steps?: number;
+      type: "move-point";
+    })
+  | (SceneBase & {
+      button?: MouseButton;
+      delayMs?: number;
+      type: "click";
+    })
+  | (SceneBase & {
+      button?: MouseButton;
+      delayMs?: number;
+      durationMs?: number;
+      selector: string;
+      steps?: number;
+      type: "click-selector";
+    })
+  | (SceneBase & {
+      delayMs?: number;
+      submit?: boolean;
+      text: string;
+      type: "type";
+    })
+  | (SceneBase & {
+      delayMs?: number;
+      durationMs?: number;
+      selector: string;
+      steps?: number;
+      submit?: boolean;
+      text: string;
+      type: "type-selector";
+    })
+  | (SceneBase & {
+      durationMs: number;
+      target?: "both" | "camera" | "cursor";
+      type: "wait";
+    });
+
+export type SceneProgram = MotionScene[];
+
 export type DemoContext = {
   camera: CameraController;
   config: LoadedMotionConfig;
@@ -149,8 +223,10 @@ export type DemoContext = {
   sessionDir: string;
 };
 
+export type DemoProgram = ((context: DemoContext) => Promise<void>) | SceneProgram;
+
 export type DemoModule = {
-  default: (context: DemoContext) => Promise<void>;
+  default: DemoProgram;
 };
 
 export type FfmpegPlan = {

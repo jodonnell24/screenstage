@@ -131,8 +131,8 @@ export async function loadDemoModule(demoPath: string): Promise<DemoModule> {
   const demoModule = await import(pathToFileURL(absoluteDemoPath).href);
 
   assertCondition(
-    typeof demoModule.default === "function",
-    "Demo module must export a default async function.",
+    typeof demoModule.default === "function" || Array.isArray(demoModule.default),
+    "Demo module must export a default async function or a default scene array.",
   );
 
   return demoModule as DemoModule;

@@ -8,6 +8,7 @@ import { loadConfig, loadDemoModule } from "./config.js";
 import { DemoCursorController } from "./cursor-controller.js";
 import { installCursorOverlay, moveCursorOverlay } from "./cursor-overlay.js";
 import { buildFfmpegPlans, commandExists, renderWithFfmpeg } from "./ffmpeg.js";
+import { runScenes } from "./scenes.js";
 
 function stamp(): string {
   return new Date().toISOString().replaceAll(":", "-");
@@ -66,13 +67,19 @@ export async function runMotion(configPath: string): Promise<void> {
     await page.goto(config.url, { waitUntil: "load" });
     await moveCursorOverlay(page, initialPoint.x, initialPoint.y);
 
-    await demoModule.default({
+    const demoContext = {
       camera,
       config,
       cursor,
       page,
       sessionDir,
-    });
+    };
+
+    if (Array.isArray(demoModule.default)) {
+      await runScenes(demoModule.default, demoContext);
+    } else {
+      await demoModule.default(demoContext);
+    }
 
     await cursor.wait(config.timing.settleMs);
   } finally {
@@ -102,8 +109,10 @@ export async function runMotion(configPath: string): Promise<void> {
     JSON.stringify(
       {
         config,
+        demoProgramType: Array.isArray(demoModule.default) ? "scenes" : "function",
         ffmpegPlans,
         cameraSamples: camera.samples,
+        scenes: Array.isArray(demoModule.default) ? demoModule.default : undefined,
         samples: cursor.samples,
       },
       null,
