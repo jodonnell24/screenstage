@@ -359,141 +359,184 @@ const RECORDER_SCRIPT = `
     style.id = "__motion_record_style";
     style.textContent = \`
       /* bg: #09121d; surface: rgba(10, 16, 26, 0.88); accent: #7ae2ba; text: #ffffff / rgba(255,255,255,0.72) */
+      #__motion_record_panel,
+      #__motion_record_panel * {
+        cursor: auto !important;
+      }
+
+      body[data-motion-record-native='1'] #__motion_cursor_root {
+        opacity: 0;
+      }
+
       #__motion_record_panel {
         position: fixed;
-        right: 18px;
-        bottom: 18px;
+        left: 50%;
+        top: 18px;
+        transform: translateX(-50%);
         z-index: 2147483646;
-        width: 312px;
-        padding: 18px;
-        border-radius: 22px;
-        background: rgba(10, 16, 26, 0.88);
+        width: min(680px, calc(100vw - 28px));
+        padding: 14px 16px;
+        border-radius: 999px;
+        background: rgba(9, 16, 28, 0.84);
         color: white;
-        backdrop-filter: blur(16px);
-        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.22);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2);
         border: 1px solid rgba(255, 255, 255, 0.14);
         font-family: ui-sans-serif, system-ui, sans-serif;
       }
 
-      #__motion_record_panel strong {
-        display: block;
-        font-size: 14px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.72);
-      }
-
-      #__motion_record_panel p {
-        margin: 10px 0 0;
-        font-size: 13px;
-        line-height: 1.55;
-        color: rgba(255, 255, 255, 0.88);
-      }
-
-      #__motion_record_panel .__motion_record_marker_status {
-        display: flex;
-        justify-content: space-between;
+      #__motion_record_panel .__motion_record_shell {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
         align-items: center;
         gap: 14px;
-        margin-top: 14px;
-        padding: 12px 14px;
-        border-radius: 16px;
-        background: rgba(255, 255, 255, 0.045);
-        border: 1px solid rgba(255, 255, 255, 0.08);
       }
 
-      #__motion_record_panel .__motion_record_marker_status span {
+      #__motion_record_panel .__motion_record_intro strong {
+        display: block;
         font-size: 11px;
-        letter-spacing: 0.12em;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
         color: rgba(255, 255, 255, 0.58);
       }
 
-      #__motion_record_panel .__motion_record_marker_status strong {
+      #__motion_record_panel .__motion_record_intro p {
+        margin: 4px 0 0;
+        font-size: 13px;
+        line-height: 1.35;
+        color: rgba(255, 255, 255, 0.9);
+        white-space: nowrap;
+      }
+
+      #__motion_record_panel .__motion_record_status {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-width: 0;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      #__motion_record_panel .__motion_record_status span {
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      #__motion_record_panel .__motion_record_status strong {
         font-size: 13px;
         letter-spacing: 0.02em;
-        text-transform: none;
         color: rgba(255, 255, 255, 0.96);
       }
 
       #__motion_record_panel .__motion_record_markers {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 10px;
-        margin-top: 14px;
-      }
-
-      #__motion_record_panel .__motion_record_actions {
         display: flex;
-        gap: 10px;
-        margin-top: 14px;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
       }
 
       #__motion_record_panel button {
         border: 0;
-        border-radius: 14px;
-        padding: 11px 14px;
+        border-radius: 999px;
+        padding: 10px 14px;
         font: inherit;
         font-weight: 700;
       }
 
       #__motion_record_panel button[data-marker] {
-        min-height: 72px;
-        padding: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
         background: rgba(255, 255, 255, 0.06);
         color: white;
-        text-align: left;
       }
 
       #__motion_record_panel button[data-marker] span {
-        display: block;
-        font-size: 11px;
+        display: inline-block;
+        font-size: 10px;
         letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.58);
+        color: rgba(255, 255, 255, 0.48);
       }
 
       #__motion_record_panel button[data-marker] strong {
-        margin-top: 6px;
-        font-size: 14px;
+        font-size: 13px;
         letter-spacing: 0;
-        text-transform: none;
         color: white;
       }
 
       #__motion_record_panel button[data-marker='follow'] {
-        background: linear-gradient(135deg, rgba(122, 226, 186, 0.25), rgba(54, 119, 99, 0.2));
+        background: linear-gradient(135deg, rgba(122, 226, 186, 0.24), rgba(54, 119, 99, 0.18));
       }
 
       #__motion_record_panel button[data-marker='wide'] {
-        background: linear-gradient(135deg, rgba(113, 182, 255, 0.16), rgba(74, 102, 185, 0.14));
+        background: linear-gradient(135deg, rgba(113, 182, 255, 0.16), rgba(74, 102, 185, 0.12));
       }
 
       #__motion_record_panel button[data-marker='hold'] {
-        background: linear-gradient(135deg, rgba(255, 214, 132, 0.14), rgba(186, 122, 68, 0.12));
+        background: linear-gradient(135deg, rgba(255, 214, 132, 0.15), rgba(186, 122, 68, 0.12));
+      }
+
+      #__motion_record_panel .__motion_record_actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
 
       #__motion_record_panel button[data-action="finish"] {
-        flex: 1;
         background: linear-gradient(135deg, #7ae2ba, #4aa382);
         color: #082118;
       }
 
       #__motion_record_panel button[data-action="cancel"] {
-        flex: 1;
         background: rgba(255, 255, 255, 0.08);
         color: white;
+      }
+
+      @media (max-width: 720px) {
+        #__motion_record_panel {
+          border-radius: 28px;
+        }
+
+        #__motion_record_panel .__motion_record_shell {
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+
+        #__motion_record_panel .__motion_record_intro p {
+          white-space: normal;
+        }
+
+        #__motion_record_panel .__motion_record_markers,
+        #__motion_record_panel .__motion_record_actions {
+          flex-wrap: wrap;
+          justify-content: flex-start;
+        }
       }
     \`;
 
     const panel = document.createElement("div");
     panel.id = "__motion_record_panel";
     panel.innerHTML = \`
-      <strong>Motion Recorder</strong>
-      <p>Perform the flow normally. Tag camera beats as you go, then finish here or press Alt+Shift+R.</p>
-      <div class="__motion_record_marker_status">
-        <span>Last shot cue</span>
-        <strong data-role="marker-status">Wide</strong>
+      <div class="__motion_record_shell">
+        <div class="__motion_record_intro">
+          <strong>Motion Recorder</strong>
+          <p>Use keys while recording. Finish with Alt+Shift+R.</p>
+        </div>
+        <div class="__motion_record_status">
+          <span>Last cue</span>
+          <strong data-role="marker-status">Wide</strong>
+        </div>
+        <div class="__motion_record_actions">
+          <button type="button" data-action="cancel">Cancel</button>
+          <button type="button" data-action="finish">Finish</button>
+        </div>
       </div>
       <div class="__motion_record_markers">
         <button type="button" data-marker="wide">
@@ -508,10 +551,6 @@ const RECORDER_SCRIPT = `
           <span>Alt+Shift+3</span>
           <strong>Hold</strong>
         </button>
-      </div>
-      <div class="__motion_record_actions">
-        <button type="button" data-action="cancel">Cancel</button>
-        <button type="button" data-action="finish">Finish</button>
       </div>
     \`;
 
@@ -534,6 +573,14 @@ const RECORDER_SCRIPT = `
           }
         });
       });
+
+    panel.addEventListener("pointerenter", () => {
+      document.body.dataset.motionRecordNative = "1";
+    });
+
+    panel.addEventListener("pointerleave", () => {
+      delete document.body.dataset.motionRecordNative;
+    });
 
     panel
       .querySelector('[data-action="finish"]')
