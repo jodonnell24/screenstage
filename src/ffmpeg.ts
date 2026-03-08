@@ -1,4 +1,6 @@
 import { spawn } from "node:child_process";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 import type {
   CameraSample,
@@ -9,6 +11,7 @@ import type {
   LoadedMotionConfig,
   OutputFormat,
 } from "./types.js";
+import type { CapturedFrame } from "./frame-capture.js";
 
 type NumericPoint = {
   timeMs: number;
@@ -685,6 +688,63 @@ export async function cropVideoSource(
     "veryfast",
     "-crf",
     "12",
+    "-an",
+    outputPath,
+  ]);
+}
+
+function escapeConcatPath(filePath: string): string {
+  return filePath.replaceAll("'", "'\\''");
+}
+
+export async function assembleFramesToVideo(
+  frames: CapturedFrame[],
+  outputPath: string,
+  durationMs: number,
+): Promise<void> {
+  if (frames.length === 0) {
+    throw new Error("No captured frames were available to assemble.");
+  }
+
+  const manifestPath = path.join(path.dirname(outputPath), "frames.ffconcat");
+  const lines = ["ffconcat version 1.0"];
+
+  for (let index = 0; index < frames.length; index += 1) {
+    const frame = frames[index]!;
+    const nextTimeMs =
+      index < frames.length - 1
+        ? frames[index + 1]!.timeMs
+        : durationMs;
+    const segmentDurationSeconds = Math.max(
+      (nextTimeMs - frame.timeMs) / 1000,
+      1 / 120,
+    );
+
+    lines.push(`file '${escapeConcatPath(frame.path)}'`);
+    lines.push(`duration ${formatNumber(segmentDurationSeconds)}`);
+  }
+
+  lines.push(`file '${escapeConcatPath(frames.at(-1)!.path)}'`);
+
+  await fs.writeFile(manifestPath, `${lines.join("\n")}\n`, "utf8");
+  await renderFfmpegArgs([
+    "-y",
+    "-safe",
+    "0",
+    "-f",
+    "concat",
+    "-i",
+    manifestPath,
+    "-fps_mode",
+    "vfr",
+    "-pix_fmt",
+    "rgb24",
+    "-c:v",
+    "libx264rgb",
+    "-preset",
+    "ultrafast",
+    "-crf",
+    "0",
     "-an",
     outputPath,
   ]);

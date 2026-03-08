@@ -403,6 +403,18 @@ function createFileResponder(targetUrl: URL) {
   };
 }
 
+function resolveProxiedPath(requestUrl: URL): string | undefined {
+  if (requestUrl.pathname === "/__motion/studio") {
+    return undefined;
+  }
+
+  if (requestUrl.pathname.startsWith("/__motion/proxy")) {
+    return requestUrl.pathname.replace(/^\/__motion\/proxy/, "") || "/";
+  }
+
+  return `${requestUrl.pathname}${requestUrl.search}`;
+}
+
 function createProxyResponder(targetUrl: URL) {
   const targetOrigin = `${targetUrl.protocol}//${targetUrl.host}`;
 
@@ -486,18 +498,18 @@ export async function startStudioSession(
       return;
     }
 
-    if (!requestUrl.pathname.startsWith("/__motion/proxy")) {
+    const proxiedPath = resolveProxiedPath(requestUrl);
+
+    if (!proxiedPath) {
       response.statusCode = 404;
       response.end("Not found");
       return;
     }
 
-    const proxiedPath = requestUrl.pathname.replace(/^\/__motion\/proxy/, "") || "/";
-
     try {
       const proxiedResponse = fileResponder
         ? await fileResponder(proxiedPath)
-        : await proxyResponder!(`${proxiedPath}${requestUrl.search}`, request);
+        : await proxyResponder!(proxiedPath, request);
       response.statusCode = proxiedResponse.status;
       copyResponseHeaders(proxiedResponse, response);
       const body = Buffer.from(await proxiedResponse.arrayBuffer());

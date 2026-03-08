@@ -7,6 +7,7 @@ import { chromium } from "playwright";
 import { prepareComposition } from "./composition.js";
 import { loadConfig } from "./config.js";
 import {
+  assembleFramesToVideo,
   buildFfmpegPlans,
   commandExists,
   cropVideoSource,
@@ -14,6 +15,7 @@ import {
   renderPosterFrame,
   renderWithFfmpeg,
 } from "./ffmpeg.js";
+import { ManualFrameCapture } from "./frame-capture.js";
 import {
   installManualRecorder,
   installManualRecorderInFrame,
@@ -556,10 +558,16 @@ export async function recordMotion(
   options: RecordMotionOptions = {},
 ): Promise<void> {
   const config = await loadConfig(configPath);
+  const ffmpegAvailable = await commandExists("ffmpeg");
   const sessionName = `${config.name}-${stamp()}`;
   const sessionDir = path.join(config.output.dir, sessionName);
   const recordingsDir = path.join(sessionDir, "recordings");
-  const sourceVideoPath = path.join(sessionDir, "source.webm");
+  const framesDir = path.join(sessionDir, "frames");
+  const sourceVideoPath = path.join(
+    sessionDir,
+    config.browser.studio.enabled ? "source-stage.mkv" : "source.mkv",
+  );
+  const fallbackVideoPath = path.join(sessionDir, "source.webm");
   const croppedSourceVideoPath = path.join(sessionDir, "source-stage.mp4");
   const recordingPath = path.join(sessionDir, "recording.json");
   const sessionGeneratedDemoPath = path.join(sessionDir, "generated-demo.mjs");
@@ -579,10 +587,14 @@ export async function recordMotion(
   });
 
   const context = await browser.newContext({
-    recordVideo: {
-      dir: recordingsDir,
-      size: studioSession?.viewport ?? config.viewport,
-    },
+    ...(ffmpegAvailable
+      ? {}
+      : {
+          recordVideo: {
+            dir: recordingsDir,
+            size: studioSession?.viewport ?? config.viewport,
+          },
+        }),
     viewport: studioSession?.viewport ?? config.viewport,
   });
 
@@ -593,10 +605,11 @@ export async function recordMotion(
     x: config.viewport.width / 2,
     y: config.viewport.height / 2,
   };
-  const video = page.video();
+  const video = ffmpegAvailable ? undefined : page.video();
   let recording: ManualRecording | undefined;
   let automationError: unknown;
   let controllerWindow: ManualControllerWindow | undefined;
+  let frameCapture: ManualFrameCapture | undefined;
 
   try {
     await page.goto(studioSession?.wrapperUrl ?? config.url, { waitUntil: "load" });
@@ -615,6 +628,27 @@ export async function recordMotion(
 
       await installCursorOverlay(frame);
       await moveCursorOverlay(frame, initialPoint.x, initialPoint.y);
+      if (ffmpegAvailable) {
+        frameCapture = new ManualFrameCapture({
+          fps: config.output.fps,
+          outputDir: framesDir,
+          target: {
+            screenshot: (options) =>
+              page.screenshot({
+                ...options,
+                clip: {
+                  height: studioSession.captureRegion.height,
+                  width: studioSession.captureRegion.width,
+                  x: studioSession.captureRegion.x,
+                  y: studioSession.captureRegion.y,
+                },
+                fullPage: false,
+                type: "png",
+              }),
+          },
+        });
+        await frameCapture.start();
+      }
       controls = await installManualRecorderInFrame(page, frame, {
         onControlsFocusRequest: async () => {
           await page.evaluate(() => {
@@ -638,6 +672,21 @@ export async function recordMotion(
     } else {
       await installCursorOverlay(page);
       await moveCursorOverlay(page, initialPoint.x, initialPoint.y);
+      if (ffmpegAvailable) {
+        frameCapture = new ManualFrameCapture({
+          fps: config.output.fps,
+          outputDir: framesDir,
+          target: {
+            screenshot: (options) =>
+              page.screenshot({
+                ...options,
+                fullPage: false,
+                type: "png",
+              }),
+          },
+        });
+        await frameCapture.start();
+      }
 
       let controllerFocusRequested = false;
       controls = await installManualRecorder(page, {
@@ -671,6 +720,10 @@ export async function recordMotion(
       throw automationError;
     }
 
+    if (frameCapture) {
+      await frameCapture.stop(recording.durationMs);
+    }
+
     await page.waitForTimeout(Math.min(config.timing.settleMs, 400));
   } finally {
     await controllerWindow?.close().catch(() => undefined);
@@ -683,15 +736,19 @@ export async function recordMotion(
 
   const recordedVideoPath = await video?.path();
 
-  if (!recordedVideoPath) {
-    throw new Error("Playwright did not produce a source video.");
-  }
-
   if (!recording) {
     throw new Error("Manual recording did not complete.");
   }
 
-  await fs.rename(recordedVideoPath, sourceVideoPath);
+  if (frameCapture) {
+    await assembleFramesToVideo(frameCapture.frames, sourceVideoPath, recording.durationMs);
+  } else {
+    if (!recordedVideoPath) {
+      throw new Error("Playwright did not produce a source video.");
+    }
+
+    await fs.rename(recordedVideoPath, fallbackVideoPath);
+  }
   await fs.writeFile(recordingPath, JSON.stringify(recording, null, 2), "utf8");
 
   if (recording.cancelled) {
@@ -699,14 +756,17 @@ export async function recordMotion(
     return;
   }
 
-  const renderSourcePath = studioSession
-    ? (await cropVideoSource(
-        sourceVideoPath,
-        croppedSourceVideoPath,
-        studioSession.captureRegion,
-      ),
-      croppedSourceVideoPath)
-    : sourceVideoPath;
+  const renderSourcePath =
+    ffmpegAvailable && frameCapture
+      ? sourceVideoPath
+      : studioSession
+        ? (await cropVideoSource(
+            fallbackVideoPath,
+            croppedSourceVideoPath,
+            studioSession.captureRegion,
+          ),
+          croppedSourceVideoPath)
+        : fallbackVideoPath;
 
   const cursorSamples = withRenderableCursorSamples(
     recording,
@@ -759,7 +819,7 @@ export async function recordMotion(
 
   console.log(`Generated editable demo: ${editableGeneratedDemoPath}`);
 
-  if (await commandExists("ffmpeg")) {
+  if (ffmpegAvailable) {
     for (const plan of ffmpegPlans) {
       await renderWithFfmpeg(plan);
       console.log(`Rendered ${plan.format} video: ${plan.outputPath}`);

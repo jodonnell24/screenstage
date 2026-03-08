@@ -112,7 +112,7 @@ npm run dev -- run ./demo-project/motion.config.mjs
 ```
 
 `init` is non-destructive. It only writes starter files that do not already exist, and in a normal terminal it now asks a few setup questions instead of making you hand-author the config.
-`record` opens a visible browser, lets you perform the flow manually, then writes an editable demo module alongside the raw capture artifacts.
+`record` opens a visible browser, lets you perform the flow manually, then writes an editable demo module alongside the raw capture artifacts. When `ffmpeg` is available, manual recording now captures PNG frames and assembles an RGB intermediate source first, which preserves color and gradient-heavy UIs better than the older browser-video path.
 For local apps and local fixtures, you can enable embedded studio mode so the controls live outside the captured app stage instead of inside the page or in a separate popup.
 
 ## Config
@@ -293,6 +293,8 @@ For manual recorder testing, especially wheel/scroll behavior, there is a dedica
 6. Get an immediate rendered video plus an editable generated demo file.
 
 When `browser.studio.enabled` is on, the app is loaded inside a local wrapper page and only the iframe stage is recorded. That is the recommended setup for local dev tools because the controls stay outside the shot while still feeling integrated.
+
+On machines with `ffmpeg` installed, manual recordings are captured as PNG frame sequences and assembled into a lossless RGB intermediate before the final render. That path is slower than browser video capture, but it keeps saturated colors, soft gradients, and translucent surfaces much closer to the live app.
 
 Built-in shot markers:
 
