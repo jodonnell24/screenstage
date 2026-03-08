@@ -21,6 +21,7 @@ const CONFIG_TEMPLATE = `export default {
     preset: "release-hero",
   },
   camera: {
+    mode: "follow",
     zoom: 1.7,
     padding: 96,
   },

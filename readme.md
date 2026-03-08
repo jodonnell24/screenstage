@@ -119,6 +119,7 @@ export default {
     preset: "release-hero",
   },
   camera: {
+    mode: "follow",
     zoom: 1.7,
     padding: 96,
   },
@@ -142,6 +143,7 @@ export default {
   - `"mp4"` for lightweight H.264 output
   - `"prores"` for high-quality `.mov` output that is better suited for Motion / Final Cut
 - `camera.zoom` is the default follow-cam zoom when you are not manually keyframing the camera.
+- `camera.mode` can be `"follow"` for cursor-led framing or `"static"` for a fixed full-browser shot with no mouse-follow behavior.
 - `camera.padding` keeps the target away from the crop edge.
 - `camera.smoothingMs` softens raw cursor-led camera tracking.
 - `camera.deadzonePx` prevents tiny cursor changes from nudging the camera.
@@ -300,6 +302,15 @@ Supported scene types:
 - `camera.wait(durationMs)`
 - `camera.sample(kind)`
 
+If you want a traditional non-followed browser recording with the composition shell still applied, set:
+
+```js
+camera: {
+  mode: "static",
+  zoom: 1,
+}
+```
+
 ## Recommended Workflow
 
 For strong release-style captures:
@@ -309,6 +320,7 @@ For strong release-style captures:
 - Pause deliberately with `cursor.wait()` or `camera.wait()` so the camera has time to settle.
 - Use `camera.focusSelector()` before important interactions instead of letting every shot be cursor-led.
 - Increase `camera.smoothingMs` if a cursor-led sequence still feels twitchy, or reduce it if the camera feels too lazy.
+- Switch `camera.mode` to `"static"` when you want a composed showcase clip that behaves like a normal screen recording.
 - Use `cursor.typeSelector()` for form entries so the footage reads like a real person using the app.
 - Export `prores` when the clip is headed into Motion or Final Cut for finishing.
 

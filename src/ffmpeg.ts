@@ -22,6 +22,11 @@ type FrameState = {
   y: number;
 };
 
+type DurationWindow = {
+  endTimeMs: number;
+  startTimeMs: number;
+};
+
 const FORMAT_SETTINGS: Record<
   OutputFormat,
   {
@@ -171,6 +176,52 @@ function buildFrameStatesFromCamera(
       y: sample.y,
     };
   });
+}
+
+function resolveDurationWindow(
+  cursorSamples: CursorSample[],
+  cameraSamples: CameraSample[],
+): DurationWindow {
+  const endTimeMs = Math.max(
+    cursorSamples.at(-1)?.timeMs ?? 0,
+    cameraSamples.at(-1)?.timeMs ?? 0,
+  );
+
+  return {
+    endTimeMs,
+    startTimeMs: 0,
+  };
+}
+
+function buildStaticFrameStates(
+  duration: DurationWindow,
+  config: LoadedMotionConfig,
+  layout: CompositionLayout,
+): FrameState[] {
+  const { cropHeight, cropWidth } = getCropSizeForZoom(
+    config,
+    layout,
+    config.camera.zoom,
+  );
+  const centerX = config.viewport.width / 2;
+  const centerY = config.viewport.height / 2;
+
+  return [
+    {
+      cropHeight,
+      cropWidth,
+      timeMs: duration.startTimeMs,
+      x: centerX,
+      y: centerY,
+    },
+    {
+      cropHeight,
+      cropWidth,
+      timeMs: duration.endTimeMs,
+      x: centerX,
+      y: centerY,
+    },
+  ];
 }
 
 function buildNumericPoints(
@@ -424,14 +475,15 @@ export function buildFfmpegPlans(
   cameraSamples: CameraSample[],
   layout: CompositionLayout,
 ): FfmpegPlan[] {
+  const duration = resolveDurationWindow(cursorSamples, cameraSamples);
   const frames =
     cameraSamples.length > 1
       ? buildFrameStatesFromCamera(cameraSamples, config, layout)
-      : buildFrameStatesFromCursor(cursorSamples, config, layout);
-  const lastCursorTimeMs = cursorSamples.at(-1)?.timeMs ?? 0;
-  const lastCameraTimeMs = cameraSamples.at(-1)?.timeMs ?? 0;
+      : config.camera.mode === "static"
+        ? buildStaticFrameStates(duration, config, layout)
+        : buildFrameStatesFromCursor(cursorSamples, config, layout);
   const durationSeconds = Number(
-    ((Math.max(lastCursorTimeMs, lastCameraTimeMs) + 1000 / config.output.fps) / 1000)
+    ((duration.endTimeMs + 1000 / config.output.fps) / 1000)
       .toFixed(3),
   );
   const numericPoints = buildNumericPoints(frames, config);

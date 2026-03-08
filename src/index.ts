@@ -1,6 +1,7 @@
 export { defineConfig } from "./config.js";
 export { defineScenes } from "./scenes.js";
 export type {
+  CameraMode,
   CameraController,
   CameraFocusOptions,
   CompositionLayout,

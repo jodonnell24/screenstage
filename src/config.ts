@@ -2,6 +2,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import type {
+  CameraMode,
   CompositionPreset,
   DemoModule,
   LoadedMotionConfig,
@@ -52,6 +53,7 @@ const DEFAULTS = {
   },
   camera: {
     deadzonePx: 18,
+    mode: "follow" as CameraMode,
     padding: 96,
     smoothingMs: 180,
     zoom: 1.65,
@@ -87,6 +89,7 @@ const DEFAULTS = {
 };
 
 const VALID_OUTPUT_FORMATS = new Set<OutputFormat>(["mp4", "prores"]);
+const VALID_CAMERA_MODES = new Set<CameraMode>(["follow", "static"]);
 const VALID_OUTPUT_PRESETS = new Set<OutputPreset>(
   Object.keys(OUTPUT_PRESETS) as OutputPreset[],
 );
@@ -149,10 +152,15 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
   const outputPreset = config.output?.preset ?? DEFAULTS.output.preset;
   const compositionPreset =
     config.composition?.preset ?? DEFAULTS.composition.preset;
+  const cameraMode = config.camera?.mode ?? DEFAULTS.camera.mode;
 
   assertCondition(
     VALID_OUTPUT_PRESETS.has(outputPreset),
     "Config output.preset must be 'release-hero', 'social-square', 'social-vertical', or 'motion-edit'.",
+  );
+  assertCondition(
+    VALID_CAMERA_MODES.has(cameraMode),
+    "Config camera.mode must be 'follow' or 'static'.",
   );
 
   const presetOutput = OUTPUT_PRESETS[outputPreset];
@@ -179,6 +187,7 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
     },
     camera: {
       deadzonePx: config.camera?.deadzonePx ?? DEFAULTS.camera.deadzonePx,
+      mode: cameraMode,
       padding: config.camera?.padding ?? DEFAULTS.camera.padding,
       smoothingMs:
         config.camera?.smoothingMs ?? DEFAULTS.camera.smoothingMs,

@@ -12,6 +12,7 @@ export type Size = {
 
 export type MouseButton = "left" | "middle" | "right";
 export type OutputFormat = "mp4" | "prores";
+export type CameraMode = "follow" | "static";
 export type OutputPreset =
   | "release-hero"
   | "social-square"
@@ -45,6 +46,7 @@ export type MotionConfig = {
   };
   camera?: {
     deadzonePx?: number;
+    mode?: CameraMode;
     zoom?: number;
     padding?: number;
     smoothingMs?: number;
@@ -90,6 +92,7 @@ export type LoadedMotionConfig = {
   };
   camera: {
     deadzonePx: number;
+    mode: CameraMode;
     padding: number;
     smoothingMs: number;
     zoom: number;
