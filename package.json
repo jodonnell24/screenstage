@@ -1,0 +1,41 @@
+{
+  "name": "motion-creator",
+  "version": "0.1.0",
+  "description": "TypeScript CLI for cursor-following product demo videos with Playwright and FFmpeg.",
+  "type": "module",
+  "bin": {
+    "motion-creator": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx src/cli.ts",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "playwright",
+    "ffmpeg",
+    "video",
+    "cursor",
+    "product-demo"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "playwright": "^1.54.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}
