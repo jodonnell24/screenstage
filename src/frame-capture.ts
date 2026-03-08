@@ -95,7 +95,8 @@ export class ManualFrameCapture {
     );
 
     await this.#target.screenshot({
-      animations: "disabled",
+      animations: "allow",
+      caret: "hide",
       path: filePath,
       scale: "device",
     });
