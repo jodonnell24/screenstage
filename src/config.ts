@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url";
 
 import type {
   CameraMode,
+  CameraPreset,
   CompositionPreset,
   DemoModule,
   LoadedMotionConfig,
@@ -46,17 +47,58 @@ const OUTPUT_PRESETS: Record<
   },
 };
 
+const CAMERA_PRESETS: Record<
+  CameraPreset,
+  {
+    deadzonePx: number;
+    mode: CameraMode;
+    padding: number;
+    smoothingMs: number;
+    verticalWeight: number;
+    zoom: number;
+  }
+> = {
+  "lazy-follow": {
+    deadzonePx: 34,
+    mode: "follow",
+    padding: 128,
+    smoothingMs: 300,
+    verticalWeight: 0.58,
+    zoom: 1.35,
+  },
+  "showcase-follow": {
+    deadzonePx: 24,
+    mode: "follow",
+    padding: 104,
+    smoothingMs: 220,
+    verticalWeight: 0.68,
+    zoom: 1.75,
+  },
+  static: {
+    deadzonePx: 0,
+    mode: "static",
+    padding: 96,
+    smoothingMs: 0,
+    verticalWeight: 1,
+    zoom: 1,
+  },
+  "tight-follow": {
+    deadzonePx: 14,
+    mode: "follow",
+    padding: 72,
+    smoothingMs: 150,
+    verticalWeight: 0.82,
+    zoom: 2.05,
+  },
+};
+
 const DEFAULTS = {
   browser: {
     headless: true,
     slowMo: 0,
   },
   camera: {
-    deadzonePx: 18,
-    mode: "follow" as CameraMode,
-    padding: 96,
-    smoothingMs: 180,
-    zoom: 1.65,
+    preset: "showcase-follow" as CameraPreset,
   },
   composition: {
     background: {
@@ -91,6 +133,9 @@ const DEFAULTS = {
 
 const VALID_OUTPUT_FORMATS = new Set<OutputFormat>(["mp4", "prores"]);
 const VALID_CAMERA_MODES = new Set<CameraMode>(["follow", "static"]);
+const VALID_CAMERA_PRESETS = new Set<CameraPreset>(
+  Object.keys(CAMERA_PRESETS) as CameraPreset[],
+);
 const VALID_OUTPUT_PRESETS = new Set<OutputPreset>(
   Object.keys(OUTPUT_PRESETS) as OutputPreset[],
 );
@@ -167,7 +212,14 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
   const outputPreset = config.output?.preset ?? DEFAULTS.output.preset;
   const compositionPreset =
     config.composition?.preset ?? DEFAULTS.composition.preset;
-  const cameraMode = config.camera?.mode ?? DEFAULTS.camera.mode;
+  const cameraPreset = config.camera?.preset ?? DEFAULTS.camera.preset;
+  assertCondition(
+    !config.camera?.preset || VALID_CAMERA_PRESETS.has(config.camera.preset),
+    "Config camera.preset must be 'showcase-follow', 'tight-follow', 'lazy-follow', or 'static'.",
+  );
+  const resolvedCameraPreset = cameraPreset;
+  const presetCamera = CAMERA_PRESETS[resolvedCameraPreset];
+  const cameraMode = config.camera?.mode ?? presetCamera.mode;
   const defaultBrowserDomain = resolveBrowserDomain(config.url);
 
   assertCondition(
@@ -178,7 +230,6 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
     VALID_CAMERA_MODES.has(cameraMode),
     "Config camera.mode must be 'follow' or 'static'.",
   );
-
   const presetOutput = OUTPUT_PRESETS[outputPreset];
   const formats = config.output?.formats ?? presetOutput.formats;
 
@@ -202,12 +253,15 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
       slowMo: config.browser?.slowMo ?? DEFAULTS.browser.slowMo,
     },
     camera: {
-      deadzonePx: config.camera?.deadzonePx ?? DEFAULTS.camera.deadzonePx,
+      deadzonePx: config.camera?.deadzonePx ?? presetCamera.deadzonePx,
       mode: cameraMode,
-      padding: config.camera?.padding ?? DEFAULTS.camera.padding,
+      padding: config.camera?.padding ?? presetCamera.padding,
+      preset: resolvedCameraPreset,
       smoothingMs:
-        config.camera?.smoothingMs ?? DEFAULTS.camera.smoothingMs,
-      zoom: config.camera?.zoom ?? DEFAULTS.camera.zoom,
+        config.camera?.smoothingMs ?? presetCamera.smoothingMs,
+      verticalWeight:
+        config.camera?.verticalWeight ?? presetCamera.verticalWeight,
+      zoom: config.camera?.zoom ?? presetCamera.zoom,
     },
     composition: {
       background: {

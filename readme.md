@@ -119,9 +119,8 @@ export default {
     preset: "release-hero",
   },
   camera: {
-    mode: "follow",
+    preset: "showcase-follow",
     zoom: 1.7,
-    padding: 96,
   },
   composition: {
     preset: "studio-browser",
@@ -149,13 +148,22 @@ export default {
   - `"mp4"` for lightweight H.264 output
   - `"prores"` for high-quality `.mov` output that is better suited for Motion / Final Cut
 - `camera.zoom` is the default follow-cam zoom when you are not manually keyframing the camera.
+- `camera.preset` gives you a tuned baseline before any manual overrides.
 - `camera.mode` can be `"follow"` for cursor-led framing or `"static"` for a fixed full-browser shot with no mouse-follow behavior.
 - `camera.padding` keeps the target away from the crop edge.
 - `camera.smoothingMs` softens raw cursor-led camera tracking.
 - `camera.deadzonePx` prevents tiny cursor changes from nudging the camera.
+- `camera.verticalWeight` lets the follow cam react less aggressively to small vertical cursor noise.
 - `composition.preset` controls the presentation shell around the app capture.
 - `composition.background.colors` and `composition.background.angle` control the shell background.
 - `composition.browser.domain` sets the label shown in the browser address bar.
+
+Current camera presets:
+
+- `"showcase-follow"`: balanced default for release-style motion with calmer hover behavior
+- `"tight-follow"`: more responsive for compact UI and faster travel
+- `"lazy-follow"`: slower, calmer tracking for broad navigation or hover-heavy sequences
+- `"static"`: fixed framing with no follow-cam movement
 
 Current output presets:
 
@@ -202,6 +210,25 @@ export default {
 
 `serve.command` is started before capture, the tool waits for `url` to respond, and the process is shut down when recording finishes.
 
+Camera preset example:
+
+```js
+camera: {
+  preset: "lazy-follow",
+  zoom: 1.45,
+}
+```
+
+Manual overrides still win, so you can start from a preset and then tune just one value:
+
+```js
+camera: {
+  preset: "showcase-follow",
+  deadzonePx: 28,
+  smoothingMs: 250,
+}
+```
+
 ## Authoring Model
 
 Your demo module can export either:
@@ -211,6 +238,8 @@ Your demo module can export either:
 
 If you want repeatable release-style captures, the scene array is now the recommended default.
 If you want to avoid hand-building scene arrays for every launch asset, you can also generate them from the built-in templates.
+
+For camera tuning and regression checks, there is also a dedicated lab under [examples/camera-lab/README.md](/home/jackie/projects/motion/examples/camera-lab/README.md).
 
 ## Demo Runtime API
 

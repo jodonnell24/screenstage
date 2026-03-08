@@ -318,6 +318,7 @@ function smoothTrackedAxes(
   frames: FrameState[],
   xValues: number[],
   yValues: number[],
+  verticalWeight: number,
   baseSmoothingMs: number,
 ): { xValues: number[]; yValues: number[] } {
   if (frames.length <= 1 || baseSmoothingMs <= 0) {
@@ -338,13 +339,17 @@ function smoothTrackedAxes(
     const previousY = smoothedY[index - 1];
     const targetX = xValues[index];
     const targetY = yValues[index];
-    const distance = Math.hypot(targetX - previousX, targetY - previousY);
+    const distance = Math.hypot(
+      targetX - previousX,
+      (targetY - previousY) * verticalWeight,
+    );
     const speedPxPerSecond = distance / (deltaMs / 1000);
     const smoothingMs = getAdaptiveSmoothingMs(speedPxPerSecond, baseSmoothingMs);
     const alpha = 1 - Math.exp(-deltaMs / Math.max(smoothingMs, 1));
+    const verticalAlpha = clamp(alpha * (0.68 + verticalWeight * 0.4), 0.02, 1);
 
     smoothedX.push(previousX + (targetX - previousX) * alpha);
-    smoothedY.push(previousY + (targetY - previousY) * alpha);
+    smoothedY.push(previousY + (targetY - previousY) * verticalAlpha);
   }
 
   return {
@@ -357,6 +362,7 @@ function stabilizePoints(
   xValues: number[],
   yValues: number[],
   deadzonePx: number,
+  verticalWeight: number,
 ): { xValues: number[]; yValues: number[] } {
   if (xValues.length <= 1 || deadzonePx <= 0) {
     return {
@@ -375,7 +381,7 @@ function stabilizePoints(
     const nextY = yValues[index];
     const distance = Math.hypot(
       nextX - previousX,
-      nextY - previousY,
+      (nextY - previousY) * verticalWeight,
     );
 
     if (distance <= deadzonePx) {
@@ -407,15 +413,18 @@ function smoothTrackedFrameStates(
 
   const smoothingMs = config.camera.smoothingMs;
   const deadzonePx = config.camera.deadzonePx;
+  const verticalWeight = config.camera.verticalWeight;
   const stabilized = stabilizePoints(
     frames.map((frame) => frame.x),
     frames.map((frame) => frame.y),
     deadzonePx,
+    verticalWeight,
   );
   const tracked = smoothTrackedAxes(
     frames,
     stabilized.xValues,
     stabilized.yValues,
+    verticalWeight,
     smoothingMs,
   );
   const zoomSmoothingMs = Math.max(48, smoothingMs * 0.72);
