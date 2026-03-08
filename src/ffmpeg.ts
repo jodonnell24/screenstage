@@ -69,7 +69,7 @@ const FORMAT_SETTINGS: Record<
   },
 };
 
-const COMPOSITION_OVERSCAN_PX = 8;
+const COMPOSITION_OVERSCAN_PX = 16;
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(Math.max(value, minimum), maximum);
