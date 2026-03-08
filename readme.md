@@ -76,6 +76,12 @@ Run the starter demo:
 node dist/cli.js run ./demo-project/motion.config.mjs
 ```
 
+Record a manual session instead of scripting the mouse:
+
+```bash
+node dist/cli.js record ./demo-project/motion.config.mjs
+```
+
 Each run creates a timestamped folder inside the configured output directory with artifacts like:
 
 - `source.webm`
@@ -84,11 +90,14 @@ Each run creates a timestamped folder inside the configured output directory wit
 - `poster.png`
 - `contact-sheet.png`
 - `timeline.json`
+- `recording.json` for manual record sessions
+- `generated-demo.mjs` for manual record sessions
 
 ## CLI
 
 ```bash
 motion-creator init [directory]
+motion-creator record <config-path>
 motion-creator run <config-path>
 ```
 
@@ -96,10 +105,12 @@ Development shortcuts:
 
 ```bash
 npm run dev -- init ./demo-project
+npm run dev -- record ./demo-project/motion.config.mjs
 npm run dev -- run ./demo-project/motion.config.mjs
 ```
 
 `init` is non-destructive. It only writes starter files that do not already exist.
+`record` opens a visible browser, lets you perform the flow manually, then writes an editable demo module alongside the raw capture artifacts.
 
 ## Config
 
@@ -240,6 +251,32 @@ If you want repeatable release-style captures, the scene array is now the recomm
 If you want to avoid hand-building scene arrays for every launch asset, you can also generate them from the built-in templates.
 
 For camera tuning and regression checks, there is also a dedicated lab under [examples/camera-lab/README.md](/home/jackie/projects/motion/examples/camera-lab/README.md).
+
+## Manual Record Mode
+
+`record` is the non-programmatic capture path:
+
+1. Launch the target app in a visible Chromium window.
+2. Inject the polished cursor overlay and a small recorder HUD.
+3. Perform the flow manually.
+4. Finish from the HUD or press `Alt+Shift+R`.
+5. Get an immediate rendered video plus an editable generated demo file.
+
+The recorder captures:
+
+- cursor movement samples for the rendered follow camera
+- clicks
+- typing
+- wheel scrolling
+- inferred selectors when it can identify stable targets
+
+Manual record sessions save these extra artifacts:
+
+- `recording.json`: raw captured actions and cursor samples
+- `generated-demo.mjs`: a generated runnable demo module in the session folder
+- `*.recorded-<timestamp>.mjs`: a copy of that generated demo saved next to your configured demo file so you can edit and reuse it
+
+The generated demo file is intentionally conservative. It aims to be easy to tweak, not to perfectly recreate every millisecond of the original interaction.
 
 ## Demo Runtime API
 

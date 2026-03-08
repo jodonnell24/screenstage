@@ -1,4 +1,5 @@
 import { initProject } from "./init.js";
+import { recordMotion } from "./record.js";
 import { runMotion } from "./run.js";
 
 function printHelp(): void {
@@ -6,10 +7,12 @@ function printHelp(): void {
 
 Usage:
   motion-creator init [directory]
+  motion-creator record <config-path>
   motion-creator run <config-path>
 
 Commands:
   init   Scaffold a starter config, demo script, and sample page.
+  record Capture a manual browser session and generate an editable demo file.
   run    Record a demo session and generate an FFmpeg follow-cam render.
 `);
 }
@@ -35,6 +38,15 @@ async function main(): Promise<void> {
     }
 
     await runMotion(value);
+    return;
+  }
+
+  if (command === "record") {
+    if (!value) {
+      throw new Error("Usage: motion-creator record <config-path>");
+    }
+
+    await recordMotion(value);
     return;
   }
 
