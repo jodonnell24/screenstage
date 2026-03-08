@@ -259,6 +259,12 @@ function buildDesktopCompositionSvg(
   const addressBarX = windowX + (windowWidth - addressBarWidth) / 2;
   const addressBarY = windowY + (toolbarHeight - addressBarHeight) / 2;
   const addressBarLabel = config.composition.browser.domain?.trim();
+  const toolbarCenterY = windowY + toolbarHeight / 2;
+  const toolbarGlowHeight = Math.max(toolbarHeight * 0.72, 24);
+  const browserFill =
+    config.composition.preset === "spotlight-browser" ? "#f5f7fb" : "#ffffff";
+  const chromeFill =
+    config.composition.preset === "spotlight-browser" ? "#eef2f7" : "#f8fafc";
 
   const backgroundStops =
     colors.length === 1
@@ -320,9 +326,33 @@ function buildDesktopCompositionSvg(
     <linearGradient id="bg" x1="${formatNumber(gradient.x1)}%" y1="${formatNumber(gradient.y1)}%" x2="${formatNumber(gradient.x2)}%" y2="${formatNumber(gradient.y2)}%">
       ${backgroundStops}
     </linearGradient>
+    <radialGradient id="ambientGlowA" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(${formatNumber(layout.outputWidth * 0.16)} ${formatNumber(layout.outputHeight * 0.18)}) rotate(34) scale(${formatNumber(layout.outputWidth * 0.36)} ${formatNumber(layout.outputHeight * 0.42)})">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="${config.composition.preset === "spotlight-browser" ? "0.24" : "0.42"}"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ambientGlowB" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(${formatNumber(layout.outputWidth * 0.78)} ${formatNumber(layout.outputHeight * 0.22)}) rotate(18) scale(${formatNumber(layout.outputWidth * 0.34)} ${formatNumber(layout.outputHeight * 0.28)})">
+      <stop offset="0%" stop-color="#d6efe7" stop-opacity="${config.composition.preset === "spotlight-browser" ? "0.22" : "0.34"}"/>
+      <stop offset="100%" stop-color="#d6efe7" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ambientGlowC" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(${formatNumber(layout.outputWidth * 0.64)} ${formatNumber(layout.outputHeight * 0.84)}) rotate(-16) scale(${formatNumber(layout.outputWidth * 0.44)} ${formatNumber(layout.outputHeight * 0.22)})">
+      <stop offset="0%" stop-color="#cad7f0" stop-opacity="${config.composition.preset === "spotlight-browser" ? "0.16" : "0.28"}"/>
+      <stop offset="100%" stop-color="#cad7f0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="windowSheen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.66"/>
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#d7dfea" stop-opacity="0.12"/>
+    </linearGradient>
+    <linearGradient id="toolbarWash" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.78"/>
+      <stop offset="100%" stop-color="#eef3f9" stop-opacity="0.92"/>
+    </linearGradient>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
-      <feDropShadow dx="0" dy="28" stdDeviation="26" flood-color="#1c2b3b" flood-opacity="0.18"/>
-      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#1c2b3b" flood-opacity="0.08"/>
+      <feDropShadow dx="0" dy="40" stdDeviation="34" flood-color="#152332" flood-opacity="0.18"/>
+      <feDropShadow dx="0" dy="14" stdDeviation="12" flood-color="#152332" flood-opacity="0.1"/>
+    </filter>
+    <filter id="softBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="26"/>
     </filter>
     <mask id="cutout">
       <rect width="100%" height="100%" fill="white"/>
@@ -332,6 +362,10 @@ function buildDesktopCompositionSvg(
 
   <g mask="url(#cutout)">
     <rect width="100%" height="100%" fill="url(#bg)"/>
+    <ellipse cx="${formatNumber(layout.outputWidth * 0.16)}" cy="${formatNumber(layout.outputHeight * 0.18)}" rx="${formatNumber(layout.outputWidth * 0.22)}" ry="${formatNumber(layout.outputHeight * 0.18)}" fill="url(#ambientGlowA)"/>
+    <ellipse cx="${formatNumber(layout.outputWidth * 0.78)}" cy="${formatNumber(layout.outputHeight * 0.22)}" rx="${formatNumber(layout.outputWidth * 0.18)}" ry="${formatNumber(layout.outputHeight * 0.12)}" fill="url(#ambientGlowB)"/>
+    <ellipse cx="${formatNumber(layout.outputWidth * 0.64)}" cy="${formatNumber(layout.outputHeight * 0.84)}" rx="${formatNumber(layout.outputWidth * 0.24)}" ry="${formatNumber(layout.outputHeight * 0.12)}" fill="url(#ambientGlowC)"/>
+    <rect x="${formatNumber(windowX + windowWidth * 0.06)}" y="${formatNumber(windowY + windowHeight + 18)}" width="${formatNumber(windowWidth * 0.88)}" height="${formatNumber(windowHeight * 0.18)}" rx="${formatNumber(windowHeight * 0.09)}" fill="#102132" fill-opacity="${config.composition.preset === "spotlight-browser" ? "0.14" : "0.08"}" filter="url(#softBlur)"/>
 
     <g filter="url(#shadow)">
       <rect
@@ -340,15 +374,35 @@ function buildDesktopCompositionSvg(
         width="${formatNumber(windowWidth)}"
         height="${formatNumber(windowHeight)}"
         rx="${formatNumber(radius)}"
-        fill="#ffffff"
-        fill-opacity="0.98"
+        fill="${browserFill}"
+        fill-opacity="0.985"
       />
     </g>
 
+    <rect
+      x="${formatNumber(windowX + 1)}"
+      y="${formatNumber(windowY + 1)}"
+      width="${formatNumber(windowWidth - 2)}"
+      height="${formatNumber(windowHeight * 0.42)}"
+      rx="${formatNumber(Math.max(radius - 1, 0))}"
+      fill="url(#windowSheen)"
+      fill-opacity="0.74"
+    />
+
     <path
       d="M ${formatNumber(windowX + radius)} ${formatNumber(windowY)} H ${formatNumber(windowX + windowWidth - radius)} A ${formatNumber(radius)} ${formatNumber(radius)} 0 0 1 ${formatNumber(windowX + windowWidth)} ${formatNumber(windowY + radius)} V ${formatNumber(windowY + toolbarHeight)} H ${formatNumber(windowX)} V ${formatNumber(windowY + radius)} A ${formatNumber(radius)} ${formatNumber(radius)} 0 0 1 ${formatNumber(windowX + radius)} ${formatNumber(windowY)} Z"
-      fill="#f8fafc"
+      fill="url(#toolbarWash)"
       fill-opacity="0.98"
+    />
+
+    <rect
+      x="${formatNumber(windowX + 18)}"
+      y="${formatNumber(toolbarCenterY - toolbarGlowHeight / 2)}"
+      width="${formatNumber(windowWidth - 36)}"
+      height="${formatNumber(toolbarGlowHeight)}"
+      rx="${formatNumber(toolbarGlowHeight / 2)}"
+      fill="#ffffff"
+      fill-opacity="0.22"
     />
 
     <path
@@ -367,6 +421,19 @@ function buildDesktopCompositionSvg(
 
     ${trafficLights}
     ${addressBar}
+
+    <rect
+      x="${formatNumber(windowX + windowWidth - 112)}"
+      y="${formatNumber(toolbarCenterY - 12)}"
+      width="${formatNumber(84)}"
+      height="${formatNumber(24)}"
+      rx="12"
+      fill="#6f8195"
+      fill-opacity="0.12"
+    />
+    <circle cx="${formatNumber(windowX + windowWidth - 92)}" cy="${formatNumber(toolbarCenterY)}" r="3" fill="#6f8195" fill-opacity="0.38"/>
+    <circle cx="${formatNumber(windowX + windowWidth - 76)}" cy="${formatNumber(toolbarCenterY)}" r="3" fill="#6f8195" fill-opacity="0.3"/>
+    <circle cx="${formatNumber(windowX + windowWidth - 60)}" cy="${formatNumber(toolbarCenterY)}" r="3" fill="#6f8195" fill-opacity="0.22"/>
 
     <rect
       x="${formatNumber(windowX + 0.5)}"
@@ -425,6 +492,18 @@ function buildPhoneCompositionSvg(
     <linearGradient id="bg" x1="${formatNumber(gradient.x1)}%" y1="${formatNumber(gradient.y1)}%" x2="${formatNumber(gradient.x2)}%" y2="${formatNumber(gradient.y2)}%">
       ${backgroundStops}
     </linearGradient>
+    <radialGradient id="phoneAmbientA" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(${formatNumber(layout.outputWidth * 0.28)} ${formatNumber(layout.outputHeight * 0.18)}) rotate(24) scale(${formatNumber(layout.outputWidth * 0.34)} ${formatNumber(layout.outputHeight * 0.24)})">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.34"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="phoneAmbientB" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(${formatNumber(layout.outputWidth * 0.72)} ${formatNumber(layout.outputHeight * 0.78)}) rotate(-18) scale(${formatNumber(layout.outputWidth * 0.3)} ${formatNumber(layout.outputHeight * 0.2)})">
+      <stop offset="0%" stop-color="#b7d4ff" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#b7d4ff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="phoneShellEdge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
     <filter id="phoneShadow" x="-30%" y="-20%" width="160%" height="180%">
       <feDropShadow dx="0" dy="42" stdDeviation="32" flood-color="#101823" flood-opacity="0.22"/>
       <feDropShadow dx="0" dy="16" stdDeviation="12" flood-color="#101823" flood-opacity="0.12"/>
@@ -437,6 +516,8 @@ function buildPhoneCompositionSvg(
 
   <g mask="url(#screenCutout)">
     <rect width="100%" height="100%" fill="url(#bg)"/>
+    <ellipse cx="${formatNumber(layout.outputWidth * 0.28)}" cy="${formatNumber(layout.outputHeight * 0.18)}" rx="${formatNumber(layout.outputWidth * 0.18)}" ry="${formatNumber(layout.outputHeight * 0.12)}" fill="url(#phoneAmbientA)"/>
+    <ellipse cx="${formatNumber(layout.outputWidth * 0.72)}" cy="${formatNumber(layout.outputHeight * 0.78)}" rx="${formatNumber(layout.outputWidth * 0.16)}" ry="${formatNumber(layout.outputHeight * 0.1)}" fill="url(#phoneAmbientB)"/>
 
     <g filter="url(#phoneShadow)">
       <rect
@@ -446,6 +527,14 @@ function buildPhoneCompositionSvg(
         height="${formatNumber(windowHeight)}"
         rx="${formatNumber(shellRadius)}"
         fill="${escapeXml(config.composition.phone.color)}"
+      />
+      <rect
+        x="${formatNumber(windowX + 1)}"
+        y="${formatNumber(windowY + 1)}"
+        width="${formatNumber(windowWidth - 2)}"
+        height="${formatNumber(windowHeight * 0.28)}"
+        rx="${formatNumber(Math.max(shellRadius - 1, 0))}"
+        fill="url(#phoneShellEdge)"
       />
     </g>
   </g>
