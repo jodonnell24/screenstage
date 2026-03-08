@@ -1,8 +1,11 @@
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
+import { promisify } from "node:util";
 
 import type { ChildProcess } from "node:child_process";
 
 import type { LoadedMotionConfig } from "./types.js";
+
+const execFileAsync = promisify(execFile);
 
 type ManagedService = {
   stop: () => Promise<void>;
@@ -44,34 +47,91 @@ async function waitForUrl(url: string, timeoutMs: number): Promise<void> {
   throw new Error(`Timed out waiting for ${url} to respond.`);
 }
 
-function stopChild(child: ChildProcess): Promise<void> {
-  return new Promise((resolve) => {
-    if (!child.pid || child.exitCode !== null) {
-      resolve();
+async function listChildPids(parentPid: number): Promise<number[]> {
+  try {
+    const { stdout } = await execFileAsync("ps", [
+      "-o",
+      "pid=",
+      "--ppid",
+      String(parentPid),
+    ]);
+
+    return stdout
+      .split("\n")
+      .map((line) => Number(line.trim()))
+      .filter((pid) => Number.isInteger(pid) && pid > 0);
+  } catch {
+    return [];
+  }
+}
+
+async function listDescendantPids(rootPid: number): Promise<number[]> {
+  const descendants: number[] = [];
+  const queue = [rootPid];
+
+  while (queue.length > 0) {
+    const currentPid = queue.shift()!;
+    const children = await listChildPids(currentPid);
+
+    for (const childPid of children) {
+      descendants.push(childPid);
+      queue.push(childPid);
+    }
+  }
+
+  return descendants;
+}
+
+function pidExists(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function sendSignal(pid: number, signal: NodeJS.Signals): void {
+  try {
+    process.kill(pid, signal);
+  } catch {
+    // Ignore races where the process exits between discovery and signal delivery.
+  }
+}
+
+async function stopChild(child: ChildProcess): Promise<void> {
+  if (!child.pid || child.exitCode !== null) {
+    return;
+  }
+
+  const rootPid = child.pid;
+  const descendants = await listDescendantPids(rootPid);
+
+  for (const pid of [...descendants].reverse()) {
+    sendSignal(pid, "SIGTERM");
+  }
+  sendSignal(rootPid, "SIGTERM");
+
+  const deadline = Date.now() + 2_000;
+  while (Date.now() < deadline) {
+    const aliveDescendants = descendants.filter(pidExists);
+    const rootAlive = pidExists(rootPid);
+
+    if (!rootAlive && aliveDescendants.length === 0) {
       return;
     }
 
-    const finalize = () => resolve();
-    child.once("exit", finalize);
+    await delay(120);
+  }
 
-    try {
-      process.kill(-child.pid, "SIGTERM");
-    } catch {
-      child.kill("SIGTERM");
+  for (const pid of [...descendants].reverse()) {
+    if (pidExists(pid)) {
+      sendSignal(pid, "SIGKILL");
     }
-
-    setTimeout(() => {
-      if (child.exitCode !== null) {
-        return;
-      }
-
-      try {
-        process.kill(-child.pid!, "SIGKILL");
-      } catch {
-        child.kill("SIGKILL");
-      }
-    }, 2_000);
-  });
+  }
+  if (pidExists(rootPid)) {
+    sendSignal(rootPid, "SIGKILL");
+  }
 }
 
 export async function startManagedService(
@@ -84,7 +144,6 @@ export async function startManagedService(
   const logs: string[] = [];
   const child = spawn(config.serve.command, {
     cwd: config.serve.cwd,
-    detached: true,
     env: {
       ...process.env,
       ...config.serve.env,
@@ -92,6 +151,8 @@ export async function startManagedService(
     shell: config.serve.shell ?? true,
     stdio: ["ignore", "pipe", "pipe"],
   });
+
+  let stopped = false;
 
   child.stdout?.on("data", (chunk) => collectLogs(logs, chunk));
   child.stderr?.on("data", (chunk) => collectLogs(logs, chunk));
@@ -112,7 +173,10 @@ export async function startManagedService(
         })
       : null;
 
-  const readyByUrl = waitForUrl(config.url, config.serve.timeoutMs);
+  const readinessPromise = readyByText
+    ? Promise.race([waitForUrl(config.url, config.serve.timeoutMs), readyByText])
+    : waitForUrl(config.url, config.serve.timeoutMs);
+
   const exitPromise = new Promise<never>((_, reject) => {
     child.once("exit", (code) => {
       reject(
@@ -127,11 +191,7 @@ export async function startManagedService(
   });
 
   try {
-    await Promise.race([
-      exitPromise,
-      readyByUrl,
-      ...(readyByText ? [readyByText] : []),
-    ]);
+    await Promise.race([exitPromise, readinessPromise]);
   } catch (error) {
     await stopChild(child);
     throw error;
@@ -139,6 +199,11 @@ export async function startManagedService(
 
   return {
     stop: async () => {
+      if (stopped) {
+        return;
+      }
+
+      stopped = true;
       await stopChild(child);
     },
   };
