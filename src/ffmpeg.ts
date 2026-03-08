@@ -68,6 +68,8 @@ const FORMAT_SETTINGS: Record<
   },
 };
 
+const COMPOSITION_OVERSCAN_PX = 8;
+
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(Math.max(value, minimum), maximum);
 }
@@ -572,8 +574,11 @@ export function buildFfmpegPlans(
     value: contentWidth / Math.max(point.value, 1),
   }));
   const scaleFactorExpression = buildPiecewiseExpression(scaleFactorPoints);
-  const scaledWidthExpression = `(${formatNumber(config.viewport.width)}*(${scaleFactorExpression}))`;
-  const scaledHeightExpression = `(${formatNumber(config.viewport.height)}*(${scaleFactorExpression}))`;
+  const composedScaleFactorExpression = layout.enabled
+    ? `((${scaleFactorExpression})*((${contentWidth + COMPOSITION_OVERSCAN_PX})/${contentWidth}))`
+    : scaleFactorExpression;
+  const scaledWidthExpression = `(${formatNumber(config.viewport.width)}*(${composedScaleFactorExpression}))`;
+  const scaledHeightExpression = `(${formatNumber(config.viewport.height)}*(${composedScaleFactorExpression}))`;
   const scaledXExpression = `((${xExpression})*(${scaleFactorExpression}))`;
   const scaledYExpression = `((${yExpression})*(${scaleFactorExpression}))`;
 
