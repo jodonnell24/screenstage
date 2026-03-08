@@ -1,6 +1,6 @@
 # Template Showcases
 
-These examples use the shared starter site in [demo-site/index.html](/home/jackie/projects/motion/examples/template-showcases/demo-site/index.html) and save renders into `./renders/`.
+These examples each use their own fixture page under [demo-site](/home/jackie/projects/motion/examples/template-showcases/demo-site) and save renders into `./renders/`.
 
 - `hero-walkthrough`: staged launch-style sequence with a wide open, focused conversion, and proof reveal
 - `feature-tour`: more kinetic product tour with camera-follow travel between UI regions

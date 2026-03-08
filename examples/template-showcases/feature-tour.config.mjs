@@ -1,6 +1,6 @@
 export default {
   name: "feature-tour",
-  url: new URL("./demo-site/index.html", import.meta.url).href,
+  url: new URL("./demo-site/product-tour.html", import.meta.url).href,
   demo: "./demo/feature-tour.mjs",
   viewport: {
     width: 1440,

@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Product Tour Showcase</title>
+    <style>
+      /*
+       * bg: #08131d
+       * surface: rgba(13, 23, 33, 0.86)
+       * accent: #67d6b1
+       * text: #f5f8fb / #87a0b5
+       */
+
+      :root {
+        color-scheme: dark;
+        --bg: #08131d;
+        --bg-soft: #143042;
+        --surface: rgba(13, 23, 33, 0.86);
+        --surface-elevated: rgba(19, 35, 49, 0.92);
+        --line: rgba(188, 221, 236, 0.1);
+        --accent: #67d6b1;
+        --accent-soft: rgba(103, 214, 177, 0.16);
+        --text: #f5f8fb;
+        --muted: #87a0b5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Satoshi", "Avenir Next", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(103, 214, 177, 0.12), transparent 20%),
+          radial-gradient(circle at 88% 14%, rgba(252, 213, 136, 0.12), transparent 22%),
+          linear-gradient(145deg, #08131d 0%, #102535 56%, #17384b 100%);
+      }
+
+      .app {
+        padding: 36px;
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr);
+        gap: 22px;
+        min-height: calc(100vh - 72px);
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: var(--surface);
+        box-shadow: 0 28px 64px rgba(4, 10, 18, 0.34);
+        backdrop-filter: blur(18px);
+      }
+
+      .sidebar {
+        padding: 26px;
+      }
+
+      .sidebar h1 {
+        margin: 0;
+        font-size: 34px;
+        line-height: 0.94;
+        letter-spacing: -0.05em;
+      }
+
+      .sidebar p {
+        margin: 14px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .nav {
+        margin-top: 28px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .nav a {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--muted);
+        text-decoration: none;
+      }
+
+      .nav a.active {
+        background: var(--accent-soft);
+        color: var(--text);
+      }
+
+      .main {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 22px;
+      }
+
+      .topbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        padding: 22px 24px;
+      }
+
+      .search {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+      }
+
+      input {
+        width: 100%;
+        border: 1px solid rgba(188, 221, 236, 0.12);
+        border-radius: 16px;
+        padding: 15px 18px;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        font: inherit;
+      }
+
+      button {
+        border: 0;
+        border-radius: 16px;
+        padding: 15px 18px;
+        background: linear-gradient(135deg, #67d6b1, #2f8f76);
+        color: #07221b;
+        font: inherit;
+        font-weight: 800;
+      }
+
+      .meta {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .dashboard {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 22px;
+      }
+
+      .canvas {
+        display: grid;
+        grid-template-rows: 1fr auto;
+        gap: 22px;
+      }
+
+      .hero-card {
+        padding: 28px;
+        background: linear-gradient(180deg, rgba(14, 29, 41, 0.95), rgba(19, 37, 51, 0.92));
+      }
+
+      .hero-card h2 {
+        margin: 0;
+        max-width: 10ch;
+        font-size: 48px;
+        line-height: 0.96;
+        letter-spacing: -0.06em;
+      }
+
+      .hero-card p {
+        margin: 14px 0 0;
+        max-width: 34ch;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .kpis {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .kpi {
+        padding: 18px;
+        border-radius: 22px;
+        background: var(--surface-elevated);
+        border: 1px solid rgba(188, 221, 236, 0.08);
+      }
+
+      .kpi strong {
+        display: block;
+        font-size: 28px;
+        letter-spacing: -0.05em;
+      }
+
+      .kpi span {
+        display: block;
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .rail {
+        display: grid;
+        gap: 22px;
+      }
+
+      .proof,
+      .timeline {
+        padding: 22px;
+      }
+
+      .proof strong,
+      .timeline strong {
+        display: block;
+        margin-bottom: 14px;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--muted);
+      }
+
+      .chart {
+        height: 150px;
+        border-radius: 20px;
+        background:
+          linear-gradient(180deg, rgba(103, 214, 177, 0.26), rgba(103, 214, 177, 0.02) 72%),
+          linear-gradient(135deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.08));
+        position: relative;
+        overflow: hidden;
+      }
+
+      .chart::before,
+      .chart::after {
+        content: "";
+        position: absolute;
+        left: 14px;
+        right: 14px;
+        border-radius: 999px;
+      }
+
+      .chart::before {
+        bottom: 18px;
+        height: 3px;
+        background: rgba(245, 248, 251, 0.18);
+      }
+
+      .chart::after {
+        bottom: 40px;
+        height: 58px;
+        background: linear-gradient(90deg, transparent 0%, rgba(103, 214, 177, 0.7) 22%, rgba(245, 248, 251, 0.08) 90%);
+        transform: skewX(-22deg);
+      }
+
+      .timeline ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 12px;
+      }
+
+      .timeline li {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .timeline b {
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <section class="workspace">
+        <aside class="panel sidebar">
+          <h1>Map feature motion into a guided tour.</h1>
+          <p>
+            This fixture is built to stress the follow camera across separated UI regions instead of
+            keeping everything inside one hero block.
+          </p>
+          <nav class="nav">
+            <a class="active" href="#">Launch map <span>Live</span></a>
+            <a href="#">Scene pacing <span>12</span></a>
+            <a href="#">Delivery cuts <span>4</span></a>
+          </nav>
+        </aside>
+
+        <section class="main">
+          <header class="panel topbar">
+            <div class="search">
+              <input data-demo="email" placeholder="demo@atlas.dev" />
+              <button data-demo="cta">Invite reviewers</button>
+            </div>
+            <div class="meta">
+              <span>Atlas launch room</span>
+              <span>camera-ready</span>
+            </div>
+          </header>
+
+          <section class="dashboard">
+            <div class="canvas">
+              <article class="panel hero-card">
+                <h2>Shape polished launch videos without leaving the build.</h2>
+                <p>
+                  Browse flows, move across proof points, then collapse into conversion moments with a
+                  repeatable motion script.
+                </p>
+              </article>
+              <div class="kpis">
+                <section class="kpi">
+                  <strong>6 routes</strong>
+                  <span>capture paths</span>
+                </section>
+                <section class="kpi">
+                  <strong>3 formats</strong>
+                  <span>delivery outputs</span>
+                </section>
+                <section class="kpi">
+                  <strong>90 fps feel</strong>
+                  <span>smoothed travel</span>
+                </section>
+              </div>
+            </div>
+
+            <aside class="rail">
+              <section class="panel proof" data-demo="card-1">
+                <strong>Conversion lift</strong>
+                <div class="chart"></div>
+              </section>
+              <section class="panel timeline" data-demo="card-2">
+                <strong>Release story</strong>
+                <ul>
+                  <li><b>Open wide</b><span>Introduce the system</span></li>
+                  <li><b>Travel</b><span>Link distant UI regions</span></li>
+                  <li><b>Convert</b><span>End on the operator action</span></li>
+                </ul>
+              </section>
+            </aside>
+          </section>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

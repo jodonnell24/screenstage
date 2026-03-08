@@ -1,6 +1,6 @@
 export default {
   name: "form-fill",
-  url: new URL("./demo-site/index.html", import.meta.url).href,
+  url: new URL("./demo-site/form-focus.html", import.meta.url).href,
   demo: "./demo/form-fill.mjs",
   viewport: {
     width: 1440,

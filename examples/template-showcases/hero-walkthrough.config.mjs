@@ -1,6 +1,6 @@
 export default {
   name: "hero-walkthrough",
-  url: new URL("./demo-site/index.html", import.meta.url).href,
+  url: new URL("./demo-site/launch-hero.html", import.meta.url).href,
   demo: "./demo/hero-walkthrough.mjs",
   viewport: {
     width: 1440,
