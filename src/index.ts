@@ -1,5 +1,10 @@
 export { defineConfig } from "./config.js";
 export { defineScenes } from "./scenes.js";
+export {
+  createFeatureTour,
+  createFormFillCapture,
+  createHeroWalkthrough,
+} from "./templates.js";
 export type {
   CameraMode,
   CameraController,
@@ -15,7 +20,13 @@ export type {
   CursorTypeOptions,
   DemoProgram,
   DemoContext,
+  FeatureTourAction,
+  FeatureTourOptions,
+  FeatureTourStep,
   FfmpegPlan,
+  FormFillCaptureOptions,
+  FormFillField,
+  HeroWalkthroughOptions,
   LoadedMotionConfig,
   MotionScene,
   MotionConfig,

@@ -187,6 +187,7 @@ Your demo module can export either:
 - a default scene array for declarative shot sequencing
 
 If you want repeatable release-style captures, the scene array is now the recommended default.
+If you want to avoid hand-building scene arrays for every launch asset, you can also generate them from the built-in templates.
 
 ## Demo Runtime API
 
@@ -282,6 +283,57 @@ Supported scene types:
 
 `wait.target` accepts `"cursor"`, `"camera"`, or `"both"`.
 
+## Templates
+
+The template helpers generate scene arrays for common release/demo flows:
+
+- `createFeatureTour()`: generic selector-by-selector product tour
+- `createFormFillCapture()`: form entry plus optional submit CTA
+- `createHeroWalkthrough()`: headline form-fill, CTA click, and optional proof-point pan
+
+Example:
+
+```js
+import { createHeroWalkthrough } from "motion-creator";
+
+export default createHeroWalkthrough({
+  fieldSelector: "[data-demo='email']",
+  fieldText: "hello@getrestocky.com",
+  ctaSelector: "[data-demo='cta']",
+  metricSelector: "[data-demo='card-2']",
+});
+```
+
+For a more general selector tour:
+
+```js
+import { createFeatureTour } from "motion-creator";
+
+export default createFeatureTour({
+  introPauseMs: 500,
+  steps: [
+    {
+      selector: "[data-demo='email']",
+      action: "type",
+      text: "hello@getrestocky.com",
+      zoom: 2,
+    },
+    {
+      selector: "[data-demo='cta']",
+      action: "click",
+      zoom: 1.8,
+    },
+    {
+      selector: "[data-demo='card-2']",
+      action: "move",
+      zoom: 1.8,
+      pauseMs: 900,
+      pauseTarget: "camera",
+    },
+  ],
+});
+```
+
 ### Cursor Helpers
 
 - `cursor.move({ x, y }, options)`
@@ -337,6 +389,7 @@ Implemented now:
 - browser-shell composition presets
 - smoother cursor-led camera tracking
 - reusable output presets
+- reusable scene templates
 - poster frame + contact sheet review artifacts
 - MP4 + ProRes rendering
 - starter scaffold

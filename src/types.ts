@@ -277,6 +277,73 @@ export type MotionScene =
 
 export type SceneProgram = MotionScene[];
 
+export type FeatureTourAction = "focus" | "move" | "click" | "type";
+
+export type FeatureTourStep = {
+  action?: FeatureTourAction;
+  clickDelayMs?: number;
+  focusDurationMs?: number;
+  handoffDurationMs?: number;
+  label?: string;
+  moveDurationMs?: number;
+  pauseMs?: number;
+  pauseTarget?: "both" | "camera" | "cursor";
+  selector: string;
+  steps?: number;
+  submit?: boolean;
+  text?: string;
+  typingDelayMs?: number;
+  typingDurationMs?: number;
+  zoom?: number;
+};
+
+export type FeatureTourOptions = {
+  establishDurationMs?: number;
+  includeEstablishingShot?: boolean;
+  introPauseMs?: number;
+  outroPauseMs?: number;
+  steps: FeatureTourStep[];
+};
+
+export type FormFillField = {
+  label?: string;
+  pauseMs?: number;
+  selector: string;
+  submit?: boolean;
+  text: string;
+  typingDelayMs?: number;
+  typingDurationMs?: number;
+  zoom?: number;
+};
+
+export type FormFillCaptureOptions = {
+  establishDurationMs?: number;
+  fields: FormFillField[];
+  includeEstablishingShot?: boolean;
+  introPauseMs?: number;
+  outroPauseMs?: number;
+  submitClickDelayMs?: number;
+  submitMoveDurationMs?: number;
+  submitPauseMs?: number;
+  submitSelector?: string;
+  submitZoom?: number;
+};
+
+export type HeroWalkthroughOptions = {
+  ctaSelector: string;
+  ctaZoom?: number;
+  ctaMoveDurationMs?: number;
+  fieldSelector: string;
+  fieldText: string;
+  fieldZoom?: number;
+  introPauseMs?: number;
+  metricMoveDurationMs?: number;
+  metricPauseMs?: number;
+  metricSelector?: string;
+  metricZoom?: number;
+  outroPauseMs?: number;
+};
+
 export type DemoContext = {
   camera: CameraController;
   config: LoadedMotionConfig;
