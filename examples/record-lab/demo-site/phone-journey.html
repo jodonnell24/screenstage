@@ -35,6 +35,11 @@
 
       html {
         scroll-behavior: smooth;
+        background:
+          radial-gradient(circle at top, rgba(78, 216, 180, 0.14), transparent 26%),
+          radial-gradient(circle at 84% 16%, rgba(241, 188, 115, 0.12), transparent 18%),
+          linear-gradient(180deg, #0a1620 0%, var(--bg) 40%, var(--bg-deep) 100%);
+        overscroll-behavior-y: none;
       }
 
       body {
@@ -46,6 +51,7 @@
           radial-gradient(circle at top, rgba(78, 216, 180, 0.14), transparent 26%),
           radial-gradient(circle at 84% 16%, rgba(241, 188, 115, 0.12), transparent 18%),
           linear-gradient(180deg, #0a1620 0%, var(--bg) 40%, var(--bg-deep) 100%);
+        overscroll-behavior-y: none;
       }
 
       button,
@@ -64,16 +70,16 @@
       .page {
         width: min(100%, 430px);
         margin: 0 auto;
-        padding: 18px 16px 96px;
+        padding: 14px 14px 112px;
         display: grid;
-        gap: 16px;
+        gap: 14px;
       }
 
       .header {
         position: sticky;
-        top: 0;
+        top: 6px;
         z-index: 5;
-        padding-top: 10px;
+        padding-top: 4px;
         backdrop-filter: blur(18px);
       }
 
@@ -96,9 +102,9 @@
       }
 
       .topbar {
-        padding: 16px;
+        padding: 14px;
         display: grid;
-        gap: 14px;
+        gap: 12px;
       }
 
       .topbar-row {
@@ -180,8 +186,8 @@
 
       .button-primary,
       .button-soft {
-        padding: 15px 18px;
-        border-radius: 18px;
+        padding: 13px 16px;
+        border-radius: 16px;
         font-weight: 800;
       }
 
@@ -233,14 +239,14 @@
       }
 
       .hero-card {
-        padding: 18px;
+        padding: 16px;
         display: grid;
-        gap: 16px;
+        gap: 14px;
       }
 
       .hero-card h1 {
         margin: 0;
-        font-size: 44px;
+        font-size: 38px;
         line-height: 0.92;
         letter-spacing: -0.08em;
       }
@@ -254,9 +260,9 @@
       .hero-stat {
         display: grid;
         grid-template-columns: 1fr auto;
-        gap: 16px;
+        gap: 14px;
         align-items: end;
-        padding: 16px;
+        padding: 14px;
         border-radius: 24px;
         background:
           linear-gradient(140deg, rgba(78, 216, 180, 0.12), rgba(241, 188, 115, 0.12)),
@@ -300,9 +306,9 @@
       }
 
       .section {
-        padding: 18px;
+        padding: 16px;
         display: grid;
-        gap: 16px;
+        gap: 14px;
       }
 
       .section h2 {
@@ -442,18 +448,19 @@
 
       .toast-stack {
         position: fixed;
-        right: 14px;
-        bottom: 18px;
+        left: 16px;
+        right: 16px;
+        bottom: 22px;
         z-index: 20;
         display: grid;
         gap: 10px;
         pointer-events: none;
+        justify-items: center;
       }
 
       .toast {
-        min-width: 220px;
-        max-width: 300px;
-        padding: 13px 14px;
+        width: min(280px, calc(100vw - 48px));
+        padding: 12px 13px;
         border-radius: 18px;
         border: 1px solid rgba(255, 255, 255, 0.12);
         background: rgba(8, 16, 24, 0.92);
