@@ -368,6 +368,25 @@ function defaultViewportFor(device: CompositionDevice): {
       };
 }
 
+function defaultViewportForProject(
+  projectKind: ProjectKind,
+  device: CompositionDevice,
+): {
+  height: number;
+  width: number;
+} {
+  if (device === "phone") {
+    return defaultViewportFor(device);
+  }
+
+  return projectKind === "local-app"
+    ? {
+        height: 1080,
+        width: 1728,
+      }
+    : defaultViewportFor(device);
+}
+
 function defaultOutputPresetFor(device: CompositionDevice): OutputPreset {
   return device === "phone" ? "social-vertical" : "motion-edit";
 }
@@ -577,7 +596,10 @@ async function detectProject(targetDir: string): Promise<DetectedProject | undef
 }
 
 function buildConfigSource(answers: InitAnswers): string {
-  const viewport = defaultViewportFor(answers.device);
+  const viewport = defaultViewportForProject(
+    answers.projectKind,
+    answers.device,
+  );
   const domain = inferDomainLabel(answers.url);
   const lines = [
     "export default {",
@@ -608,6 +630,7 @@ function buildConfigSource(answers: InitAnswers): string {
     "    },",
     "  },",
     "  browser: {",
+    `    capture: { mode: ${quote(answers.projectKind === "local-app" ? "video" : "balanced")} },`,
     "    headless: true,",
   ];
 

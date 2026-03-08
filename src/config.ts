@@ -99,7 +99,7 @@ const DEFAULTS = {
     capture: {
       fps: 15,
       jpegQuality: 90,
-      mode: "balanced" as BrowserCaptureMode,
+      mode: "video" as BrowserCaptureMode,
     },
     headless: true,
     slowMo: 0,
