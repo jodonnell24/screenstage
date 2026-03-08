@@ -8,10 +8,37 @@ const CURSOR_OVERLAY_SCRIPT = `
 
   const STATE = {
     clickTimer: null,
-    variant: "arrow",
+    rafId: null,
+    renderX: 0,
+    renderY: 0,
+    targetVariant: "arrow",
+    targetX: 0,
+    targetY: 0,
     x: 0,
     y: 0,
   };
+
+  const ARROW_SVG = \`
+    <svg width="28" height="32" viewBox="0 0 28 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M4.5 2.5V23.1C4.5 24.12 5.68 24.7 6.48 24.08L11.82 19.96C12.28 19.61 12.92 19.73 13.23 20.23L15.86 24.48C16.43 25.4 17.64 25.7 18.57 25.15L19.92 24.36C20.84 23.81 21.15 22.62 20.62 21.69L17.94 17.04C17.63 16.49 17.82 15.8 18.36 15.48L22.95 12.74C23.92 12.16 23.51 10.67 22.38 10.67H10.3C9.31 10.67 8.5 9.86 8.5 8.87V2.5H4.5Z" fill="white"/>
+      <path d="M4.5 2.5V23.1C4.5 24.12 5.68 24.7 6.48 24.08L11.82 19.96C12.28 19.61 12.92 19.73 13.23 20.23L15.86 24.48C16.43 25.4 17.64 25.7 18.57 25.15L19.92 24.36C20.84 23.81 21.15 22.62 20.62 21.69L17.94 17.04C17.63 16.49 17.82 15.8 18.36 15.48L22.95 12.74C23.92 12.16 23.51 10.67 22.38 10.67H10.3C9.31 10.67 8.5 9.86 8.5 8.87V2.5H4.5Z" stroke="rgba(23, 27, 35, 0.95)" stroke-width="1.7" stroke-linejoin="round"/>
+    </svg>
+  \`;
+
+  const POINTER_SVG = \`
+    <svg width="28" height="32" viewBox="0 0 28 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M11.17 13.8V8.52C11.17 6.26 12.94 4.42 15.12 4.42C17.3 4.42 19.05 6.26 19.05 8.52V11.95H19.64V10.11C19.64 8.34 21.03 6.92 22.76 6.92C24.49 6.92 25.88 8.34 25.88 10.11V20.64C25.88 24.76 22.65 28.1 18.68 28.1H16.58C14.45 28.1 12.44 27.11 11.1 25.41L6.81 20C5.77 18.69 5.96 16.74 7.24 15.64C8.47 14.59 10.29 14.64 11.46 15.74L11.17 13.8Z" fill="white"/>
+      <path d="M11.17 13.8V8.52C11.17 6.26 12.94 4.42 15.12 4.42C17.3 4.42 19.05 6.26 19.05 8.52V11.95H19.64V10.11C19.64 8.34 21.03 6.92 22.76 6.92C24.49 6.92 25.88 8.34 25.88 10.11V20.64C25.88 24.76 22.65 28.1 18.68 28.1H16.58C14.45 28.1 12.44 27.11 11.1 25.41L6.81 20C5.77 18.69 5.96 16.74 7.24 15.64C8.47 14.59 10.29 14.64 11.46 15.74L11.17 13.8Z" stroke="rgba(23, 27, 35, 0.95)" stroke-width="1.7" stroke-linejoin="round"/>
+      <path d="M15.12 8.55V18.64M19.05 12.05V18.64M22.87 10.11V18.64" stroke="rgba(23, 27, 35, 0.95)" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  \`;
+
+  const TEXT_SVG = \`
+    <svg width="20" height="30" viewBox="0 0 20 30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M3 2.5H17M3 27.5H17M10 4.6V25.4" stroke="white" stroke-width="5" stroke-linecap="round"/>
+      <path d="M3 2.5H17M3 27.5H17M10 4.6V25.4" stroke="rgba(23, 27, 35, 0.95)" stroke-width="2.2" stroke-linecap="round"/>
+    </svg>
+  \`;
 
   const isEditableElement = (element) => {
     if (!(element instanceof HTMLElement)) {
@@ -88,11 +115,21 @@ const CURSOR_OVERLAY_SCRIPT = `
         position: absolute;
         left: 0;
         top: 0;
-        width: 34px;
-        height: 34px;
+        width: 40px;
+        height: 40px;
         transform: translate3d(0, 0, 0);
         transform-origin: 0 0;
         will-change: transform;
+      }
+
+      #__motion_cursor_art {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 40px;
+        height: 40px;
+        transform-origin: 0 0;
+        transition: transform 110ms cubic-bezier(0.22, 1, 0.36, 1);
       }
 
       .__motion_cursor_variant {
@@ -100,7 +137,7 @@ const CURSOR_OVERLAY_SCRIPT = `
         left: 0;
         top: 0;
         opacity: 0;
-        transition: opacity 100ms ease;
+        transition: opacity 90ms linear;
       }
 
       #__motion_cursor_root[data-variant="arrow"] [data-variant="arrow"],
@@ -111,7 +148,7 @@ const CURSOR_OVERLAY_SCRIPT = `
 
       .__motion_cursor_variant svg {
         overflow: visible;
-        filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3)) drop-shadow(0 10px 18px rgba(0, 0, 0, 0.12));
+        filter: drop-shadow(0 1.5px 2px rgba(0, 0, 0, 0.22)) drop-shadow(0 8px 18px rgba(0, 0, 0, 0.14));
       }
 
       [data-variant="arrow"] {
@@ -119,38 +156,38 @@ const CURSOR_OVERLAY_SCRIPT = `
       }
 
       [data-variant="pointer"] {
-        transform: translate(-7px, -3px);
+        transform: translate(-7px, -4px);
       }
 
       [data-variant="text"] {
-        transform: translate(-8px, -14px);
+        transform: translate(-9px, -15px);
       }
 
-      #__motion_cursor_root.is-clicking #__motion_cursor_marker {
-        transform: translate3d(var(--motion-x), var(--motion-y), 0) scale(0.96);
+      #__motion_cursor_root.is-clicking #__motion_cursor_art {
+        transform: scale(0.94);
       }
 
       .__motion_cursor_ripple {
         position: absolute;
-        width: 26px;
-        height: 26px;
-        margin-left: -13px;
-        margin-top: -13px;
+        width: 24px;
+        height: 24px;
+        margin-left: -12px;
+        margin-top: -12px;
         border-radius: 999px;
-        border: 2px solid rgba(255, 255, 255, 0.96);
-        background: rgba(255, 255, 255, 0.18);
-        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
-        animation: __motion_cursor_ripple 420ms ease-out forwards;
+        border: 1.8px solid rgba(255, 255, 255, 0.94);
+        background: rgba(255, 255, 255, 0.14);
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.12);
+        animation: __motion_cursor_ripple 360ms ease-out forwards;
       }
 
       @keyframes __motion_cursor_ripple {
         0% {
-          opacity: 0.95;
-          transform: scale(0.6);
+          opacity: 0.9;
+          transform: scale(0.7);
         }
         100% {
           opacity: 0;
-          transform: scale(2.1);
+          transform: scale(1.95);
         }
       }
     \`;
@@ -162,42 +199,48 @@ const CURSOR_OVERLAY_SCRIPT = `
     const marker = document.createElement("div");
     marker.id = "__motion_cursor_marker";
 
-    marker.innerHTML = \`
-      <div class="__motion_cursor_variant" data-variant="arrow" aria-hidden="true">
-        <svg width="24" height="30" viewBox="0 0 24 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M3.19 1.75L3.19 23.44C3.19 24.6 4.51 25.27 5.46 24.57L10.43 20.93C10.97 20.54 11.71 20.67 12.08 21.23L14.53 24.99C15.17 25.97 16.48 26.23 17.45 25.58L19.08 24.49C20.03 23.85 20.29 22.56 19.66 21.6L17.17 17.78C16.8 17.21 16.94 16.45 17.52 16.07L21.03 13.78C21.99 13.15 21.54 11.66 20.39 11.66L4.94 11.66C3.98 11.66 3.19 10.88 3.19 9.92V1.75Z" fill="white"/>
-          <path d="M3.19 1.75L3.19 23.44C3.19 24.6 4.51 25.27 5.46 24.57L10.43 20.93C10.97 20.54 11.71 20.67 12.08 21.23L14.53 24.99C15.17 25.97 16.48 26.23 17.45 25.58L19.08 24.49C20.03 23.85 20.29 22.56 19.66 21.6L17.17 17.78C16.8 17.21 16.94 16.45 17.52 16.07L21.03 13.78C21.99 13.15 21.54 11.66 20.39 11.66L4.94 11.66C3.98 11.66 3.19 10.88 3.19 9.92V1.75Z" stroke="rgba(18, 24, 33, 0.9)" stroke-width="1.5" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <div class="__motion_cursor_variant" data-variant="pointer" aria-hidden="true">
-        <svg width="28" height="30" viewBox="0 0 28 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M8.61 14.77V8.66C8.61 5.98 10.73 3.82 13.37 3.82C16 3.82 18.11 5.98 18.11 8.66V12.72H18.64V10.54C18.64 8.47 20.27 6.8 22.31 6.8C24.34 6.8 25.97 8.47 25.97 10.54V20.15C25.97 24.76 22.33 28.5 17.84 28.5H15.4C12.9 28.5 10.56 27.35 9 25.38L4.47 19.67C3.26 18.14 3.48 15.89 4.96 14.63C6.39 13.42 8.5 13.48 9.85 14.77L8.61 14.77Z" fill="white"/>
-          <path d="M8.61 14.77V8.66C8.61 5.98 10.73 3.82 13.37 3.82C16 3.82 18.11 5.98 18.11 8.66V12.72H18.64V10.54C18.64 8.47 20.27 6.8 22.31 6.8C24.34 6.8 25.97 8.47 25.97 10.54V20.15C25.97 24.76 22.33 28.5 17.84 28.5H15.4C12.9 28.5 10.56 27.35 9 25.38L4.47 19.67C3.26 18.14 3.48 15.89 4.96 14.63C6.39 13.42 8.5 13.48 9.85 14.77H8.61ZM13.37 5.32C11.56 5.32 10.11 6.8 10.11 8.66V18.07L8.48 16.41C7.67 15.59 6.38 15.55 5.93 15.94C5.07 16.67 4.94 17.96 5.63 18.84L10.17 24.55C11.45 26.17 13.37 27 15.4 27H17.84C21.5 27 24.47 23.96 24.47 20.15V10.54C24.47 9.28 23.49 8.3 22.31 8.3C21.12 8.3 20.14 9.28 20.14 10.54V17.51H18.64V8.66C18.64 6.8 17.18 5.32 15.4 5.32V17.51H13.9V5.32H13.37Z" fill="rgba(18, 24, 33, 0.92)"/>
-        </svg>
-      </div>
-      <div class="__motion_cursor_variant" data-variant="text" aria-hidden="true">
-        <svg width="18" height="30" viewBox="0 0 18 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M2 2H16" stroke="white" stroke-width="4" stroke-linecap="round"/>
-          <path d="M2 28H16" stroke="white" stroke-width="4" stroke-linecap="round"/>
-          <path d="M9 3.5V26.5" stroke="white" stroke-width="4.5" stroke-linecap="round"/>
-          <path d="M2 2H16" stroke="rgba(18, 24, 33, 0.92)" stroke-width="2" stroke-linecap="round"/>
-          <path d="M2 28H16" stroke="rgba(18, 24, 33, 0.92)" stroke-width="2" stroke-linecap="round"/>
-          <path d="M9 3.5V26.5" stroke="rgba(18, 24, 33, 0.92)" stroke-width="2.4" stroke-linecap="round"/>
-        </svg>
-      </div>
+    const art = document.createElement("div");
+    art.id = "__motion_cursor_art";
+    art.innerHTML = \`
+      <div class="__motion_cursor_variant" data-variant="arrow">\${ARROW_SVG}</div>
+      <div class="__motion_cursor_variant" data-variant="pointer">\${POINTER_SVG}</div>
+      <div class="__motion_cursor_variant" data-variant="text">\${TEXT_SVG}</div>
     \`;
 
+    marker.appendChild(art);
     root.appendChild(marker);
     document.head.appendChild(style);
     document.body.appendChild(root);
 
-    const update = () => {
-      const variant = detectVariant(STATE.x, STATE.y);
-      STATE.variant = variant;
-      root.dataset.variant = variant;
-      root.style.setProperty("--motion-x", \`\${STATE.x}px\`);
-      root.style.setProperty("--motion-y", \`\${STATE.y}px\`);
-      marker.style.transform = \`translate3d(\${STATE.x}px, \${STATE.y}px, 0)\`;
+    const render = () => {
+      const dx = STATE.targetX - STATE.renderX;
+      const dy = STATE.targetY - STATE.renderY;
+      const distance = Math.hypot(dx, dy);
+
+      STATE.renderX += dx * 0.34;
+      STATE.renderY += dy * 0.34;
+
+      if (distance < 0.15) {
+        STATE.renderX = STATE.targetX;
+        STATE.renderY = STATE.targetY;
+      }
+
+      root.dataset.variant = STATE.targetVariant;
+      marker.style.transform = \`translate3d(\${STATE.renderX}px, \${STATE.renderY}px, 0)\`;
+
+      if (distance >= 0.15) {
+        STATE.rafId = requestAnimationFrame(render);
+      } else {
+        STATE.rafId = null;
+      }
+    };
+
+    const scheduleRender = () => {
+      if (STATE.rafId !== null) {
+        return;
+      }
+
+      STATE.rafId = requestAnimationFrame(render);
     };
 
     window.__motionCursorOverlay = {
@@ -209,24 +252,33 @@ const CURSOR_OVERLAY_SCRIPT = `
 
         const ripple = document.createElement("div");
         ripple.className = "__motion_cursor_ripple";
-        ripple.style.left = \`\${STATE.x}px\`;
-        ripple.style.top = \`\${STATE.y}px\`;
+        ripple.style.left = \`\${STATE.renderX}px\`;
+        ripple.style.top = \`\${STATE.renderY}px\`;
         root.appendChild(ripple);
-        window.setTimeout(() => ripple.remove(), 430);
+        window.setTimeout(() => ripple.remove(), 380);
 
         STATE.clickTimer = window.setTimeout(() => {
           root.classList.remove("is-clicking");
           STATE.clickTimer = null;
-        }, 130);
+        }, 110);
+
+        scheduleRender();
       },
       move(x, y) {
         STATE.x = x;
         STATE.y = y;
-        update();
+        STATE.targetX = x;
+        STATE.targetY = y;
+        STATE.targetVariant = detectVariant(x, y);
+        scheduleRender();
       },
     };
 
-    update();
+    STATE.targetX = 0;
+    STATE.targetY = 0;
+    STATE.renderX = 0;
+    STATE.renderY = 0;
+    scheduleRender();
   };
 
   ensureRoot();

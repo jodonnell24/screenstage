@@ -23,6 +23,12 @@ function interpolate(start: number, end: number, progress: number): number {
   return start + (end - start) * progress;
 }
 
+function easeInOutCubic(progress: number): number {
+  return progress < 0.5
+    ? 4 * progress * progress * progress
+    : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+}
+
 export class DemoCursorController implements CursorController {
   readonly #page: Page;
 
@@ -59,12 +65,12 @@ export class DemoCursorController implements CursorController {
 
   async move(point: Point, options: CursorMoveOptions = {}): Promise<void> {
     const durationMs = options.durationMs ?? 700;
-    const steps = options.steps ?? Math.max(3, Math.ceil(durationMs / 16));
+    const steps = options.steps ?? Math.max(6, Math.ceil(durationMs / 12));
     const delayMs = steps > 1 ? durationMs / steps : 0;
     const start = this.current;
 
     for (let step = 1; step <= steps; step += 1) {
-      const progress = step / steps;
+      const progress = easeInOutCubic(step / steps);
       const nextPoint = {
         x: interpolate(start.x, point.x, progress),
         y: interpolate(start.y, point.y, progress),
