@@ -27,6 +27,9 @@ const DEFAULTS = {
     navigationTimeoutMs: 30_000,
     settleMs: 750,
   },
+  serve: {
+    timeoutMs: 30_000,
+  },
   viewport: {
     height: 900,
     width: 1440,
@@ -66,7 +69,11 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
   const config = asMotionConfig(configModule);
 
   assertCondition(
-    typeof config.url === "string" && config.url.length > 0,
+    (typeof config.url === "string" && config.url.length > 0) ||
+      (typeof config.serve?.command === "string" &&
+        config.serve.command.length > 0 &&
+        typeof config.url === "string" &&
+        config.url.length > 0),
     "Config must include a non-empty 'url'.",
   );
   assertCondition(
@@ -106,6 +113,16 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
     configPath: absoluteConfigPath,
     demoPath,
     name,
+    serve: config.serve
+      ? {
+          command: config.serve.command,
+          cwd: path.resolve(configDir, config.serve.cwd ?? "."),
+          env: config.serve.env,
+          readyText: config.serve.readyText,
+          shell: config.serve.shell,
+          timeoutMs: config.serve.timeoutMs ?? DEFAULTS.serve.timeoutMs,
+        }
+      : undefined,
     output: {
       dir: path.resolve(configDir, config.output?.dir ?? "output"),
       fps: config.output?.fps ?? DEFAULTS.output.fps,

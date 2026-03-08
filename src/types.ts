@@ -23,7 +23,7 @@ export type CursorSample = Point & {
 
 export type MotionConfig = {
   name?: string;
-  url: string;
+  url?: string;
   demo: string;
   viewport?: Partial<Size>;
   output?: {
@@ -41,6 +41,14 @@ export type MotionConfig = {
     headless?: boolean;
     slowMo?: number;
     channel?: string;
+  };
+  serve?: {
+    command: string;
+    cwd?: string;
+    env?: Record<string, string>;
+    readyText?: string;
+    shell?: string;
+    timeoutMs?: number;
   };
   timing?: {
     navigationTimeoutMs?: number;
@@ -62,6 +70,14 @@ export type LoadedMotionConfig = {
   configPath: string;
   demoPath: string;
   name: string;
+  serve?: {
+    command: string;
+    cwd: string;
+    env?: Record<string, string>;
+    readyText?: string;
+    shell?: string;
+    timeoutMs: number;
+  };
   output: {
     dir: string;
     fps: number;

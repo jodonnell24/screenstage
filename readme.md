@@ -15,6 +15,7 @@ This is a Playwright + FFmpeg pipeline. It works with React apps and non-React w
 ## What It Does
 
 - Opens a real Chromium page with Playwright.
+- Can optionally start a local dev server, wait for it to come up, and shut it down after capture.
 - Records the live session as source video.
 - Injects a cursor overlay that behaves more like a real mouse:
   - arrow cursor by default
@@ -130,6 +131,23 @@ export default {
   - `"prores"` for high-quality `.mov` output that is better suited for Motion / Final Cut
 - `camera.zoom` is the default follow-cam zoom when you are not manually keyframing the camera.
 - `camera.padding` keeps the target away from the crop edge.
+
+For local apps you can add a `serve` block:
+
+```js
+export default {
+  url: "http://127.0.0.1:3000",
+  demo: "./demo/starter-demo.mjs",
+  serve: {
+    command: "npm run dev",
+    cwd: ".",
+    readyText: "ready",
+    timeoutMs: 30000,
+  },
+};
+```
+
+`serve.command` is started before capture, the tool waits for `url` to respond, and the process is shut down when recording finishes.
 
 ## Authoring Model
 
@@ -273,6 +291,7 @@ Implemented now:
 - hover-aware cursor variants
 - manual camera keyframes
 - declarative scene arrays
+- local dev-server lifecycle
 - MP4 + ProRes rendering
 - starter scaffold
 

@@ -9,6 +9,7 @@ import { DemoCursorController } from "./cursor-controller.js";
 import { installCursorOverlay, moveCursorOverlay } from "./cursor-overlay.js";
 import { buildFfmpegPlans, commandExists, renderWithFfmpeg } from "./ffmpeg.js";
 import { runScenes } from "./scenes.js";
+import { startManagedService } from "./serve.js";
 
 function stamp(): string {
   return new Date().toISOString().replaceAll(":", "-");
@@ -21,6 +22,7 @@ export async function runMotion(configPath: string): Promise<void> {
   const sessionDir = path.join(config.output.dir, sessionName);
   const recordingsDir = path.join(sessionDir, "recordings");
   const sourceVideoPath = path.join(sessionDir, "source.webm");
+  const managedService = await startManagedService(config);
 
   await fs.mkdir(recordingsDir, { recursive: true });
 
@@ -86,6 +88,7 @@ export async function runMotion(configPath: string): Promise<void> {
     await page.close();
     await context.close();
     await browser.close();
+    await managedService?.stop();
   }
 
   const recordedVideoPath = await video?.path();

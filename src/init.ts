@@ -5,6 +5,13 @@ const CONFIG_TEMPLATE = `export default {
   name: "starter-demo",
   url: new URL("./demo-site/index.html", import.meta.url).href,
   demo: "./demo/starter-demo.mjs",
+  // For local apps, switch url to your local server and uncomment serve:
+  // url: "http://127.0.0.1:3000",
+  // serve: {
+  //   command: "npm run dev",
+  //   cwd: ".",
+  //   readyText: "ready",
+  // },
   viewport: {
     width: 1440,
     height: 900,
