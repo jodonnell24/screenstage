@@ -67,6 +67,7 @@ const RECORDER_SCRIPT = `
     cursorSamples: [],
     finishTimeMs: null,
     finished: false,
+    hidden: false,
     lastMarkerLabel: "Wide",
     lastPointer: null,
     panelReady: false,
@@ -323,6 +324,25 @@ const RECORDER_SCRIPT = `
     target.textContent = label;
   };
 
+  const setPanelHidden = (hidden) => {
+    state.hidden = hidden;
+    const panel = document.getElementById("__motion_record_panel");
+
+    if (!(panel instanceof HTMLElement)) {
+      return;
+    }
+
+    panel.dataset.hidden = hidden ? "1" : "0";
+
+    if (hidden) {
+      delete document.body.dataset.motionRecordNative;
+    }
+  };
+
+  const togglePanelHidden = () => {
+    setPanelHidden(!state.hidden);
+  };
+
   const recordMarker = (kind) => {
     const pointer = getCurrentPointer();
     const label =
@@ -383,6 +403,13 @@ const RECORDER_SCRIPT = `
         box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2);
         border: 1px solid rgba(255, 255, 255, 0.14);
         font-family: ui-sans-serif, system-ui, sans-serif;
+        transition: opacity 140ms ease, transform 180ms ease;
+      }
+
+      #__motion_record_panel[data-hidden='1'] {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateX(-50%) translateY(-18px);
       }
 
       #__motion_record_panel .__motion_record_shell {
@@ -534,6 +561,7 @@ const RECORDER_SCRIPT = `
           <strong data-role="marker-status">Wide</strong>
         </div>
         <div class="__motion_record_actions">
+          <button type="button" data-action="hide">Hide</button>
           <button type="button" data-action="cancel">Cancel</button>
           <button type="button" data-action="finish">Finish</button>
         </div>
@@ -583,6 +611,14 @@ const RECORDER_SCRIPT = `
     });
 
     panel
+      .querySelector('[data-action="hide"]')
+      ?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setPanelHidden(true);
+      });
+
+    panel
       .querySelector('[data-action="finish"]')
       ?.addEventListener("click", (event) => {
         event.preventDefault();
@@ -604,6 +640,12 @@ const RECORDER_SCRIPT = `
   };
 
   window.addEventListener("keydown", (event) => {
+    if (event.altKey && event.shiftKey && event.code === "Digit0") {
+      event.preventDefault();
+      togglePanelHidden();
+      return;
+    }
+
     if (event.altKey && event.shiftKey && event.code === "KeyR") {
       event.preventDefault();
       finish(false);
