@@ -157,7 +157,7 @@ function buildFrameStatesFromCursor(
     };
   });
 
-  return smoothFrameStates(frames, config);
+  return smoothTrackedFrameStates(frames, config);
 }
 
 function buildFrameStatesFromCamera(
@@ -165,7 +165,7 @@ function buildFrameStatesFromCamera(
   config: LoadedMotionConfig,
   layout: CompositionLayout,
 ): FrameState[] {
-  return samples.map((sample) => {
+  const frames = samples.map((sample) => {
     const { cropHeight, cropWidth } = getCropSizeForZoom(config, layout, sample.zoom);
 
     return {
@@ -176,6 +176,8 @@ function buildFrameStatesFromCamera(
       y: sample.y,
     };
   });
+
+  return smoothTrackedFrameStates(frames, config);
 }
 
 function resolveDurationWindow(
@@ -304,6 +306,53 @@ function smoothSeries(
   return smoothed;
 }
 
+function getAdaptiveSmoothingMs(speedPxPerSecond: number, baseSmoothingMs: number): number {
+  const slowSmoothingMs = Math.max(baseSmoothingMs * 1.65, baseSmoothingMs + 80);
+  const fastSmoothingMs = Math.max(42, baseSmoothingMs * 0.42);
+  const speedRatio = clamp(speedPxPerSecond / 1600, 0, 1);
+
+  return slowSmoothingMs + (fastSmoothingMs - slowSmoothingMs) * speedRatio;
+}
+
+function smoothTrackedAxes(
+  frames: FrameState[],
+  xValues: number[],
+  yValues: number[],
+  baseSmoothingMs: number,
+): { xValues: number[]; yValues: number[] } {
+  if (frames.length <= 1 || baseSmoothingMs <= 0) {
+    return {
+      xValues: [...xValues],
+      yValues: [...yValues],
+    };
+  }
+
+  const smoothedX = [xValues[0]];
+  const smoothedY = [yValues[0]];
+
+  for (let index = 1; index < frames.length; index += 1) {
+    const previousFrame = frames[index - 1];
+    const currentFrame = frames[index];
+    const deltaMs = Math.max(currentFrame.timeMs - previousFrame.timeMs, 1);
+    const previousX = smoothedX[index - 1];
+    const previousY = smoothedY[index - 1];
+    const targetX = xValues[index];
+    const targetY = yValues[index];
+    const distance = Math.hypot(targetX - previousX, targetY - previousY);
+    const speedPxPerSecond = distance / (deltaMs / 1000);
+    const smoothingMs = getAdaptiveSmoothingMs(speedPxPerSecond, baseSmoothingMs);
+    const alpha = 1 - Math.exp(-deltaMs / Math.max(smoothingMs, 1));
+
+    smoothedX.push(previousX + (targetX - previousX) * alpha);
+    smoothedY.push(previousY + (targetY - previousY) * alpha);
+  }
+
+  return {
+    xValues: smoothedX,
+    yValues: smoothedY,
+  };
+}
+
 function stabilizePoints(
   xValues: number[],
   yValues: number[],
@@ -348,7 +397,7 @@ function stabilizePoints(
   };
 }
 
-function smoothFrameStates(
+function smoothTrackedFrameStates(
   frames: FrameState[],
   config: LoadedMotionConfig,
 ): FrameState[] {
@@ -358,14 +407,27 @@ function smoothFrameStates(
 
   const smoothingMs = config.camera.smoothingMs;
   const deadzonePx = config.camera.deadzonePx;
-  const xValues = smoothSeries(frames, (frame) => frame.x, smoothingMs);
-  const yValues = smoothSeries(frames, (frame) => frame.y, smoothingMs);
-  const stabilized = stabilizePoints(xValues, yValues, deadzonePx);
+  const stabilized = stabilizePoints(
+    frames.map((frame) => frame.x),
+    frames.map((frame) => frame.y),
+    deadzonePx,
+  );
+  const tracked = smoothTrackedAxes(
+    frames,
+    stabilized.xValues,
+    stabilized.yValues,
+    smoothingMs,
+  );
+  const zoomSmoothingMs = Math.max(48, smoothingMs * 0.72);
+  const cropWidthValues = smoothSeries(frames, (frame) => frame.cropWidth, zoomSmoothingMs);
+  const cropHeightValues = smoothSeries(frames, (frame) => frame.cropHeight, zoomSmoothingMs);
 
   return frames.map((frame, index) => ({
     ...frame,
-    x: stabilized.xValues[index],
-    y: stabilized.yValues[index],
+    cropHeight: cropHeightValues[index],
+    cropWidth: cropWidthValues[index],
+    x: tracked.xValues[index],
+    y: tracked.yValues[index],
   }));
 }
 
@@ -373,6 +435,7 @@ function condensePoints(
   points: NumericPoint[],
   thresholdMs: number,
   thresholdValue: number,
+  maxPoints = 96,
 ): NumericPoint[] {
   if (points.length <= 2) {
     return points;
@@ -411,8 +474,6 @@ function condensePoints(
 
     condensed.push(point);
   }
-
-  const maxPoints = 96;
 
   if (condensed.length <= maxPoints) {
     return condensed;
@@ -487,22 +548,34 @@ export function buildFfmpegPlans(
       .toFixed(3),
   );
   const numericPoints = buildNumericPoints(frames, config);
-  const cropWidthPoints = condensePoints(numericPoints.cropWidthPoints, 150, 16);
-  const cropHeightPoints = condensePoints(numericPoints.cropHeightPoints, 150, 16);
-  const xPoints = condensePoints(numericPoints.xPoints, 120, 10);
-  const yPoints = condensePoints(numericPoints.yPoints, 120, 10);
+  const cropWidthPoints = condensePoints(numericPoints.cropWidthPoints, 170, 18, 44);
+  const cropHeightPoints = condensePoints(numericPoints.cropHeightPoints, 170, 18, 44);
+  const xPoints = condensePoints(numericPoints.xPoints, 140, 12, 56);
+  const yPoints = condensePoints(numericPoints.yPoints, 140, 12, 56);
   const cropWidthExpression = buildPiecewiseExpression(cropWidthPoints);
   const cropHeightExpression = buildPiecewiseExpression(cropHeightPoints);
   const xExpression = buildPiecewiseExpression(xPoints);
   const yExpression = buildPiecewiseExpression(yPoints);
+  const contentWidth = layout.enabled ? layout.contentWidth : config.output.width;
+  const contentHeight = layout.enabled ? layout.contentHeight : config.output.height;
+  const scaleFactorPoints = cropWidthPoints.map((point) => ({
+    timeMs: point.timeMs,
+    value: contentWidth / Math.max(point.value, 1),
+  }));
+  const scaleFactorExpression = buildPiecewiseExpression(scaleFactorPoints);
+  const scaledWidthExpression = `(${formatNumber(config.viewport.width)}*(${scaleFactorExpression}))`;
+  const scaledHeightExpression = `(${formatNumber(config.viewport.height)}*(${scaleFactorExpression}))`;
+  const scaledXExpression = `((${xExpression})*(${scaleFactorExpression}))`;
+  const scaledYExpression = `((${yExpression})*(${scaleFactorExpression}))`;
+
   return config.output.formats.map((format) => {
     const settings = FORMAT_SETTINGS[format];
 
     if (!layout.enabled) {
       const filter = [
         `fps=${config.output.fps}`,
-        `crop=w='${cropWidthExpression}':h='${cropHeightExpression}':x='${xExpression}':y='${yExpression}'`,
-        `scale=${config.output.width}:${config.output.height}:flags=lanczos`,
+        `scale=w='${scaledWidthExpression}':h='${scaledHeightExpression}':flags=lanczos:eval=frame`,
+        `crop=w=${config.output.width}:h=${config.output.height}:x='${scaledXExpression}':y='${scaledYExpression}':exact=1`,
         "setsar=1",
         settings.postScaleFormat,
       ].join(",");
@@ -532,7 +605,7 @@ export function buildFfmpegPlans(
     }
 
     const filterComplex = [
-      `[0:v]fps=${config.output.fps},crop=w='${cropWidthExpression}':h='${cropHeightExpression}':x='${xExpression}':y='${yExpression}',scale=${layout.contentWidth}:${layout.contentHeight}:flags=lanczos,pad=${layout.outputWidth}:${layout.outputHeight}:${layout.contentX}:${layout.contentY}:color=black,setsar=1[base]`,
+      `[0:v]fps=${config.output.fps},scale=w='${scaledWidthExpression}':h='${scaledHeightExpression}':flags=lanczos:eval=frame,crop=w=${contentWidth}:h=${contentHeight}:x='${scaledXExpression}':y='${scaledYExpression}':exact=1,pad=${layout.outputWidth}:${layout.outputHeight}:${layout.contentX}:${layout.contentY}:color=black,setsar=1[base]`,
       `[base][1:v]overlay=0:0:shortest=1,${settings.postScaleFormat}[outv]`,
     ].join(";");
 

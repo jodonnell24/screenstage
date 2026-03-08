@@ -12,8 +12,10 @@ export default {
     formats: ["mp4"],
   },
   camera: {
+    deadzonePx: 28,
     mode: "follow",
-    zoom: 1.7,
+    smoothingMs: 240,
+    zoom: 1,
   },
   composition: {
     preset: "spotlight-browser",
