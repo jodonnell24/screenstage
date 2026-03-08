@@ -32,6 +32,7 @@ export type CompositionPreset =
   | "none"
   | "studio-browser"
   | "spotlight-browser";
+export type CompositionDevice = "desktop" | "phone";
 
 export type CursorSampleKind = "move" | "wait" | "click";
 export type CameraSampleKind = "focus" | "wait" | "follow";
@@ -68,6 +69,7 @@ export type MotionConfig = {
       angle?: number;
       colors?: string[];
     };
+    device?: CompositionDevice;
     browser?: {
       domain?: string;
       padding?: number;
@@ -75,6 +77,12 @@ export type MotionConfig = {
       showAddressBar?: boolean;
       showTrafficLights?: boolean;
       toolbarHeight?: number;
+    };
+    phone?: {
+      color?: string;
+      framePadding?: number;
+      showCameraIsland?: boolean;
+      showHomeIndicator?: boolean;
     };
     preset?: CompositionPreset;
   };
@@ -117,6 +125,7 @@ export type LoadedMotionConfig = {
       angle: number;
       colors: string[];
     };
+    device: CompositionDevice;
     browser: {
       domain?: string;
       padding: number;
@@ -124,6 +133,12 @@ export type LoadedMotionConfig = {
       showAddressBar: boolean;
       showTrafficLights: boolean;
       toolbarHeight: number;
+    };
+    phone: {
+      color: string;
+      framePadding: number;
+      showCameraIsland: boolean;
+      showHomeIndicator: boolean;
     };
     preset: CompositionPreset;
   };
@@ -457,13 +472,17 @@ export type FfmpegPlan = {
 export type CompositionLayout = {
   assetPath?: string;
   contentHeight: number;
+  contentRadius?: number;
   contentWidth: number;
   contentX: number;
   contentY: number;
+  device: CompositionDevice;
   enabled: boolean;
   outputHeight: number;
   outputWidth: number;
   preset: CompositionPreset;
+  toolbarHeight?: number;
+  windowRadius?: number;
   windowHeight?: number;
   windowWidth?: number;
   windowX?: number;

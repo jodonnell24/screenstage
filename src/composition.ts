@@ -6,6 +6,14 @@ import { promisify } from "node:util";
 import type { CompositionLayout, LoadedMotionConfig } from "./types.js";
 
 const execFileAsync = promisify(execFile);
+const DESKTOP_REFERENCE = {
+  height: 1080,
+  width: 1920,
+};
+const PHONE_REFERENCE = {
+  height: 1920,
+  width: 1080,
+};
 
 function escapeXml(value: string): string {
   return value
@@ -38,25 +46,40 @@ function degreesToGradientPoint(angle: number): {
   };
 }
 
-function fitBrowserWindow(config: LoadedMotionConfig): CompositionLayout {
+function scaleMetric(
+  value: number,
+  outputWidth: number,
+  outputHeight: number,
+  referenceWidth: number,
+  referenceHeight: number,
+): number {
+  return value * Math.min(outputWidth / referenceWidth, outputHeight / referenceHeight);
+}
+
+function fitDesktopWindow(config: LoadedMotionConfig): CompositionLayout {
   const outputWidth = config.output.width;
   const outputHeight = config.output.height;
-
-  if (config.composition.preset === "none") {
-    return {
-      contentHeight: outputHeight,
-      contentWidth: outputWidth,
-      contentX: 0,
-      contentY: 0,
-      enabled: false,
-      outputHeight,
-      outputWidth,
-      preset: "none",
-    };
-  }
-
-  const padding = config.composition.browser.padding;
-  const toolbarHeight = config.composition.browser.toolbarHeight;
+  const padding = scaleMetric(
+    config.composition.browser.padding,
+    outputWidth,
+    outputHeight,
+    DESKTOP_REFERENCE.width,
+    DESKTOP_REFERENCE.height,
+  );
+  const toolbarHeight = scaleMetric(
+    config.composition.browser.toolbarHeight,
+    outputWidth,
+    outputHeight,
+    DESKTOP_REFERENCE.width,
+    DESKTOP_REFERENCE.height,
+  );
+  const radius = scaleMetric(
+    config.composition.browser.radius,
+    outputWidth,
+    outputHeight,
+    DESKTOP_REFERENCE.width,
+    DESKTOP_REFERENCE.height,
+  );
   const availableWidth = outputWidth - padding * 2;
   const availableHeight = outputHeight - padding * 2;
   const sourceAspect = config.viewport.width / config.viewport.height;
@@ -77,18 +100,114 @@ function fitBrowserWindow(config: LoadedMotionConfig): CompositionLayout {
 
   return {
     contentHeight: Math.round(contentHeight),
+    contentRadius: Math.round(radius),
     contentWidth: Math.round(contentWidth),
     contentX: Math.round(windowX),
     contentY: Math.round(windowY + toolbarHeight),
+    device: "desktop",
+    enabled: true,
+    outputHeight,
+    outputWidth,
+    preset: config.composition.preset,
+    toolbarHeight: Math.round(toolbarHeight),
+    windowHeight: Math.round(windowHeight),
+    windowRadius: Math.round(radius),
+    windowWidth: Math.round(windowWidth),
+    windowX: Math.round(windowX),
+    windowY: Math.round(windowY),
+  };
+}
+
+function fitPhoneWindow(config: LoadedMotionConfig): CompositionLayout {
+  const outputWidth = config.output.width;
+  const outputHeight = config.output.height;
+  const outerPadding = scaleMetric(
+    Math.max(config.composition.browser.padding * 0.82, 56),
+    outputWidth,
+    outputHeight,
+    PHONE_REFERENCE.width,
+    PHONE_REFERENCE.height,
+  );
+  const framePadding = scaleMetric(
+    config.composition.phone.framePadding,
+    outputWidth,
+    outputHeight,
+    PHONE_REFERENCE.width,
+    PHONE_REFERENCE.height,
+  );
+  const shellRadius = scaleMetric(
+    54,
+    outputWidth,
+    outputHeight,
+    PHONE_REFERENCE.width,
+    PHONE_REFERENCE.height,
+  );
+  const screenRadius = scaleMetric(
+    42,
+    outputWidth,
+    outputHeight,
+    PHONE_REFERENCE.width,
+    PHONE_REFERENCE.height,
+  );
+  const availableWidth = outputWidth - outerPadding * 2 - framePadding * 2;
+  const availableHeight = outputHeight - outerPadding * 2 - framePadding * 2;
+  const sourceAspect = config.viewport.width / config.viewport.height;
+
+  let contentWidth = availableWidth;
+  let contentHeight = contentWidth / sourceAspect;
+
+  if (contentHeight > availableHeight) {
+    contentHeight = availableHeight;
+    contentWidth = contentHeight * sourceAspect;
+  }
+
+  const windowWidth = contentWidth + framePadding * 2;
+  const windowHeight = contentHeight + framePadding * 2;
+  const windowX = (outputWidth - windowWidth) / 2;
+  const windowY = (outputHeight - windowHeight) / 2;
+
+  return {
+    contentHeight: Math.round(contentHeight),
+    contentRadius: Math.round(screenRadius),
+    contentWidth: Math.round(contentWidth),
+    contentX: Math.round(windowX + framePadding),
+    contentY: Math.round(windowY + framePadding),
+    device: "phone",
     enabled: true,
     outputHeight,
     outputWidth,
     preset: config.composition.preset,
     windowHeight: Math.round(windowHeight),
+    windowRadius: Math.round(shellRadius),
     windowWidth: Math.round(windowWidth),
     windowX: Math.round(windowX),
     windowY: Math.round(windowY),
   };
+}
+
+function fitCompositionWindow(config: LoadedMotionConfig): CompositionLayout {
+  const outputWidth = config.output.width;
+  const outputHeight = config.output.height;
+
+  if (config.composition.preset === "none") {
+    return {
+      contentHeight: outputHeight,
+      contentWidth: outputWidth,
+      contentX: 0,
+      contentY: 0,
+      device: config.composition.device,
+      enabled: false,
+      outputHeight,
+      outputWidth,
+      preset: "none",
+    };
+  }
+
+  if (config.composition.device === "phone") {
+    return fitPhoneWindow(config);
+  }
+
+  return fitDesktopWindow(config);
 }
 
 function getPresetColors(config: LoadedMotionConfig): string[] {
@@ -121,15 +240,15 @@ function buildContentHolePath(layout: CompositionLayout, radius: number): string
   ].join(" ");
 }
 
-function buildCompositionSvg(
+function buildDesktopCompositionSvg(
   config: LoadedMotionConfig,
   layout: CompositionLayout,
 ): string {
   const colors = getPresetColors(config).map(escapeXml);
   const angle = config.composition.background.angle;
   const gradient = degreesToGradientPoint(angle);
-  const radius = config.composition.browser.radius;
-  const toolbarHeight = config.composition.browser.toolbarHeight;
+  const radius = layout.windowRadius!;
+  const toolbarHeight = layout.toolbarHeight!;
   const windowX = layout.windowX!;
   const windowY = layout.windowY!;
   const windowWidth = layout.windowWidth!;
@@ -263,6 +382,130 @@ function buildCompositionSvg(
 </svg>`;
 }
 
+function buildPhoneCompositionSvg(
+  config: LoadedMotionConfig,
+  layout: CompositionLayout,
+): string {
+  const colors = getPresetColors(config).map(escapeXml);
+  const angle = config.composition.background.angle;
+  const gradient = degreesToGradientPoint(angle);
+  const shellRadius = layout.windowRadius!;
+  const screenRadius = layout.contentRadius ?? Math.max(shellRadius - 12, 0);
+  const windowX = layout.windowX!;
+  const windowY = layout.windowY!;
+  const windowWidth = layout.windowWidth!;
+  const windowHeight = layout.windowHeight!;
+  const holePath = buildContentHolePath(layout, screenRadius);
+  const backgroundStops =
+    colors.length === 1
+      ? `<stop offset="0%" stop-color="${colors[0]}"/><stop offset="100%" stop-color="${colors[0]}"/>`
+      : colors
+          .map((color, index) => {
+            const offset =
+              colors.length === 1 ? 0 : (index / (colors.length - 1)) * 100;
+            return `<stop offset="${formatNumber(offset)}%" stop-color="${color}"/>`;
+          })
+          .join("");
+  const shellScale = Math.min(
+    layout.outputWidth / PHONE_REFERENCE.width,
+    layout.outputHeight / PHONE_REFERENCE.height,
+  );
+  const islandWidth = 120 * shellScale;
+  const islandHeight = 34 * shellScale;
+  const islandX = windowX + (windowWidth - islandWidth) / 2;
+  const islandY = windowY + 14 * shellScale;
+  const homeIndicatorWidth = 134 * shellScale;
+  const homeIndicatorHeight = 5 * shellScale;
+  const homeIndicatorX = windowX + (windowWidth - homeIndicatorWidth) / 2;
+  const homeIndicatorY = windowY + windowHeight - 16 * shellScale;
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${layout.outputWidth}" height="${layout.outputHeight}" viewBox="0 0 ${layout.outputWidth} ${layout.outputHeight}" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="${formatNumber(gradient.x1)}%" y1="${formatNumber(gradient.y1)}%" x2="${formatNumber(gradient.x2)}%" y2="${formatNumber(gradient.y2)}%">
+      ${backgroundStops}
+    </linearGradient>
+    <filter id="phoneShadow" x="-30%" y="-20%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="42" stdDeviation="32" flood-color="#101823" flood-opacity="0.22"/>
+      <feDropShadow dx="0" dy="16" stdDeviation="12" flood-color="#101823" flood-opacity="0.12"/>
+    </filter>
+    <mask id="screenCutout">
+      <rect width="100%" height="100%" fill="white"/>
+      <path d="${holePath}" fill="black"/>
+    </mask>
+  </defs>
+
+  <g mask="url(#screenCutout)">
+    <rect width="100%" height="100%" fill="url(#bg)"/>
+
+    <g filter="url(#phoneShadow)">
+      <rect
+        x="${formatNumber(windowX)}"
+        y="${formatNumber(windowY)}"
+        width="${formatNumber(windowWidth)}"
+        height="${formatNumber(windowHeight)}"
+        rx="${formatNumber(shellRadius)}"
+        fill="${escapeXml(config.composition.phone.color)}"
+      />
+    </g>
+  </g>
+
+  <rect
+    x="${formatNumber(windowX + 0.5)}"
+    y="${formatNumber(windowY + 0.5)}"
+    width="${formatNumber(windowWidth - 1)}"
+    height="${formatNumber(windowHeight - 1)}"
+    rx="${formatNumber(Math.max(shellRadius - 0.5, 0))}"
+    stroke="#ffffff"
+    stroke-opacity="0.08"
+    stroke-width="1"
+  />
+
+  ${
+    config.composition.phone.showCameraIsland
+      ? `
+  <rect
+    x="${formatNumber(islandX)}"
+    y="${formatNumber(islandY)}"
+    width="${formatNumber(islandWidth)}"
+    height="${formatNumber(islandHeight)}"
+    rx="${formatNumber(islandHeight / 2)}"
+    fill="#090b0f"
+    fill-opacity="0.92"
+  />
+  `
+      : ""
+  }
+
+  ${
+    config.composition.phone.showHomeIndicator
+      ? `
+  <rect
+    x="${formatNumber(homeIndicatorX)}"
+    y="${formatNumber(homeIndicatorY)}"
+    width="${formatNumber(homeIndicatorWidth)}"
+    height="${formatNumber(homeIndicatorHeight)}"
+    rx="${formatNumber(homeIndicatorHeight / 2)}"
+    fill="#ffffff"
+    fill-opacity="0.62"
+  />
+  `
+      : ""
+  }
+</svg>`;
+}
+
+function buildCompositionSvg(
+  config: LoadedMotionConfig,
+  layout: CompositionLayout,
+): string {
+  if (layout.device === "phone") {
+    return buildPhoneCompositionSvg(config, layout);
+  }
+
+  return buildDesktopCompositionSvg(config, layout);
+}
+
 async function rasterizeWithRsvg(svgPath: string, outputPath: string): Promise<void> {
   await execFileAsync("rsvg-convert", [svgPath, "-o", outputPath]);
 }
@@ -294,7 +537,7 @@ export async function prepareComposition(
   sessionDir: string,
   config: LoadedMotionConfig,
 ): Promise<CompositionLayout> {
-  const layout = fitBrowserWindow(config);
+  const layout = fitCompositionWindow(config);
 
   if (!layout.enabled) {
     return layout;

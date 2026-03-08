@@ -135,6 +135,7 @@ export default {
   },
   composition: {
     preset: "studio-browser",
+    device: "desktop",
     background: {
       colors: ["#eef4ef", "#e7edf5"],
     },
@@ -166,6 +167,7 @@ export default {
 - `camera.deadzonePx` prevents tiny cursor changes from nudging the camera.
 - `camera.verticalWeight` lets the follow cam react less aggressively to small vertical cursor noise.
 - `composition.preset` controls the presentation shell around the app capture.
+- `composition.device` controls whether that shell is a desktop browser or a phone frame.
 - `composition.background.colors` and `composition.background.angle` control the shell background.
 - `composition.browser.domain` sets the label shown in the browser address bar.
 
@@ -189,17 +191,35 @@ Current composition presets:
 - `"studio-browser"`: soft light background with polished browser chrome
 - `"spotlight-browser"`: darker, more cinematic presentation shell
 
+Current composition devices:
+
+- `"desktop"`: browser-window shell that now scales proportionally with the output size
+- `"phone"`: mobile-device shell for portrait exports and phone-sized viewports
+
 Shell customization example:
 
 ```js
 composition: {
   preset: "studio-browser",
+  device: "desktop",
   background: {
     colors: ["#f6eadf", "#d9e8f6"],
     angle: 120,
   },
   browser: {
     domain: "launch.example.com",
+  },
+}
+```
+
+Phone shell example:
+
+```js
+composition: {
+  preset: "studio-browser",
+  device: "phone",
+  phone: {
+    color: "#10141a",
   },
 }
 ```

@@ -16,6 +16,7 @@ export type {
   CameraController,
   CameraFocusOptions,
   CameraZoomOptions,
+  CompositionDevice,
   CompositionLayout,
   CompositionPreset,
   CameraSample,

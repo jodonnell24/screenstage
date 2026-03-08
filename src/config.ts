@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 import type {
   CameraMode,
   CameraPreset,
+  CompositionDevice,
   CompositionPreset,
   DemoModule,
   LoadedMotionConfig,
@@ -105,6 +106,7 @@ const DEFAULTS = {
       angle: 135,
       colors: ["#eef4ef", "#e7edf5"],
     },
+    device: "desktop" as CompositionDevice,
     browser: {
       domain: undefined,
       padding: 72,
@@ -112,6 +114,12 @@ const DEFAULTS = {
       showAddressBar: true,
       showTrafficLights: true,
       toolbarHeight: 56,
+    },
+    phone: {
+      color: "#11151b",
+      framePadding: 18,
+      showCameraIsland: true,
+      showHomeIndicator: true,
     },
     preset: "studio-browser" as CompositionPreset,
   },
@@ -143,6 +151,10 @@ const VALID_COMPOSITION_PRESETS = new Set<CompositionPreset>([
   "none",
   "studio-browser",
   "spotlight-browser",
+]);
+const VALID_COMPOSITION_DEVICES = new Set<CompositionDevice>([
+  "desktop",
+  "phone",
 ]);
 
 function assertCondition(
@@ -212,6 +224,8 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
   const outputPreset = config.output?.preset ?? DEFAULTS.output.preset;
   const compositionPreset =
     config.composition?.preset ?? DEFAULTS.composition.preset;
+  const compositionDevice =
+    config.composition?.device ?? DEFAULTS.composition.device;
   const cameraPreset = config.camera?.preset ?? DEFAULTS.camera.preset;
   assertCondition(
     !config.camera?.preset || VALID_CAMERA_PRESETS.has(config.camera.preset),
@@ -245,6 +259,10 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
     VALID_COMPOSITION_PRESETS.has(compositionPreset),
     "Config composition.preset must be 'none', 'studio-browser', or 'spotlight-browser'.",
   );
+  assertCondition(
+    VALID_COMPOSITION_DEVICES.has(compositionDevice),
+    "Config composition.device must be 'desktop' or 'phone'.",
+  );
 
   return {
     browser: {
@@ -272,6 +290,7 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
           config.composition?.background?.colors ??
           DEFAULTS.composition.background.colors,
       },
+      device: compositionDevice,
       browser: {
         domain:
           typeof config.composition?.browser?.domain === "string" &&
@@ -293,6 +312,22 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
         toolbarHeight:
           config.composition?.browser?.toolbarHeight ??
           DEFAULTS.composition.browser.toolbarHeight,
+      },
+      phone: {
+        color:
+          typeof config.composition?.phone?.color === "string" &&
+          config.composition.phone.color.trim().length > 0
+            ? config.composition.phone.color.trim()
+            : DEFAULTS.composition.phone.color,
+        framePadding:
+          config.composition?.phone?.framePadding ??
+          DEFAULTS.composition.phone.framePadding,
+        showCameraIsland:
+          config.composition?.phone?.showCameraIsland ??
+          DEFAULTS.composition.phone.showCameraIsland,
+        showHomeIndicator:
+          config.composition?.phone?.showHomeIndicator ??
+          DEFAULTS.composition.phone.showHomeIndicator,
       },
       preset: compositionPreset,
     },

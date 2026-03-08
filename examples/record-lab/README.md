@@ -14,6 +14,12 @@ Use it with:
 npm run dev -- record ./examples/record-lab/scroll-journey.config.mjs
 ```
 
+There is also a mobile-shell variant:
+
+```bash
+npm run dev -- record ./examples/record-lab/phone-scroll.config.mjs
+```
+
 This config is intentionally a little sharper than the default starter:
 
 - source viewport: `1728x1080`
