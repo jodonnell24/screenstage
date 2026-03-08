@@ -29,14 +29,22 @@ function appendFeatureTourStep(
 ): void {
   const action = step.action ?? (typeof step.text === "string" ? "type" : "click");
   const zoom = step.zoom ?? 1.9;
+  const shouldLeadWithFocus =
+    typeof step.focusFirst === "boolean"
+      ? step.focusFirst
+      : action === "focus" ||
+        action === "type" ||
+        !(step.cameraFollow ?? (action === "move"));
 
-  scenes.push({
-    durationMs: step.focusDurationMs ?? 850,
-    label: step.label,
-    selector: step.selector,
-    type: "focus-selector",
-    zoom,
-  });
+  if (shouldLeadWithFocus) {
+    scenes.push({
+      durationMs: step.focusDurationMs ?? 850,
+      label: step.label,
+      selector: step.selector,
+      type: "focus-selector",
+      zoom,
+    });
+  }
 
   switch (action) {
     case "focus":

@@ -291,6 +291,7 @@ export type FeatureTourStep = {
   cameraFollow?: boolean;
   clickDelayMs?: number;
   focusDurationMs?: number;
+  focusFirst?: boolean;
   handoffDurationMs?: number;
   label?: string;
   moveDurationMs?: number;
