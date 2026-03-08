@@ -399,10 +399,6 @@ function createManualCameraSamples(
   recording: ManualRecording,
   config: Awaited<ReturnType<typeof loadConfig>>,
 ): CameraSample[] {
-  if (recording.markers.length === 0) {
-    return [];
-  }
-
   const fallbackPoint = {
     x: config.viewport.width / 2,
     y: config.viewport.height / 2,
@@ -493,6 +489,10 @@ function createManualCameraSamples(
         continue;
       }
 
+      if (marker.kind === currentMode && !transition) {
+        continue;
+      }
+
       transition = {
         from: currentState,
         startMs: timeMs,
@@ -527,6 +527,13 @@ function createManualCameraSamples(
       kind: transition || currentMode === "follow" ? "follow" : "focus",
       timeMs,
       ...currentState,
+    });
+  }
+
+  if (samples.length === 1) {
+    samples.push({
+      ...samples[0]!,
+      timeMs: recording.durationMs,
     });
   }
 

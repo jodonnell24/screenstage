@@ -125,6 +125,7 @@ export function buildGeneratedDemoSource(
     "// Tweak selectors, timing, and camera choreography as needed.",
     "",
     "export default async function demo({ camera, cursor, page }) {",
+    "  await camera.wide({ durationMs: 0 });",
   ];
   const initialPoint = {
     x: Math.round(config.viewport.width / 2),

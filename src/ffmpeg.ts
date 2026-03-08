@@ -617,7 +617,7 @@ export function buildFfmpegPlans(
     }
 
     const filterComplex = [
-      `[0:v]fps=${config.output.fps},scale=w='${scaledWidthExpression}':h='${scaledHeightExpression}':flags=lanczos:eval=frame,crop=w=${contentWidth}:h=${contentHeight}:x='${scaledXExpression}':y='${scaledYExpression}':exact=1,scale=${contentWidth + COMPOSITION_OVERSCAN_PX}:${contentHeight + COMPOSITION_OVERSCAN_PX}:flags=lanczos,pad=${layout.outputWidth}:${layout.outputHeight}:${layout.contentX - COMPOSITION_OVERSCAN_PX / 2}:${layout.contentY - COMPOSITION_OVERSCAN_PX / 2}:color=black,setsar=1[base]`,
+      `[0:v]fps=${config.output.fps},crop=w='${cropWidthExpression}':h='${cropHeightExpression}':x='${xExpression}':y='${yExpression}':exact=1,scale=${contentWidth + COMPOSITION_OVERSCAN_PX}:${contentHeight + COMPOSITION_OVERSCAN_PX}:flags=lanczos,pad=${layout.outputWidth}:${layout.outputHeight}:${layout.contentX - COMPOSITION_OVERSCAN_PX / 2}:${layout.contentY - COMPOSITION_OVERSCAN_PX / 2}:color=black,setsar=1[base]`,
       `[base][1:v]overlay=0:0:shortest=1,${settings.postScaleFormat}[outv]`,
     ].join(";");
 
