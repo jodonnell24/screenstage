@@ -7,6 +7,7 @@ This repo is set up to be published as the `screenstage` npm package on npmjs.or
 1. Confirm the npm package name is still available.
 2. Configure npm trusted publishing for this repo and its `release.yml` workflow.
 3. Make sure the public repo metadata in `package.json` matches the live GitHub repo.
+4. Keep the release workflow on `Node >= 22.14.0` and `npm >= 11.5.1`, which npm currently requires for trusted publishing.
 
 ## Local Release Checklist
 
@@ -58,6 +59,13 @@ It will:
 3. run `npm run build`
 4. publish to npmjs.org through npm trusted publishing
 5. publish a scoped mirror to GitHub Packages as `@<owner>/screenstage`
+
+The npm trusted publisher must match exactly:
+
+- GitHub user or org: `jodonnell24`
+- repository: `screenstage`
+- workflow filename: `release.yml`
+- environment: blank
 
 If you prefer release notes first, create the GitHub release from the pushed tag after CI passes.
 
