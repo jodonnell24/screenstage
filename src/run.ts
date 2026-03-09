@@ -16,6 +16,7 @@ import {
   renderPosterFrame,
   renderWithFfmpeg,
 } from "./ffmpeg.js";
+import { writeMarkerArtifacts } from "./markers.js";
 import { runScenes } from "./scenes.js";
 import { startManagedService } from "./serve.js";
 import {
@@ -120,6 +121,9 @@ export async function runMotion(configPath: string): Promise<void> {
   });
 
   const video = page.video();
+  let sceneMarkers:
+    | Awaited<ReturnType<typeof runScenes>>
+    | undefined;
 
   try {
     await installCursorOverlay(page);
@@ -138,7 +142,7 @@ export async function runMotion(configPath: string): Promise<void> {
     };
 
     if (Array.isArray(demoModule.default)) {
-      await runScenes(demoModule.default, demoContext);
+      sceneMarkers = await runScenes(demoModule.default, demoContext);
     } else {
       await demoModule.default(demoContext);
     }
@@ -167,6 +171,15 @@ export async function runMotion(configPath: string): Promise<void> {
     camera.samples,
     compositionLayout,
   );
+  const editMarkers = sceneMarkers?.map((marker) => ({
+    ...marker,
+    source: "scene" as const,
+  })) ?? [];
+  const markerArtifacts = await writeMarkerArtifacts(
+    sessionDir,
+    config.output.fps,
+    editMarkers,
+  );
 
   await fs.writeFile(
     path.join(sessionDir, "timeline.json"),
@@ -178,6 +191,8 @@ export async function runMotion(configPath: string): Promise<void> {
         ffmpegPlans,
         cameraSamples: camera.samples,
         compositionLayout,
+        markerArtifacts,
+        markers: editMarkers,
         scenes: Array.isArray(demoModule.default) ? demoModule.default : undefined,
         samples: cursor.samples,
       },

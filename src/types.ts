@@ -316,6 +316,7 @@ export type CursorController = {
     selector: string,
     options?: CursorMoveOptions,
   ) => Promise<Point>;
+  samples: CursorSample[];
   sample: (kind?: CursorSampleKind) => Promise<void>;
   type: (text: string, options?: CursorTypeOptions) => Promise<void>;
   typeSelector: (
@@ -334,6 +335,7 @@ export type CameraController = {
     options?: CameraFocusOptions,
   ) => Promise<Point>;
   followCursor: (options?: CameraFocusOptions) => Promise<void>;
+  samples: CameraSample[];
   sample: (kind?: CameraSampleKind) => Promise<void>;
   wait: (durationMs: number) => Promise<void>;
   wide: (options?: Omit<CameraFocusOptions, "zoom">) => Promise<void>;

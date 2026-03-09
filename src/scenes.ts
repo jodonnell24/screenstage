@@ -1,5 +1,62 @@
 import type { DemoContext, MotionScene, SceneProgram } from "./types.js";
 
+export type SceneExecutionMarker = {
+  durationMs?: number;
+  endTimeMs?: number;
+  label: string;
+  timeMs: number;
+  type: MotionScene["type"];
+};
+
+function sceneTime(context: DemoContext): number {
+  const cursorTime = context.cursor.samples.at(-1)?.timeMs ?? 0;
+  const cameraTime = context.camera.samples.at(-1)?.timeMs ?? 0;
+  return Math.max(cursorTime, cameraTime);
+}
+
+function titleize(value: string): string {
+  return value
+    .split("-")
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(" ");
+}
+
+function defaultSceneLabel(scene: MotionScene): string {
+  if (scene.type === "focus-selector") {
+    return `Focus ${scene.selector}`;
+  }
+
+  if (scene.type === "focus-point") {
+    return `Focus Point`;
+  }
+
+  if (scene.type === "move-selector") {
+    return `Move ${scene.selector}`;
+  }
+
+  if (scene.type === "move-point") {
+    return "Move Point";
+  }
+
+  if (scene.type === "click-selector") {
+    return `Click ${scene.selector}`;
+  }
+
+  if (scene.type === "type-selector") {
+    return `Type ${scene.selector}`;
+  }
+
+  if (scene.type === "type") {
+    return "Type";
+  }
+
+  if (scene.type === "zoom-to") {
+    return `Zoom To ${scene.zoom.toFixed(2)}x`;
+  }
+
+  return titleize(scene.type);
+}
+
 async function waitWithTargets(
   context: DemoContext,
   durationMs: number,
@@ -25,38 +82,51 @@ async function waitWithTargets(
 export async function runScenes(
   scenes: SceneProgram,
   context: DemoContext,
-): Promise<void> {
+): Promise<SceneExecutionMarker[]> {
+  const markers: SceneExecutionMarker[] = [];
+
   for (const scene of scenes) {
-    await runScene(scene, context);
+    const marker = await runScene(scene, context);
+
+    if (marker) {
+      markers.push(marker);
+    }
   }
+
+  return markers;
 }
 
-async function runScene(scene: MotionScene, context: DemoContext): Promise<void> {
+async function runScene(
+  scene: MotionScene,
+  context: DemoContext,
+): Promise<SceneExecutionMarker | undefined> {
+  const startTimeMs = sceneTime(context);
+
   switch (scene.type) {
     case "wide":
       await context.camera.wide({ durationMs: scene.durationMs });
-      return;
+      break;
 
     case "follow-cursor":
       await context.camera.followCursor({
         durationMs: scene.durationMs,
         zoom: scene.zoom,
       });
-      return;
+      break;
 
     case "focus-selector":
       await context.camera.focusSelector(scene.selector, {
         durationMs: scene.durationMs,
         zoom: scene.zoom,
       });
-      return;
+      break;
 
     case "focus-point":
       await context.camera.focus(scene.point, {
         durationMs: scene.durationMs,
         zoom: scene.zoom,
       });
-      return;
+      break;
 
     case "move-selector":
       await context.cursor.moveToSelector(scene.selector, {
@@ -77,7 +147,7 @@ async function runScene(scene: MotionScene, context: DemoContext): Promise<void>
         durationMs: scene.durationMs,
         steps: scene.steps,
       });
-      return;
+      break;
 
     case "move-point":
       await context.cursor.move(scene.point, {
@@ -98,7 +168,7 @@ async function runScene(scene: MotionScene, context: DemoContext): Promise<void>
         durationMs: scene.durationMs,
         steps: scene.steps,
       });
-      return;
+      break;
 
     case "zoom-to":
       await context.camera.zoomTo(scene.zoom, {
@@ -106,7 +176,7 @@ async function runScene(scene: MotionScene, context: DemoContext): Promise<void>
         followCursor: scene.followCursor,
         point: scene.point,
       });
-      return;
+      break;
 
     case "zoom-out":
       await context.camera.zoomOut({
@@ -114,14 +184,14 @@ async function runScene(scene: MotionScene, context: DemoContext): Promise<void>
         followCursor: scene.followCursor,
         point: scene.point,
       });
-      return;
+      break;
 
     case "click":
       await context.cursor.click({
         button: scene.button,
         delayMs: scene.delayMs,
       });
-      return;
+      break;
 
     case "click-selector":
       await context.cursor.clickSelector(scene.selector, {
@@ -130,14 +200,14 @@ async function runScene(scene: MotionScene, context: DemoContext): Promise<void>
         durationMs: scene.durationMs,
         steps: scene.steps,
       });
-      return;
+      break;
 
     case "type":
       await context.cursor.type(scene.text, {
         delayMs: scene.delayMs,
         submit: scene.submit,
       });
-      return;
+      break;
 
     case "type-selector":
       await context.cursor.typeSelector(scene.selector, scene.text, {
@@ -146,12 +216,27 @@ async function runScene(scene: MotionScene, context: DemoContext): Promise<void>
         steps: scene.steps,
         submit: scene.submit,
       });
-      return;
+      break;
 
     case "wait":
       await waitWithTargets(context, scene.durationMs, scene.target);
-      return;
+      break;
   }
+
+  const endTimeMs = sceneTime(context);
+  const durationMs = Math.max(endTimeMs - startTimeMs, 0);
+
+  return {
+    ...(durationMs > 0
+      ? {
+          durationMs,
+          endTimeMs,
+        }
+      : {}),
+    label: scene.label ?? defaultSceneLabel(scene),
+    timeMs: startTimeMs,
+    type: scene.type,
+  };
 }
 
 export function defineScenes(scenes: SceneProgram): SceneProgram {

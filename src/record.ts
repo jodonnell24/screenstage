@@ -23,6 +23,7 @@ import {
   type RecordedMarker,
   type ManualRecording,
 } from "./manual-recorder.js";
+import { buildManualEditMarkers, writeMarkerArtifacts } from "./markers.js";
 import { buildGeneratedDemoSource } from "./record-script.js";
 import { startManagedService } from "./serve.js";
 import { applyContextSetup, applyPageEmulation, applyPageSetup, resolveCaptureUrl } from "./setup.js";
@@ -847,6 +848,7 @@ export async function recordMotion(
   );
   const cameraSamples = createManualCameraSamples(recording, config);
   const generatedDemoSource = buildGeneratedDemoSource(config, recording);
+  const editMarkers = buildManualEditMarkers(recording.markers);
 
   await fs.mkdir(path.dirname(editableGeneratedDemoPath), { recursive: true });
   await fs.writeFile(sessionGeneratedDemoPath, generatedDemoSource, "utf8");
@@ -860,6 +862,11 @@ export async function recordMotion(
     cursorSamples,
     cameraSamples,
     compositionLayout,
+  );
+  const markerArtifacts = await writeMarkerArtifacts(
+    sessionDir,
+    config.output.fps,
+    editMarkers,
   );
 
   await fs.writeFile(
@@ -876,6 +883,8 @@ export async function recordMotion(
         cursorSamples,
         ffmpegPlans,
         compositionLayout,
+        markerArtifacts,
+        markers: editMarkers,
         studioSession: studioSession
           ? {
               captureRegion: studioSession.captureRegion,
