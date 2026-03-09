@@ -91,23 +91,35 @@ async function openManualRecorderController(
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Motion Recorder Controls</title>
     <style>
-      /* bg: #0a1420; surface: rgba(14, 24, 38, 0.96); accent: #7ae2ba; text: #f6fbff / rgba(255,255,255,0.62) */
+      :root {
+        --bg: #111;
+        --panel-bg: #1c1c1c;
+        --border: #2e2e2e;
+        --text: #e0e0e0;
+        --muted: #888;
+        --accent: #4ea87a;
+        --accent-text: #e8f6ef;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
       body {
         margin: 0;
-        padding: 18px;
-        background: #0a1420;
-        color: #f6fbff;
-        font-family: "Instrument Sans", system-ui, sans-serif;
+        min-height: 100vh;
+        padding: 16px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Instrument Sans", "Avenir Next", system-ui, sans-serif;
       }
 
       .shell {
         display: grid;
-        gap: 14px;
+        gap: 12px;
         padding: 16px;
-        border-radius: 24px;
-        background: rgba(14, 24, 38, 0.96);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.28);
+        background: var(--panel-bg);
+        border: 1px solid var(--border);
       }
 
       .top {
@@ -117,134 +129,146 @@ async function openManualRecorderController(
         gap: 12px;
       }
 
-      .eyebrow {
-        display: inline-flex;
-        align-items: center;
-        padding: 8px 10px;
-        border-radius: 999px;
-        background: rgba(122, 226, 186, 0.12);
-        color: #7ae2ba;
+      .label {
         font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.14em;
+        font-weight: 600;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
+        color: var(--muted);
       }
 
       .status {
         display: grid;
-        gap: 4px;
+        gap: 3px;
         padding: 10px 12px;
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: #161616;
+        border: 1px solid var(--border);
       }
 
       .status span {
         font-size: 10px;
-        letter-spacing: 0.12em;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.54);
+        color: var(--muted);
       }
 
       .status strong {
-        font-size: 15px;
-        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
       }
 
       .copy {
         font-size: 13px;
-        line-height: 1.45;
-        color: rgba(255, 255, 255, 0.82);
+        line-height: 1.5;
+        color: var(--muted);
       }
 
       .grid {
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
-        gap: 10px;
+        gap: 6px;
       }
 
       button {
-        border: 0;
-        border-radius: 18px;
-        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 0;
+        padding: 10px 12px;
         font: inherit;
-        font-weight: 800;
+        font-size: 13px;
+        font-weight: 600;
         cursor: pointer;
-        transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease, color 160ms ease;
+        background: #222;
+        color: var(--text);
+        text-align: left;
+        transition: background 100ms ease;
       }
 
       button:hover {
-        transform: translateY(-1px);
+        background: #2a2a2a;
       }
 
       button:active {
-        transform: translateY(1px) scale(0.99);
+        background: #1a1a1a;
       }
 
       button[data-marker] {
         display: grid;
-        gap: 4px;
-        text-align: left;
-        color: #fff;
-        background: rgba(255, 255, 255, 0.06);
+        gap: 2px;
       }
 
       button[data-marker] span {
         font-size: 10px;
-        letter-spacing: 0.12em;
+        font-weight: 400;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.48);
+        color: var(--muted);
       }
 
       button[data-marker="wide"] {
-        background: linear-gradient(135deg, rgba(113, 182, 255, 0.18), rgba(74, 102, 185, 0.14));
+        border-left: 3px solid #5b8fd4;
       }
 
       button[data-marker="follow"] {
-        background: linear-gradient(135deg, rgba(122, 226, 186, 0.24), rgba(54, 119, 99, 0.18));
+        border-left: 3px solid var(--accent);
       }
 
       button[data-marker="hold"] {
-        background: linear-gradient(135deg, rgba(255, 214, 132, 0.16), rgba(186, 122, 68, 0.12));
+        border-left: 3px solid #c8a44a;
       }
 
       .actions {
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
-        gap: 10px;
+        gap: 6px;
+      }
+
+      .actions button {
+        text-align: center;
+        font-size: 12px;
       }
 
       button[data-action="focus-app"] {
-        background: rgba(255, 255, 255, 0.08);
-        color: #fff;
+        background: #222;
+        color: var(--text);
       }
 
       button[data-action="cancel"] {
-        background: rgba(255, 255, 255, 0.08);
-        color: #fff;
+        background: #222;
+        color: var(--muted);
       }
 
       button[data-action="finish"] {
-        background: linear-gradient(135deg, #7ae2ba, #4aa382);
-        color: #082118;
+        background: var(--accent);
+        color: var(--accent-text);
+        border-color: var(--accent);
+        font-weight: 700;
+      }
+
+      button[data-action="finish"]:hover {
+        background: #5bbf8a;
+        border-color: #5bbf8a;
       }
 
       .hint {
         font-size: 12px;
-        line-height: 1.45;
-        color: rgba(255, 255, 255, 0.62);
+        line-height: 1.5;
+        color: var(--muted);
       }
 
       .hint code {
         font-family: ui-monospace, "SFMono-Regular", monospace;
-        color: #d5fff0;
+        color: var(--text);
+        background: #1a1a1a;
+        padding: 1px 4px;
+        border: 1px solid var(--border);
       }
     </style>
   </head>
   <body>
     <div class="shell">
       <div class="top">
-        <div class="eyebrow">Motion Recorder</div>
+        <div class="label">Motion Recorder</div>
         <div class="status">
           <span>Last cue</span>
           <strong data-role="marker-status">Wide</strong>
