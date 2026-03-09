@@ -23,7 +23,7 @@ export default {
       preset: "soft-studio",
     },
     browser: {
-      domain: "workspace.motion.local",
+      domain: "workspace.screenstage.local",
       style: "minimal",
     },
   },

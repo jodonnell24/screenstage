@@ -13,7 +13,7 @@ body:
   - type: textarea
     attributes:
       label: Config
-      description: Paste the relevant `motion.config.mjs` or the important parts.
+      description: Paste the relevant `screenstage.config.mjs` or the important parts.
   - type: textarea
     attributes:
       label: Reproduction

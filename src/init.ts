@@ -1076,7 +1076,7 @@ async function promptForInit(
 }
 
 async function writeStarterProject(targetDir: string): Promise<void> {
-  await writeFileIfMissing(path.join(targetDir, "motion.config.mjs"), CONFIG_TEMPLATE);
+  await writeFileIfMissing(path.join(targetDir, "screenstage.config.mjs"), CONFIG_TEMPLATE);
   await writeFileIfMissing(path.join(targetDir, "demo", "starter-demo.mjs"), DEMO_TEMPLATE);
   await writeFileIfMissing(path.join(targetDir, "demo-site", "index.html"), HTML_TEMPLATE);
 }
@@ -1087,7 +1087,7 @@ async function writeGuidedProject(answers: InitAnswers): Promise<void> {
     answers.projectKind === "static-starter" ? "starter-demo.mjs" : "recording-demo.mjs";
 
   await writeFileIfMissing(
-    path.join(targetDir, "motion.config.mjs"),
+    path.join(targetDir, "screenstage.config.mjs"),
     buildConfigSource(answers),
   );
   await writeFileIfMissing(

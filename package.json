@@ -2,6 +2,14 @@
   "name": "screenstage",
   "version": "0.1.0",
   "description": "TypeScript CLI for cursor-following product demo videos with Playwright and FFmpeg.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jodonnell24/motions.git"
+  },
+  "homepage": "https://github.com/jodonnell24/motions#readme",
+  "bugs": {
+    "url": "https://github.com/jodonnell24/motions/issues"
+  },
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -39,7 +47,6 @@
     "video",
     "cursor",
     "marketing",
-    "motion",
     "product-demo",
     "screen-recording"
   ],
