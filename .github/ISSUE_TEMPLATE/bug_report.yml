@@ -1,0 +1,30 @@
+name: Bug report
+description: Report a capture, rendering, or workflow problem.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: Describe the failure and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Config
+      description: Paste the relevant `motion.config.mjs` or the important parts.
+  - type: textarea
+    attributes:
+      label: Reproduction
+      description: List the exact commands and steps used to reproduce the issue.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Artifacts
+      description: Mention `timeline.json`, `manifest.json`, `markers.json`, screenshots, or logs if available.
+  - type: input
+    attributes:
+      label: Environment
+      description: Node version, OS, and whether the target app is local/static/dev-server based.

@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "TypeScript CLI for cursor-following product demo videos with Playwright and FFmpeg.",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "bin": {
     "motion-creator": "./dist/cli.js"
   },
@@ -13,20 +16,32 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
+    "clean": "find dist -mindepth 1 -delete",
     "dev": "tsx src/cli.ts",
+    "pack:check": "npm pack --dry-run",
+    "prepublishOnly": "npm run check && npm run build",
     "prepare": "npm run build"
   },
   "keywords": [
+    "browser-capture",
+    "capture",
+    "cli",
+    "demo",
+    "editing",
     "playwright",
     "ffmpeg",
     "video",
     "cursor",
-    "product-demo"
+    "marketing",
+    "motion",
+    "product-demo",
+    "screen-recording"
   ],
   "author": "",
   "license": "MIT",

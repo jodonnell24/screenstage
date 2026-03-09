@@ -3,4 +3,7 @@ dist/
 output/
 examples/template-showcases/renders/
 examples/camera-lab/renders/
+examples/record-lab/renders/
+examples/record-lab/demo/*.recorded-*.mjs
+*.tgz
 playwright/.cache/

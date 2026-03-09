@@ -50,11 +50,19 @@ npm install
 npx playwright install chromium
 ```
 
+For package verification before publishing:
+
+```bash
+npm run pack:check
+```
+
 ## Open Source Readiness
 
 - The project is licensed under MIT. See [LICENSE](/home/jackie/projects/motion/LICENSE).
 - Basic contribution guidelines live in [CONTRIBUTING.md](/home/jackie/projects/motion/CONTRIBUTING.md).
 - CI runs `npm run check` and `npm run build` on pushes and pull requests.
+- Release notes and publishing steps live in [RELEASING.md](/home/jackie/projects/motion/RELEASING.md).
+- The current release history lives in [CHANGELOG.md](/home/jackie/projects/motion/CHANGELOG.md).
 
 ## Quick Start
 
@@ -62,6 +70,13 @@ Build the CLI:
 
 ```bash
 npm run build
+```
+
+Use it locally without publishing:
+
+```bash
+npm link
+motion-creator --help
 ```
 
 Scaffold a starter project:
