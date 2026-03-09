@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url";
 
 import type {
   BrowserCaptureMode,
+  BrowserCursorMode,
   CameraMode,
   CameraPreset,
   CompositionBackgroundPreset,
@@ -105,6 +106,10 @@ const DEFAULTS = {
       jpegQuality: 90,
       mode: "video" as BrowserCaptureMode,
     },
+    cursor: {
+      hideSelectors: [] as string[],
+      mode: "motion" as BrowserCursorMode,
+    },
     headless: true,
     slowMo: 0,
     studio: {
@@ -189,6 +194,21 @@ const VALID_BROWSER_CAPTURE_MODES = new Set<BrowserCaptureMode>([
   "rgb-frames",
   "video",
 ]);
+const VALID_BROWSER_CURSOR_MODES = new Set<BrowserCursorMode>([
+  "motion",
+  "app",
+]);
+
+function normalizeStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((entry): entry is string => typeof entry === "string")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
 
 function assertCondition(
   condition: unknown,
@@ -287,6 +307,11 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
   const defaultBrowserDomain = resolveBrowserDomain(config.url);
   const browserCaptureMode =
     config.browser?.capture?.mode ?? DEFAULTS.browser.capture.mode;
+  const browserCursorMode =
+    config.browser?.cursor?.mode ?? DEFAULTS.browser.cursor.mode;
+  const browserCursorHideSelectors = normalizeStringList(
+    config.browser?.cursor?.hideSelectors,
+  );
 
   assertCondition(
     VALID_OUTPUT_PRESETS.has(outputPreset),
@@ -299,6 +324,10 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
   assertCondition(
     VALID_BROWSER_CAPTURE_MODES.has(browserCaptureMode),
     "Config browser.capture.mode must be 'balanced', 'rgb-frames', or 'video'.",
+  );
+  assertCondition(
+    VALID_BROWSER_CURSOR_MODES.has(browserCursorMode),
+    "Config browser.cursor.mode must be 'motion' or 'app'.",
   );
   const presetOutput = OUTPUT_PRESETS[outputPreset];
   const formats = config.output?.formats ?? presetOutput.formats;
@@ -362,6 +391,10 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
         fps: browserCaptureFps,
         jpegQuality: browserCaptureJpegQuality,
         mode: browserCaptureMode,
+      },
+      cursor: {
+        hideSelectors: browserCursorHideSelectors,
+        mode: browserCursorMode,
       },
       channel: config.browser?.channel,
       headless: config.browser?.headless ?? DEFAULTS.browser.headless,

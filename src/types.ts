@@ -41,6 +41,7 @@ export type CompositionBackgroundPreset =
   | "midnight-fade";
 export type CompositionBrowserStyle = "polished" | "minimal" | "glass";
 export type BrowserCaptureMode = "balanced" | "rgb-frames" | "video";
+export type BrowserCursorMode = "motion" | "app";
 export type SetupColorScheme = "light" | "dark";
 export type SetupCookie = {
   domain?: string;
@@ -120,6 +121,10 @@ export type MotionConfig = {
       jpegQuality?: number;
       mode?: BrowserCaptureMode;
     };
+    cursor?: {
+      hideSelectors?: string[];
+      mode?: BrowserCursorMode;
+    };
     headless?: boolean;
     slowMo?: number;
     channel?: string;
@@ -164,6 +169,10 @@ export type LoadedMotionConfig = {
       fps: number;
       jpegQuality: number;
       mode: BrowserCaptureMode;
+    };
+    cursor: {
+      hideSelectors: string[];
+      mode: BrowserCursorMode;
     };
     channel?: string;
     headless: boolean;

@@ -720,8 +720,12 @@ export async function recordMotion(
         includeModule: false,
       });
 
-      await installCursorOverlay(frame);
-      await moveCursorOverlay(frame, initialPoint.x, initialPoint.y);
+      if (config.browser.cursor.mode === "motion") {
+        await installCursorOverlay(frame, {
+          hideSelectors: config.browser.cursor.hideSelectors,
+        });
+        await moveCursorOverlay(frame, initialPoint.x, initialPoint.y);
+      }
       if (useFrameCapture) {
         frameCapture = new ManualFrameCapture({
           format: effectiveCaptureMode === "rgb-frames" ? "png" : "jpeg",
@@ -768,8 +772,12 @@ export async function recordMotion(
       await applyPageSetup(config, context, page, page, sessionDir, captureUrl, {
         includeModule: false,
       });
-      await installCursorOverlay(page);
-      await moveCursorOverlay(page, initialPoint.x, initialPoint.y);
+      if (config.browser.cursor.mode === "motion") {
+        await installCursorOverlay(page, {
+          hideSelectors: config.browser.cursor.hideSelectors,
+        });
+        await moveCursorOverlay(page, initialPoint.x, initialPoint.y);
+      }
       if (useFrameCapture) {
         frameCapture = new ManualFrameCapture({
           format: effectiveCaptureMode === "rgb-frames" ? "png" : "jpeg",

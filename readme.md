@@ -177,6 +177,9 @@ export default {
     capture: {
       mode: "video",
     },
+    cursor: {
+      mode: "motion",
+    },
     headless: true,
     studio: {
       enabled: true,
@@ -212,6 +215,9 @@ export default {
 - `browser.studio.controlsWidth` and `browser.studio.padding` tune that wrapper layout.
 - `browser.capture.mode` controls manual recording fidelity:
   `video` is the stable default, `balanced` is a higher-fidelity middle tier, and `rgb-frames` is the highest-quality but heaviest option.
+- `browser.cursor.mode` controls which cursor ends up in the recording:
+  `motion` uses Motion Creator's synthetic cursor, while `app` leaves the app's own cursor behavior alone.
+- `browser.cursor.hideSelectors` lets you hide custom DOM cursor layers when you want Motion Creator's cursor but the app also renders its own follower elements.
 - `setup` lets you put the app into the right pre-record state before capture starts.
 
 Current camera presets:

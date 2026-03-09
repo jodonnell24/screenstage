@@ -128,7 +128,11 @@ export async function runMotion(configPath: string): Promise<void> {
     | undefined;
 
   try {
-    await installCursorOverlay(page);
+    if (config.browser.cursor.mode === "motion") {
+      await installCursorOverlay(page, {
+        hideSelectors: config.browser.cursor.hideSelectors,
+      });
+    }
     await page.goto(captureUrl, { waitUntil: "load" });
     await applyPageSetup(config, context, page, page, sessionDir, captureUrl, {
       includeModule: false,

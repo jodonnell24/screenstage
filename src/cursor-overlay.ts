@@ -1,6 +1,26 @@
 import type { EvaluatedPageTarget } from "./types.js";
 
-const CURSOR_OVERLAY_SCRIPT = `
+type CursorOverlayInstallOptions = {
+  hideSelectors?: string[];
+};
+
+function buildCursorOverlayScript(
+  options: CursorOverlayInstallOptions = {},
+): string {
+  const hideSelectors = options.hideSelectors ?? [];
+  const hideSelectorsRule =
+    hideSelectors.length > 0
+      ? `
+
+      ${hideSelectors.join(",\n      ")} {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+      `
+      : "";
+
+  return `
 (() => {
   if (window.__motionCursorOverlay) {
     return;
@@ -104,6 +124,7 @@ const CURSOR_OVERLAY_SCRIPT = `
       html, body, * {
         cursor: none !important;
       }
+${hideSelectorsRule}
 
       #__motion_cursor_root {
         position: fixed;
@@ -285,13 +306,19 @@ const CURSOR_OVERLAY_SCRIPT = `
   ensureRoot();
 })();
 `;
+}
 
-export async function installCursorOverlay(target: EvaluatedPageTarget): Promise<void> {
+export async function installCursorOverlay(
+  target: EvaluatedPageTarget,
+  options: CursorOverlayInstallOptions = {},
+): Promise<void> {
+  const script = buildCursorOverlayScript(options);
+
   if ("addInitScript" in target) {
-    await target.addInitScript({ content: CURSOR_OVERLAY_SCRIPT });
+    await target.addInitScript({ content: script });
   }
 
-  await target.evaluate(CURSOR_OVERLAY_SCRIPT);
+  await target.evaluate(script);
 }
 
 export async function moveCursorOverlay(
