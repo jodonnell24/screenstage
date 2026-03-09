@@ -1,9 +1,7 @@
 node_modules/
 dist/
 output/
-examples/template-showcases/renders/
-examples/camera-lab/renders/
-examples/record-lab/renders/
-examples/record-lab/demo/*.recorded-*.mjs
+examples/quickstart/output/
+examples/quickstart/demo/*.recorded-*.mjs
 *.tgz
 playwright/.cache/

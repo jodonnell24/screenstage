@@ -35,8 +35,6 @@ This is a Playwright + FFmpeg pipeline. It works with React apps and non-React w
   - `prores` for Motion / Final Cut editing
   - review artifacts like a poster frame and contact sheet
 
-Pipeline 2, the fully rendered Remotion approach, is still not implemented.
-
 ## Requirements
 
 - Node.js 22+
@@ -58,11 +56,11 @@ npm run pack:check
 
 ## Open Source Readiness
 
-- The project is licensed under MIT. See [LICENSE](/home/jackie/projects/motion/LICENSE).
-- Basic contribution guidelines live in [CONTRIBUTING.md](/home/jackie/projects/motion/CONTRIBUTING.md).
+- The project is licensed under MIT. See [LICENSE](./LICENSE).
+- Basic contribution guidelines live in [CONTRIBUTING.md](./CONTRIBUTING.md).
 - CI runs `npm run check` and `npm run build` on pushes and pull requests.
-- Release notes and publishing steps live in [RELEASING.md](/home/jackie/projects/motion/RELEASING.md).
-- The current release history lives in [CHANGELOG.md](/home/jackie/projects/motion/CHANGELOG.md).
+- Release notes and publishing steps live in [RELEASING.md](./RELEASING.md).
+- The current release history lives in [CHANGELOG.md](./CHANGELOG.md).
 
 ## Quick Start
 
@@ -86,6 +84,13 @@ node dist/cli.js init ./demo-project
 ```
 
 If you run `init` in a terminal, it opens a short wizard and writes `motion.config.mjs` for you. In non-interactive shells it falls back to the old starter scaffold.
+
+If you just want to try the tool against the bundled example first:
+
+```bash
+node dist/cli.js run ./examples/quickstart/motion.config.mjs
+node dist/cli.js record ./examples/quickstart/motion.config.mjs
+```
 
 Run the starter demo:
 
@@ -378,9 +383,7 @@ Your demo module can export either:
 
 If you want repeatable release-style captures, the scene array is now the recommended default.
 If you want to avoid hand-building scene arrays for every launch asset, you can also generate them from the built-in templates.
-
-For camera tuning and regression checks, there is also a dedicated lab under [examples/camera-lab/README.md](/home/jackie/projects/motion/examples/camera-lab/README.md).
-For manual recorder testing, especially wheel/scroll behavior, there is a dedicated tall fixture under [examples/record-lab/README.md](/home/jackie/projects/motion/examples/record-lab/README.md).
+The repo ships with one public example under [examples/quickstart/README.md](./examples/quickstart/README.md) so the default test path stays easy to understand.
 
 ## Manual Record Mode
 
