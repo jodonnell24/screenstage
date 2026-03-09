@@ -1,6 +1,6 @@
 # Releasing
 
-This repo is set up to be published as the `screenstage` npm package.
+This repo is set up to be published as the `screenstage` npm package on npmjs.org, with a scoped GitHub Packages mirror published from tags.
 
 ## Before The First Public Release
 
@@ -57,5 +57,17 @@ It will:
 2. run `npm run check`
 3. run `npm run build`
 4. run `npm publish --access public`
+5. publish a scoped mirror to GitHub Packages as `@<owner>/screenstage`
 
 If you prefer release notes first, create the GitHub release from the pushed tag after CI passes.
+
+## GitHub Packages Mirror
+
+The release workflow also publishes a mirror package to GitHub Packages so the repo can show a package entry under its Packages area.
+
+Mirror package shape:
+
+- npmjs.org: `screenstage`
+- GitHub Packages: `@<owner>/screenstage`
+
+The workflow rewrites the package name only inside CI before the GitHub Packages publish step. The source `package.json` remains the unscoped npmjs package definition.

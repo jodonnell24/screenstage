@@ -15,7 +15,7 @@
     "node": ">=22"
   },
   "bin": {
-    "screenstage": "./dist/cli.js"
+    "screenstage": "dist/cli.js"
   },
   "exports": {
     ".": {
