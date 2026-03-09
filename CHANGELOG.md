@@ -8,6 +8,12 @@ The format is based on Keep a Changelog, and this project aims to follow Semanti
 
 - Nothing unreleased yet.
 
+## [0.2.1] - 2026-03-09
+
+- Switched npmjs releases to npm trusted publishing through GitHub Actions OIDC.
+- Added a scoped GitHub Packages mirror publish so the repo can show `@jodonnell24/screenstage` in its Packages area.
+- Normalized the published CLI `bin` path metadata to match npm's preferred format.
+
 ## [0.2.0] - 2026-03-09
 
 - Added a machine-readable CLI contract for `run` and `record`, including JSON event streams, stable exit codes, manifest typing, and output/headless overrides.
