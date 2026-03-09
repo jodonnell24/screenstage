@@ -1,6 +1,6 @@
 {
   "name": "screenstage",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "TypeScript CLI for cursor-following product demo videos with Playwright and FFmpeg.",
   "repository": {
     "type": "git",
