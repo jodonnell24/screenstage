@@ -43,7 +43,6 @@
     "product-demo",
     "screen-recording"
   ],
-  "author": "",
   "license": "MIT",
   "dependencies": {
     "playwright": "^1.54.2"

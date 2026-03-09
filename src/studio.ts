@@ -87,42 +87,49 @@ function buildStudioWrapperHtml(
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Motion Studio</title>
     <style>
-      body {
-        margin: 0;
-        min-height: 100vh;
-        font-family: "Instrument Sans", "Avenir Next", system-ui, sans-serif;
-        color: #f4fbff;
-        background:
-          radial-gradient(circle at 14% 12%, rgba(122, 226, 186, 0.12), transparent 22%),
-          radial-gradient(circle at 84% 16%, rgba(116, 167, 255, 0.12), transparent 18%),
-          linear-gradient(160deg, #08111a 0%, #0f1b28 48%, #0b1420 100%);
+      :root {
+        --bg: #111;
+        --panel-bg: #1c1c1c;
+        --border: #2e2e2e;
+        --text: #e0e0e0;
+        --muted: #888;
+        --accent: #4ea87a;
+        --accent-text: #e8f6ef;
       }
 
       * {
         box-sizing: border-box;
       }
 
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Instrument Sans", "Avenir Next", system-ui, sans-serif;
+        color: var(--text);
+        background: var(--bg);
+      }
+
       .studio {
         display: grid;
         grid-template-columns: ${stageWidth}px ${panelWidth}px;
-        gap: 28px;
+        gap: 20px;
         padding: ${config.browser.studio.padding}px;
         align-items: start;
       }
 
       .stage-column {
         display: grid;
-        gap: 12px;
+        gap: 8px;
       }
 
       .stage-label {
-        height: 22px;
+        height: 20px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        color: rgba(255, 255, 255, 0.7);
-        font-size: 12px;
-        letter-spacing: 0.12em;
+        color: var(--muted);
+        font-size: 11px;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
       }
 
@@ -130,11 +137,9 @@ function buildStudioWrapperHtml(
         position: relative;
         width: ${stageWidth}px;
         height: ${stageHeight}px;
-        border-radius: 24px;
         overflow: hidden;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+        background: #000;
+        border: 1px solid var(--border);
       }
 
       .stage-shell iframe {
@@ -147,140 +152,154 @@ function buildStudioWrapperHtml(
 
       .panel {
         display: grid;
-        gap: 14px;
-        padding: 18px;
-        border-radius: 28px;
-        background: rgba(10, 19, 31, 0.9);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.24);
+        gap: 12px;
+        padding: 16px;
+        background: var(--panel-bg);
+        border: 1px solid var(--border);
       }
 
-      .eyebrow {
-        display: inline-flex;
-        align-items: center;
-        padding: 8px 10px;
-        border-radius: 999px;
-        background: rgba(122, 226, 186, 0.12);
-        color: #7ae2ba;
+      .label {
         font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.14em;
+        font-weight: 600;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
+        color: var(--muted);
       }
 
       .panel h1 {
         margin: 0;
-        font-size: 28px;
-        line-height: 0.94;
-        letter-spacing: -0.06em;
+        font-size: 15px;
+        font-weight: 600;
+        line-height: 1.3;
+        letter-spacing: 0;
+        color: var(--text);
       }
 
       .panel p {
         margin: 0;
-        color: rgba(255, 255, 255, 0.72);
-        line-height: 1.55;
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.5;
       }
 
       .status {
         display: grid;
-        gap: 4px;
-        padding: 12px 14px;
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        gap: 3px;
+        padding: 10px 12px;
+        background: #161616;
+        border: 1px solid var(--border);
       }
 
       .status span {
-        font-size: 11px;
-        letter-spacing: 0.12em;
+        font-size: 10px;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--muted);
       }
 
       .status strong {
-        font-size: 16px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
       }
 
       .button-grid {
         display: grid;
-        gap: 10px;
+        gap: 6px;
       }
 
       button {
-        border: 0;
-        border-radius: 18px;
-        padding: 13px 14px;
+        border: 1px solid var(--border);
+        border-radius: 0;
+        padding: 10px 12px;
         font: inherit;
-        font-weight: 800;
+        font-size: 13px;
+        font-weight: 600;
         cursor: pointer;
-        transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
+        background: #222;
+        color: var(--text);
+        text-align: left;
+        transition: background 100ms;
       }
 
       button:hover {
-        transform: translateY(-1px);
+        background: #2a2a2a;
       }
 
       button:active {
-        transform: translateY(1px) scale(0.99);
+        background: #1a1a1a;
       }
 
       button[data-marker] {
         display: grid;
-        gap: 4px;
-        text-align: left;
-        color: white;
-        background: rgba(255, 255, 255, 0.06);
+        gap: 2px;
       }
 
       button[data-marker] span {
         font-size: 10px;
-        letter-spacing: 0.12em;
+        font-weight: 400;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.48);
+        color: var(--muted);
       }
 
       button[data-marker="wide"] {
-        background: linear-gradient(135deg, rgba(113, 182, 255, 0.18), rgba(74, 102, 185, 0.14));
+        border-left: 3px solid #5b8fd4;
       }
 
       button[data-marker="follow"] {
-        background: linear-gradient(135deg, rgba(122, 226, 186, 0.24), rgba(54, 119, 99, 0.18));
+        border-left: 3px solid var(--accent);
       }
 
       button[data-marker="hold"] {
-        background: linear-gradient(135deg, rgba(255, 214, 132, 0.16), rgba(186, 122, 68, 0.12));
+        border-left: 3px solid #c8a44a;
       }
 
       .actions {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
+        gap: 6px;
+      }
+
+      .actions button {
+        text-align: center;
+        font-size: 12px;
       }
 
       button[data-action="focus-stage"] {
-        background: rgba(255, 255, 255, 0.08);
-        color: white;
+        background: #222;
+        color: var(--text);
       }
 
       button[data-action="cancel"] {
-        background: rgba(255, 255, 255, 0.06);
-        color: rgba(255, 255, 255, 0.8);
+        background: #222;
+        color: var(--muted);
       }
 
       button[data-action="finish"] {
-        background: linear-gradient(135deg, #7ae2ba, #4aa382);
-        color: #082118;
+        background: var(--accent);
+        color: var(--accent-text);
+        border-color: var(--accent);
+        font-weight: 700;
+      }
+
+      button[data-action="finish"]:hover {
+        background: #5bbf8a;
+        border-color: #5bbf8a;
       }
 
       .hint {
         font-size: 12px;
         line-height: 1.5;
-        color: rgba(255, 255, 255, 0.62);
+        color: var(--muted);
       }
 
       .hint code {
         font-family: ui-monospace, "SFMono-Regular", monospace;
-        color: #d7fff0;
+        color: var(--text);
+        background: #1a1a1a;
+        padding: 1px 4px;
+        border: 1px solid var(--border);
       }
     </style>
   </head>
@@ -297,8 +316,8 @@ function buildStudioWrapperHtml(
       </section>
 
       <aside class="panel">
-        <div class="eyebrow">Studio Mode</div>
-        <h1>Drive the local app without putting controls in the shot.</h1>
+        <div class="label">Studio Mode</div>
+        <h1>Controls are outside the shot.</h1>
         <p>The iframe is the only captured region. These controls stay outside the exported video.</p>
         <div class="status">
           <span>Last cue</span>
