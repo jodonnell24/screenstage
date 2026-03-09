@@ -92,6 +92,12 @@ node dist/cli.js run ./examples/quickstart/screenstage.config.mjs
 node dist/cli.js record ./examples/quickstart/screenstage.config.mjs
 ```
 
+## Sample Output
+
+[![Quickstart sample capture](./docs/assets/quickstart-sample-poster.png)](./docs/assets/quickstart-sample.mp4)
+
+See the bundled quickstart render here: [quickstart-sample.mp4](./docs/assets/quickstart-sample.mp4)
+
 Run the starter demo:
 
 ```bash
