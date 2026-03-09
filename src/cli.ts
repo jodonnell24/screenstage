@@ -1,60 +1,201 @@
 import { initProject } from "./init.js";
+import { classifyCliError, EXIT_CODES, ScreenstageError } from "./errors.js";
 import { recordMotion } from "./record.js";
+import { createHumanReporter, createJsonReporter } from "./reporter.js";
 import { runMotion } from "./run.js";
 
 function printHelp(): void {
   console.log(`screenstage
 
 Usage:
-  screenstage init [directory]
-  screenstage record <config-path>
-  screenstage run <config-path>
+  screenstage init [directory] [--yes]
+  screenstage record <config-path> [--json] [--output-dir <path>] [--headless|--visible]
+  screenstage run <config-path> [--json] [--output-dir <path>] [--headless|--visible]
 
 Commands:
   init   Run the guided config wizard or scaffold a starter project in non-interactive shells.
   record Capture a manual browser session and generate an editable demo file.
   run    Record a demo session and generate an FFmpeg follow-cam render.
+
+Options:
+  --json                Emit newline-delimited JSON events for machine consumption.
+  --output-dir <path>   Override the configured output directory for this command.
+  --headless            Force headless browser mode for this command.
+  --visible             Force visible browser mode for this command.
+  --yes                 Skip prompts for init and scaffold non-interactively.
 `);
 }
 
-async function main(): Promise<void> {
-  const command = process.argv[2];
-  const value = process.argv[3];
+type ParsedCliArgs = {
+  command?: string;
+  headless?: boolean;
+  json: boolean;
+  nonInteractive: boolean;
+  outputDir?: string;
+  value?: string;
+};
 
-  if (!command || command === "--help" || command === "-h") {
-    printHelp();
-    return;
-  }
+function parseArgs(argv: string[]): ParsedCliArgs {
+  const args = [...argv];
+  const command = args.shift();
+  let value: string | undefined;
+  let outputDir: string | undefined;
+  let json = false;
+  let headless: boolean | undefined;
+  let nonInteractive = false;
 
-  if (command === "init") {
-    await initProject(value);
-    console.log("Init complete.");
-    return;
-  }
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]!;
 
-  if (command === "run") {
-    if (!value) {
-      throw new Error("Usage: screenstage run <config-path>");
+    if (arg === "--json") {
+      json = true;
+      continue;
     }
 
-    await runMotion(value);
-    return;
-  }
-
-  if (command === "record") {
-    if (!value) {
-      throw new Error("Usage: screenstage record <config-path>");
+    if (arg === "--yes" || arg === "--non-interactive") {
+      nonInteractive = true;
+      continue;
     }
 
-    await recordMotion(value);
-    return;
+    if (arg === "--headless") {
+      headless = true;
+      continue;
+    }
+
+    if (arg === "--visible") {
+      headless = false;
+      continue;
+    }
+
+    if (arg === "--output-dir") {
+      const next = args[index + 1];
+
+      if (!next || next.startsWith("-")) {
+        throw new ScreenstageError(
+          "INVALID_ARGUMENTS",
+          "Usage: --output-dir <path>",
+        );
+      }
+
+      outputDir = next;
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith("-")) {
+      throw new ScreenstageError(
+        "INVALID_ARGUMENTS",
+        `Unsupported option '${arg}'.`,
+      );
+    }
+
+    if (!value) {
+      value = arg;
+      continue;
+    }
+
+    throw new ScreenstageError(
+      "INVALID_ARGUMENTS",
+      `Unexpected positional argument '${arg}'.`,
+    );
   }
 
-  throw new Error(`Unknown command '${command}'.`);
+  return {
+    command,
+    headless,
+    json,
+    nonInteractive,
+    outputDir,
+    value,
+  };
 }
 
-main().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(message);
-  process.exitCode = 1;
-});
+async function main(): Promise<void> {
+  const parsedArgs = parseArgs(process.argv.slice(2));
+  const reporter = parsedArgs.json ? createJsonReporter() : createHumanReporter();
+
+  try {
+    const { command, headless, json, nonInteractive, outputDir, value } = parsedArgs;
+
+    if (!command || command === "--help" || command === "-h") {
+      printHelp();
+      return;
+    }
+
+    if (command === "init") {
+      if (json || outputDir || headless !== undefined) {
+        throw new ScreenstageError(
+          "INVALID_ARGUMENTS",
+          "`init` only supports [directory] and `--yes`.",
+        );
+      }
+
+      await initProject(value, { nonInteractive });
+      console.log("Init complete.");
+      return;
+    }
+
+    if (command === "run") {
+      if (!value) {
+        throw new ScreenstageError(
+          "INVALID_ARGUMENTS",
+          "Usage: screenstage run <config-path> [--json]",
+        );
+      }
+
+      await runMotion(value, {
+        configOverrides: {
+          headless,
+          outputDir,
+        },
+        reporter,
+      });
+      return;
+    }
+
+    if (command === "record") {
+      if (!value) {
+        throw new ScreenstageError(
+          "INVALID_ARGUMENTS",
+          "Usage: screenstage record <config-path> [--json]",
+        );
+      }
+
+      await recordMotion(value, {
+        configOverrides: {
+          headless,
+          outputDir,
+        },
+        reporter,
+      });
+      return;
+    }
+
+    throw new ScreenstageError(
+      "INVALID_ARGUMENTS",
+      `Unknown command '${command}'.`,
+    );
+  } catch (error) {
+    const failure = classifyCliError(error);
+
+    if (
+      parsedArgs.json &&
+      (parsedArgs.command === "run" || parsedArgs.command === "record")
+    ) {
+      reporter.emit({
+        code: failure.code,
+        command: parsedArgs.command,
+        details: failure.details,
+        event: "command_failed",
+        exitCode: failure.exitCode,
+        message: failure.message,
+      });
+    } else {
+      process.stderr.write(`${failure.message}\n`);
+    }
+
+    process.exitCode = failure.exitCode ?? EXIT_CODES.unknown;
+  }
+}
+
+main();

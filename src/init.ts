@@ -24,6 +24,10 @@ type InitAnswers = {
   url: string;
 };
 
+export type InitProjectOptions = {
+  nonInteractive?: boolean;
+};
+
 const CONFIG_TEMPLATE = `export default {
   name: "starter-workspace",
   url: new URL("./demo-site/index.html", import.meta.url).href,
@@ -1112,8 +1116,11 @@ async function writeGuidedProject(answers: InitAnswers): Promise<void> {
   }
 }
 
-export async function initProject(directoryArg = "."): Promise<void> {
-  if (!canPrompt()) {
+export async function initProject(
+  directoryArg = ".",
+  options: InitProjectOptions = {},
+): Promise<void> {
+  if (options.nonInteractive || !canPrompt()) {
     await writeStarterProject(path.resolve(directoryArg));
     return;
   }

@@ -4,6 +4,15 @@ export {
 } from "./camera-timing.js";
 export { defineConfig } from "./config.js";
 export { defineScenes } from "./scenes.js";
+export type { LoadConfigOverrides } from "./config.js";
+export type { RecordMotionOptions, RecordMotionResult } from "./record.js";
+export type { RunMotionOptions, RunMotionResult } from "./run.js";
+export type {
+  ManifestArtifact,
+  ManifestArtifacts,
+  SessionManifest,
+  SessionManifestMode,
+} from "./session-manifest.js";
 export {
   createFeatureTour,
   createFormFillCapture,

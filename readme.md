@@ -1,66 +1,33 @@
 # Screenstage
 
-TypeScript CLI for producing polished browser-product demos from any web app.
+Screenstage is a CLI for recording polished product videos from real web apps.
 
-- record real browser interactions against any web-based UI
-- keep the cursor visible in the footage with a professional-looking overlay
-- direct the camera toward important UI moments instead of relying only on raw cursor-following
-- author demos as a sequence of named shots instead of one long imperative script
-- present the capture inside a browser-style composition shell before it reaches Motion
-- export lightweight review MP4s and edit-friendly ProRes files for Apple Motion / Final Cut Pro
+Point it at a local app, static page, or deployed URL and it will capture the browser, render a cleaner presentation shell around it, and export review-ready video artifacts like `final.mp4`, `poster.png`, and `manifest.json`.
 
-This is a Playwright + FFmpeg pipeline. It works with React apps and non-React web apps because it records the browser, not the framework.
+It has two capture workflows:
+
+- `run`: motion is preprogrammed in a demo module
+- `record`: a human drives the browser live in the headed studio workflow
+
+The output pipeline is the same either way. The difference is whether cursor and camera motion come from code or from a live session.
 
 ## What It Does
 
-- Opens a real Chromium page with Playwright.
-- Can optionally start a local dev server, wait for it to come up, and shut it down after capture.
-- Records the live session as source video.
-- Injects a cursor overlay that behaves more like a real mouse:
-  - arrow cursor by default
-  - hand cursor over interactive elements
-  - text caret over text inputs
-  - click ripple and press feedback
-- Lets your demo script control:
-  - cursor movement
-  - clicking
-  - human-looking typing
-  - camera focus / wide shots / reframing
-  - shot-by-shot scene sequencing
-- Post-processes the recording in FFmpeg into:
-  - a composed browser presentation shell with background and chrome presets
-  - `mp4` for fast review/sharing
-  - `prores` for Motion / Final Cut / other editing
-  - review artifacts like a poster frame and contact sheet
+- records real browser sessions with Playwright
+- renders polished browser demo videos with FFmpeg
+- adds a synthetic cursor overlay for cleaner footage
+- exports review artifacts like poster frames, contact sheets, markers, and manifests
+- supports scripted capture and human-headed studio capture
+- exposes a machine-readable CLI contract and a portable skill for agent use
 
-## Requirements
+## Quick Start
 
-- Node.js 22+
-- `ffmpeg` on `PATH`
-- Playwright Chromium runtime
-
-Install:
+Install dependencies:
 
 ```bash
 npm install
 npx playwright install chromium
 ```
-
-For package verification before publishing:
-
-```bash
-npm run pack:check
-```
-
-## Open Source Readiness
-
-- The project is licensed under MIT. See [LICENSE](./LICENSE).
-- Basic contribution guidelines live in [CONTRIBUTING.md](./CONTRIBUTING.md).
-- CI runs `npm run check` and `npm run build` on pushes and pull requests.
-- Release notes and publishing steps live in [RELEASING.md](./RELEASING.md).
-- The current release history lives in [CHANGELOG.md](./CHANGELOG.md).
-
-## Quick Start
 
 Build the CLI:
 
@@ -68,26 +35,29 @@ Build the CLI:
 npm run build
 ```
 
-Use it locally without publishing:
-
-```bash
-npm link
-screenstage --help
-```
-
-Scaffold a starter project:
-
-```bash
-node dist/cli.js init ./demo-project
-```
-
-If you run `init` in a terminal, it opens a short wizard and writes `screenstage.config.mjs` for you. In non-interactive shells it falls back to the old starter scaffold.
-
-If you just want to try the tool against the bundled example first:
+Try the bundled example:
 
 ```bash
 node dist/cli.js run ./examples/quickstart/screenstage.config.mjs
 node dist/cli.js record ./examples/quickstart/screenstage.config.mjs
+```
+
+## Two Workflows
+
+### Scripted Capture
+
+Use `run` when the flow should be repeatable and the motion should be authored in code.
+
+```bash
+screenstage run ./demo-project/screenstage.config.mjs
+```
+
+### Live Studio Capture
+
+Use `record` when a human should control the mouse live in the browser and Screenstage should render the same class of output artifacts from that session.
+
+```bash
+screenstage record ./demo-project/screenstage.config.mjs
 ```
 
 ## Sample Output
@@ -96,614 +66,42 @@ node dist/cli.js record ./examples/quickstart/screenstage.config.mjs
 
 See the bundled quickstart render here: [quickstart-sample.mp4](./docs/assets/quickstart-sample.mp4)
 
-Run the starter demo:
+## Agent Use
+
+Screenstage also supports machine-facing execution:
 
 ```bash
-node dist/cli.js run ./demo-project/screenstage.config.mjs
+screenstage run ./demo-project/screenstage.config.mjs --json
+screenstage record ./demo-project/screenstage.config.mjs --json
+screenstage init ./demo-project --yes
 ```
 
-Record a manual session instead of scripting the mouse:
+Useful overrides:
 
 ```bash
-node dist/cli.js record ./demo-project/screenstage.config.mjs
+screenstage run ./demo-project/screenstage.config.mjs --json --output-dir ./tmp/screenstage
+screenstage record ./demo-project/screenstage.config.mjs --json --visible
 ```
 
-Each run creates a timestamped folder inside the configured output directory with artifacts like:
+The CLI contract is documented in [docs/cli-contract.md](./docs/cli-contract.md).
+The agent integration overview is in [docs/for-agents.md](./docs/for-agents.md).
 
-- `source.webm`
-- `final.mp4`
-- `final-prores.mov`
-- `poster.png`
-- `contact-sheet.png`
-- `manifest.json`
-- `markers.json`
-- `markers.csv`
-- `markers/` stills for each exported marker when an MP4 review render exists
-- `timeline.json`
-- `recording.json` for manual record sessions
-- `generated-demo.mjs` for manual record sessions
+## Portable Skill
 
-## CLI
+This repo includes a portable Screenstage skill at [skills/screenstage/](./skills/screenstage/).
 
-```bash
-screenstage init [directory]
-screenstage record <config-path>
-screenstage run <config-path>
-```
+It is intentionally generic so it can be adapted to other skill-capable agent systems. Start with [skills/screenstage/SKILL.md](./skills/screenstage/SKILL.md).
 
-Development shortcuts:
+## Docs
 
-```bash
-npm run dev -- init ./demo-project
-npm run dev -- record ./demo-project/screenstage.config.mjs
-npm run dev -- run ./demo-project/screenstage.config.mjs
-```
+- [examples/quickstart/README.md](./examples/quickstart/README.md): bundled example
+- [docs/config-reference.md](./docs/config-reference.md): config surface, presets, setup hooks, and record mode
+- [docs/authoring.md](./docs/authoring.md): demo authoring, scenes, templates, and runtime helpers
+- [docs/cli-contract.md](./docs/cli-contract.md): JSON events, manifest shape, and exit codes
+- [docs/for-agents.md](./docs/for-agents.md): agent integration and positioning
+- [RELEASING.md](./RELEASING.md): release process
+- [CHANGELOG.md](./CHANGELOG.md): release history
 
-`init` is non-destructive. It only writes starter files that do not already exist, and in a normal terminal it now asks a few setup questions instead of making you hand-author the config.
-`record` opens a visible browser, lets you perform the flow manually, then writes an editable demo module alongside the raw capture artifacts. Manual recording defaults to the stable browser-video path now, and you can opt into higher-fidelity frame capture with `browser.capture.mode` when you specifically want it.
-Both `run` and `record` export `markers.json` and `markers.csv` so you can line capture beats up in your real edit.
-Each session also writes a `manifest.json` that summarizes the capture, output artifacts, and marker list in one place.
-For local apps and local fixtures, you can enable embedded studio mode so the controls live outside the captured app stage instead of inside the page or in a separate popup.
+## License
 
-## Config
-
-`screenstage.config.mjs` exports a default object:
-
-```js
-export default {
-  name: "starter-demo",
-  url: new URL("./demo-site/index.html", import.meta.url).href,
-  demo: "./demo/starter-demo.mjs",
-  viewport: {
-    width: 1440,
-    height: 900,
-  },
-  output: {
-    dir: "./output",
-    preset: "release-hero",
-  },
-  camera: {
-    preset: "showcase-follow",
-    zoom: 1.7,
-  },
-  composition: {
-    preset: "studio-browser",
-    device: "desktop",
-    background: {
-      preset: "soft-studio",
-    },
-    browser: {
-      domain: "app.example.com",
-      style: "polished",
-    },
-  },
-  browser: {
-    capture: {
-      mode: "video",
-    },
-    cursor: {
-      mode: "motion",
-    },
-    headless: true,
-    studio: {
-      enabled: true,
-    },
-  },
-  timing: {
-    settleMs: 900,
-  },
-};
-```
-
-### Config Notes
-
-- `url` can point to any reachable web app, including local HTML files, local dev servers, or deployed apps.
-- `output.preset` gives you sensible defaults for common delivery targets. You can still override `width`, `height`, `fps`, or `formats` manually when a preset is close but not exact.
-- `output.formats` accepts:
-  - `"mp4"` for lightweight H.264 output
-  - `"prores"` for high-quality `.mov` output that is better suited for Motion / Final Cut
-- `camera.zoom` is the default follow-cam zoom when you are not manually keyframing the camera.
-- `camera.preset` gives you a tuned baseline before any manual overrides.
-- `camera.mode` can be `"follow"` for cursor-led framing or `"static"` for a fixed full-browser shot with no mouse-follow behavior.
-- `camera.padding` keeps the target away from the crop edge.
-- `camera.smoothingMs` softens raw cursor-led camera tracking.
-- `camera.deadzonePx` prevents tiny cursor changes from nudging the camera.
-- `camera.verticalWeight` lets the follow cam react less aggressively to small vertical cursor noise.
-- `composition.preset` controls the presentation shell around the app capture.
-- `composition.device` controls whether that shell is a desktop browser or a phone frame.
-- `composition.background.colors` and `composition.background.angle` control the shell background.
-- `composition.background.preset` gives you named backdrop looks without hand-picking gradient stops.
-- `composition.browser.domain` sets the label shown in the browser address bar.
-- `composition.browser.style` changes the desktop browser chrome mood.
-- `browser.studio.enabled` wraps local targets in a same-origin studio shell so the recorder controls sit outside the captured app stage.
-- `browser.studio.controlsWidth` and `browser.studio.padding` tune that wrapper layout.
-- `browser.capture.mode` controls manual recording fidelity:
-  `video` is the stable default, `balanced` is a higher-fidelity middle tier, and `rgb-frames` is the highest-quality but heaviest option.
-- `browser.cursor.mode` controls which cursor ends up in the recording:
-  `motion` uses Screenstage's synthetic cursor, while `app` leaves the app's own cursor behavior alone.
-- `browser.cursor.hideSelectors` lets you hide custom DOM cursor layers when you want Screenstage's cursor but the app also renders its own follower elements.
-- `setup` lets you put the app into the right pre-record state before capture starts.
-
-Current camera presets:
-
-- `"showcase-follow"`: balanced default for release-style motion with calmer hover behavior
-- `"tight-follow"`: more responsive for compact UI and faster travel
-- `"lazy-follow"`: slower, calmer tracking for broad navigation or hover-heavy sequences
-- `"static"`: fixed framing with no follow-cam movement
-
-Current output presets:
-
-- `"release-hero"`: 1920x1080, 30 fps, `mp4` + `prores`
-- `"social-square"`: 1080x1080, 30 fps, `mp4`
-- `"social-vertical"`: 1080x1920, 30 fps, `mp4`
-- `"motion-edit"`: 2560x1440, 30 fps, `mp4` + `prores`
-
-Current composition presets:
-
-- `"none"`: raw full-frame render with no presentation shell
-- `"studio-browser"`: soft light background with polished browser chrome
-- `"spotlight-browser"`: darker, more cinematic presentation shell
-
-Current composition devices:
-
-- `"desktop"`: browser-window shell that now scales proportionally with the output size
-- `"phone"`: mobile-device shell for portrait exports and phone-sized viewports
-
-Shell customization example:
-
-```js
-composition: {
-  preset: "studio-browser",
-  device: "desktop",
-  background: {
-    preset: "warm-editor",
-  },
-  browser: {
-    domain: "launch.example.com",
-    style: "glass",
-  },
-}
-```
-
-Background presets:
-
-- `"soft-studio"`: airy neutral green-blue backdrop
-- `"warm-editor"`: warmer editorial paper-and-sky mix
-- `"cool-stage"`: cooler product-launch backdrop
-- `"midnight-fade"`: dark cinematic stage
-
-Browser styles:
-
-- `"polished"`: balanced default with fuller chrome and depth
-- `"minimal"`: quieter shell with less glow and ornament
-- `"glass"`: brighter, more luminous shell treatment
-
-Phone shell example:
-
-```js
-composition: {
-  preset: "studio-browser",
-  device: "phone",
-  phone: {
-    color: "#10141a",
-  },
-}
-```
-
-For local apps you can add a `serve` block:
-
-```js
-export default {
-  url: "http://127.0.0.1:3000",
-  demo: "./demo/starter-demo.mjs",
-  serve: {
-    command: "npm run dev",
-    cwd: ".",
-    readyText: "ready",
-    timeoutMs: 30000,
-  },
-};
-```
-
-`serve.command` is started before capture, the tool waits for `url` to respond, and the process is shut down when recording finishes.
-
-Camera preset example:
-
-```js
-camera: {
-  preset: "lazy-follow",
-  zoom: 1.45,
-}
-```
-
-## Setup Hooks
-
-`setup` is the pre-capture state layer. It is meant for getting a real app into the right browser state before recording starts, not for editing the final video.
-
-Declarative example:
-
-```js
-setup: {
-  route: "/docs/palette-lab",
-  query: {
-    mode: "dark",
-    panel: "tokens",
-  },
-  colorScheme: "dark",
-  localStorage: {
-    "duotone:theme": "dark",
-    "duotone:last-tab": "tokens",
-  },
-  sessionStorage: {
-    "motion:capture": "true",
-  },
-  waitFor: {
-    selector: "[data-ready='true']",
-    timeoutMs: 10000,
-  },
-},
-```
-
-Optional hook module:
-
-```js
-setup: {
-  module: "./demo/setup-app.mjs",
-},
-```
-
-Setup modules export a default async function and receive:
-
-- `config`
-- `context`
-- `page`
-- `target`
-- `sessionDir`
-- `url`
-
-`target` is the actual app surface:
-- the page itself in normal captures
-- the embedded app frame in studio mode
-
-Example:
-
-```js
-export default async function setup({ target }) {
-  await target.click("[data-demo='open-auth-bypass']");
-  await target.waitForSelector("[data-demo='dashboard']");
-}
-```
-
-Manual overrides still win, so you can start from a preset and then tune just one value:
-
-```js
-camera: {
-  preset: "showcase-follow",
-  deadzonePx: 28,
-  smoothingMs: 250,
-}
-```
-
-## Authoring Model
-
-Your demo module can export either:
-
-- a default async function for full manual control
-- a default scene array for declarative shot sequencing
-
-If you want repeatable release-style captures, the scene array is now the recommended default.
-If you want to avoid hand-building scene arrays for every launch asset, you can also generate them from the built-in templates.
-The repo ships with one public example under [examples/quickstart/README.md](./examples/quickstart/README.md) so the default test path stays easy to understand.
-
-## Manual Record Mode
-
-`record` is the non-programmatic capture path:
-
-1. Launch the target app in a visible Chromium window.
-2. Inject the polished cursor overlay and recorder controls.
-3. Perform the flow manually.
-4. Tag camera beats while you record.
-5. Finish from the controls or press `Alt+Shift+R`.
-6. Get an immediate rendered video plus an editable generated demo file.
-
-When `browser.studio.enabled` is on, the app is loaded inside a local wrapper page and only the iframe stage is recorded. That is the recommended setup for local dev tools because the controls stay outside the shot while still feeling integrated.
-
-On machines with `ffmpeg` installed, manual recordings can use one of three paths:
-- `video`: the stable default using Playwright's browser-video capture
-- `balanced`: JPEG frames plus a high-quality intermediate
-- `rgb-frames`: PNG frames plus a lossless RGB intermediate for maximum fidelity
-
-For real local apps, the current recommendation is:
-- `browser.capture.mode: "video"`
-- a larger source viewport like `1728x1080` on desktop
-- `output.preset: "motion-edit"` with both `mp4` and `prores`
-
-Built-in shot markers:
-
-- `Alt+Shift+1`: `Wide` to pull back out
-- `Alt+Shift+2`: `Punch In` to zoom in and follow the cursor
-- `Alt+Shift+3`: `Hold` to insert a camera hold in the generated demo script
-
-The recorder captures:
-
-- cursor movement samples for the rendered follow camera
-- clicks
-- typing
-- wheel scrolling
-- manual shot markers
-- inferred selectors when it can identify stable targets
-
-Manual record sessions save these extra artifacts:
-
-- `recording.json`: raw captured actions and cursor samples
-- `generated-demo.mjs`: a generated runnable demo module in the session folder
-- `*.recorded-<timestamp>.mjs`: a copy of that generated demo saved next to your configured demo file so you can edit and reuse it
-
-The generated demo file is intentionally conservative. It aims to be easy to tweak, not to perfectly recreate every millisecond of the original interaction. When you place shot markers during recording, the generator emits camera calls like `camera.zoomTo()` and `camera.zoomOut()` around the recorded interactions instead of leaving all of the cinematic timing for later.
-
-## Demo Runtime API
-
-Async demo functions receive:
-
-- `page`: the Playwright page
-- `cursor`: visible cursor controller
-- `camera`: framing controller for post-processing
-- `config`: resolved runtime config
-- `sessionDir`: output directory for the active run
-
-Manual example:
-
-```js
-export default async function demo({ camera, cursor }) {
-  await cursor.moveToSelector("[data-demo='card-1']", {
-    durationMs: 950,
-    camera: {
-      follow: true,
-      zoomFrom: 1,
-      zoomTo: 1.7,
-    },
-  });
-  await camera.wait(250);
-  await cursor.moveToSelector("[data-demo='cta']", {
-    durationMs: 800,
-    camera: {
-      follow: true,
-      zoomFrom: 1.7,
-      zoomTo: 1.9,
-    },
-  });
-  await cursor.click();
-  await camera.zoomOut({ durationMs: 700, followCursor: true });
-}
-```
-
-You can also stage the camera timing inside a single move so long travel stays wide until the approach:
-
-```js
-await cursor.moveToSelector("[data-demo='search']", {
-  durationMs: 1600,
-  camera: {
-    follow: true,
-    timingPreset: "late-arrival",
-    zoomFrom: 1,
-    zoomTo: 1.8,
-  },
-});
-```
-
-`followStart` / `followEnd` and `zoomStart` / `zoomEnd` are normalized move-progress values from `0` to `1`.
-If you want the ratios explicitly, you can still override them on top of a preset.
-
-Built-in move timing presets:
-
-- `"continuous"`: follow and zoom through the whole move
-- `"late-arrival"`: stay wide through early travel, tighten near arrival
-- `"depart-reveal"`: pull out early as the cursor departs, then travel broader
-- `"settle"`: slower handoff suited to small local corrections or hover-heavy moves
-
-## Scene API
-
-Scene programs are exported as a plain array:
-
-```js
-export default [
-  {
-    type: "wide",
-    durationMs: 400,
-    label: "Start on a broad establishing shot",
-  },
-  {
-    type: "focus-selector",
-    selector: "[data-demo='email']",
-    durationMs: 850,
-    zoom: 2,
-  },
-  {
-    type: "type-selector",
-    selector: "[data-demo='email']",
-    text: "hello@email.com",
-    durationMs: 900,
-    delayMs: 75,
-  },
-  {
-    type: "follow-cursor",
-    durationMs: 300,
-  },
-  {
-    type: "move-selector",
-    selector: "[data-demo='cta']",
-    durationMs: 850,
-    cameraFollow: true,
-    timingPreset: "late-arrival",
-    zoomFrom: 1,
-    zoomTo: 1.9,
-  },
-  {
-    type: "click",
-  },
-  {
-    type: "zoom-out",
-    durationMs: 700,
-    followCursor: true,
-  },
-  {
-    type: "wait",
-    durationMs: 800,
-    target: "camera",
-  },
-];
-```
-
-Supported scene types:
-
-- `wide`
-- `follow-cursor`
-- `focus-selector`
-- `focus-point`
-- `move-selector`
-- `move-point`
-- `zoom-to`
-- `zoom-out`
-- `click`
-- `click-selector`
-- `type`
-- `type-selector`
-- `wait`
-
-`wait.target` accepts `"cursor"`, `"camera"`, or `"both"`.
-
-## Templates
-
-The template helpers generate scene arrays for common release/demo flows:
-
-- `createFeatureTour()`: a traveling product tour that can keep the camera attached to cursor moves between distant selectors
-- `createFormFillCapture()`: a steadier form-entry flow with optional submit, suited to static or lightly directed framing
-- `createHeroWalkthrough()`: a release-style sequence that opens wide, converts in the hero area, then reveals a proof point
-
-Example:
-
-```js
-import { createHeroWalkthrough } from "screenstage";
-
-export default createHeroWalkthrough({
-  fieldSelector: "[data-demo='email']",
-  fieldText: "hello@getrestocky.com",
-  ctaSelector: "[data-demo='cta']",
-  metricSelector: "[data-demo='card-2']",
-});
-```
-
-For a more general selector tour:
-
-```js
-import { createFeatureTour } from "screenstage";
-
-export default createFeatureTour({
-  introPauseMs: 500,
-  steps: [
-    {
-      selector: "[data-demo='email']",
-      action: "type",
-      text: "hello@email.com",
-      zoom: 2,
-    },
-    {
-      selector: "[data-demo='cta']",
-      action: "click",
-      zoom: 1.8,
-    },
-    {
-      selector: "[data-demo='card-2']",
-      action: "move",
-      cameraFollow: true,
-      zoom: 1.8,
-      pauseMs: 900,
-      pauseTarget: "camera",
-    },
-  ],
-});
-```
-
-### Cursor Helpers
-
-- `cursor.move({ x, y }, options)`
-- `cursor.moveToSelector(selector, options)`
-- `cursor.click(options)`
-- `cursor.clickSelector(selector, options)`
-- `cursor.type(text, options)`
-- `cursor.typeSelector(selector, text, options)`
-- `cursor.wait(durationMs)`
-- `cursor.sample(kind)`
-
-You can also import move timing helpers directly:
-
-```js
-import { createCameraMoveTiming } from "screenstage";
-
-await cursor.moveToSelector("[data-demo='search']", {
-  durationMs: 1600,
-  camera: {
-    follow: true,
-    zoomFrom: 1,
-    zoomTo: 1.8,
-    ...createCameraMoveTiming("late-arrival", {
-      followEnd: 0.96,
-    }),
-  },
-});
-```
-
-### Camera Helpers
-
-- `camera.focus({ x, y }, options)`
-- `camera.focusSelector(selector, options)`
-- `camera.followCursor(options)`
-- `camera.wide(options)`
-- `camera.wait(durationMs)`
-- `camera.sample(kind)`
-
-If you want a traditional non-followed browser recording with the composition shell still applied, set:
-
-```js
-camera: {
-  mode: "static",
-  zoom: 1,
-}
-```
-
-## Recommended Workflow
-
-For strong release-style captures:
-
-- Use a source viewport around `1440x900` and render at `1920x1080`.
-- Use `output.preset` for repeatable delivery targets instead of hand-tuning every new config.
-- Pause deliberately with `cursor.wait()` or `camera.wait()` so the camera has time to settle.
-- Use `camera.focusSelector()` before important interactions instead of letting every shot be cursor-led.
-- Increase `camera.smoothingMs` if a cursor-led sequence still feels twitchy, or reduce it if the camera feels too lazy.
-- Switch `camera.mode` to `"static"` when you want a composed showcase clip that behaves like a normal screen recording.
-- Use `cursor.typeSelector()` for form entries so the footage reads like a real person using the app.
-- Export `prores` when the clip is headed into Motion or Final Cut for finishing.
-
-## Current Scope
-
-Implemented now:
-
-- real browser recording
-- realistic cursor overlay
-- hover-aware cursor variants
-- manual camera keyframes
-- declarative scene arrays
-- local dev-server lifecycle
-- browser-shell composition presets
-- smoother cursor-led camera tracking
-- reusable output presets
-- reusable scene templates
-- poster frame + contact sheet review artifacts
-- MP4 + ProRes rendering
-- starter scaffold
-
-Not implemented yet:
-
-- Remotion pipeline
-- transparent-alpha export
-- timeline editor / scene DSL beyond the current script API
+MIT. See [LICENSE](./LICENSE).

@@ -5,7 +5,9 @@ import type { BrowserContext, Page } from "playwright";
 import { chromium } from "playwright";
 
 import { prepareComposition } from "./composition.js";
+import type { LoadConfigOverrides } from "./config.js";
 import { loadConfig } from "./config.js";
+import { ScreenstageError } from "./errors.js";
 import {
   assembleFramesToVideo,
   buildFfmpegPlans,
@@ -26,21 +28,36 @@ import {
 } from "./manual-recorder.js";
 import { buildManualEditMarkers, writeMarkerArtifacts } from "./markers.js";
 import { buildGeneratedDemoSource } from "./record-script.js";
-import { startManagedService } from "./serve.js";
-import { artifact, writeSessionManifest } from "./session-manifest.js";
+import type { Reporter } from "./reporter.js";
+import { startManagedService, type ManagedService } from "./serve.js";
+import {
+  artifact,
+  writeSessionManifest,
+  type SessionManifest,
+} from "./session-manifest.js";
 import { applyContextSetup, applyPageEmulation, applyPageSetup, resolveCaptureUrl } from "./setup.js";
 import { startStudioSession } from "./studio.js";
 import type { CameraSample, CursorSample, Point } from "./types.js";
 import { installCursorOverlay, moveCursorOverlay } from "./cursor-overlay.js";
 
 type StorageState = Awaited<ReturnType<BrowserContext["storageState"]>>;
+type BrowserInstance = Awaited<ReturnType<typeof chromium.launch>>;
 
-type RecordMotionOptions = {
+export type RecordMotionOptions = {
   automation?: (
     page: Page,
     controls: ManualRecorderControls,
   ) => Promise<void>;
-  headless?: boolean;
+  configOverrides?: LoadConfigOverrides;
+  reporter?: Reporter;
+};
+
+export type RecordMotionResult = {
+  captureUrl: string;
+  manifest?: SessionManifest;
+  manifestPath?: string;
+  recordingPath: string;
+  sessionDir: string;
 };
 
 type ManualControllerWindow = {
@@ -50,7 +67,7 @@ type ManualControllerWindow = {
 };
 
 async function openManualRecorderController(
-  browser: ReturnType<typeof chromium.launch> extends Promise<infer T> ? T : never,
+  browser: BrowserInstance,
   controls: ManualRecorderControls,
   recordingPage: Page,
 ): Promise<ManualControllerWindow> {
@@ -586,8 +603,10 @@ function buildGeneratedDemoFilePath(
 export async function recordMotion(
   configPath: string,
   options: RecordMotionOptions = {},
-): Promise<void> {
-  const config = await loadConfig(configPath);
+): Promise<RecordMotionResult> {
+  const reporter = options.reporter;
+  const startedAt = Date.now();
+  const config = await loadConfig(configPath, options.configOverrides);
   const captureUrl = resolveCaptureUrl(config);
   const ffmpegAvailable = await commandExists("ffmpeg");
   const requestedCaptureMode = config.browser.capture.mode;
@@ -595,7 +614,7 @@ export async function recordMotion(
   const useFrameCapture = effectiveCaptureMode !== "video";
 
   if (!ffmpegAvailable && requestedCaptureMode !== "video") {
-    console.warn(
+    reporter?.log(
       `ffmpeg was not available, so record fell back to browser video capture instead of '${requestedCaptureMode}'.`,
     );
   }
@@ -615,16 +634,56 @@ export async function recordMotion(
     config.demoPath,
     sessionName,
   );
-  const managedService = await startManagedService(config);
+  let managedService: ManagedService | undefined;
   const studioSession = await startStudioSession(config, captureUrl);
   const navigationUrl = studioSession?.wrapperUrl ?? captureUrl;
+  let manifest: SessionManifest | undefined;
+  let manifestPath: string | undefined;
+
+  reporter?.emit({
+    command: "record",
+    configPath: config.configPath,
+    event: "command_started",
+    outputDir: config.output.dir,
+    sessionDir,
+  });
+
+  managedService = await startManagedService(config);
+
+  if (managedService) {
+    reporter?.emit({
+      command: "record",
+      configPath: config.configPath,
+      event: "service_started",
+      targetUrl: captureUrl,
+    });
+  }
 
   await fs.mkdir(recordingsDir, { recursive: true });
 
-  const browser = await chromium.launch({
-    channel: config.browser.channel,
-    headless: options.headless ?? false,
-    slowMo: config.browser.slowMo,
+  let browser: BrowserInstance;
+  try {
+    browser = await chromium.launch({
+      channel: config.browser.channel,
+      headless: config.browser.headless,
+      slowMo: config.browser.slowMo,
+    });
+  } catch (error) {
+    throw new ScreenstageError(
+      "BROWSER_FAILURE",
+      error instanceof Error ? error.message : String(error),
+      {
+        browserChannel: config.browser.channel,
+        headless: config.browser.headless,
+      },
+    );
+  }
+
+  reporter?.emit({
+    browserChannel: config.browser.channel ?? "chromium",
+    command: "record",
+    event: "browser_started",
+    headless: config.browser.headless,
   });
 
   let storageState: StorageState | undefined;
@@ -703,6 +762,13 @@ export async function recordMotion(
   let frameCapture: ManualFrameCapture | undefined;
 
   try {
+    reporter?.emit({
+      captureUrl,
+      command: "record",
+      event: "capture_started",
+      viewport: config.viewport,
+    });
+
     await page.goto(navigationUrl, { waitUntil: "load" });
 
     let controls: ManualRecorderControls;
@@ -844,34 +910,86 @@ export async function recordMotion(
   const recordedVideoPath = await video?.path();
 
   if (!recording) {
-    throw new Error("Manual recording did not complete.");
+    throw new ScreenstageError(
+      "CAPTURE_FAILURE",
+      "Manual recording did not complete.",
+    );
   }
 
   if (frameCapture) {
-    await assembleFramesToVideo(frameCapture.frames, sourceVideoPath, recording.durationMs);
+    try {
+      await assembleFramesToVideo(
+        frameCapture.frames,
+        sourceVideoPath,
+        recording.durationMs,
+      );
+    } catch (error) {
+      throw new ScreenstageError(
+        "RENDER_FAILURE",
+        error instanceof Error ? error.message : String(error),
+        {
+          artifact: "source-video",
+          outputPath: sourceVideoPath,
+        },
+      );
+    }
   } else {
     if (!recordedVideoPath) {
-      throw new Error("Playwright did not produce a source video.");
+      throw new ScreenstageError(
+        "CAPTURE_FAILURE",
+        "Playwright did not produce a source video.",
+      );
     }
 
     await fs.rename(recordedVideoPath, fallbackVideoPath);
   }
   await fs.writeFile(recordingPath, JSON.stringify(recording, null, 2), "utf8");
+  reporter?.emit({
+    command: "record",
+    event: "capture_completed",
+    recordingPath,
+    sourceVideoPath: frameCapture ? sourceVideoPath : fallbackVideoPath,
+  });
 
   if (recording.cancelled) {
-    console.log(`Recording cancelled. Raw capture saved to ${recordingPath}`);
-    return;
+    reporter?.log(`Recording cancelled. Raw capture saved to ${recordingPath}`);
+    reporter?.emit({
+      command: "record",
+      durationMs: Date.now() - startedAt,
+      event: "command_completed",
+      recordingPath,
+      sessionDir,
+      status: "cancelled",
+    });
+    return {
+      captureUrl,
+      recordingPath,
+      sessionDir,
+    };
   }
 
   const renderSourcePath =
     useFrameCapture && frameCapture
       ? sourceVideoPath
       : studioSession
-        ? (await cropVideoSource(
-            fallbackVideoPath,
-            croppedSourceVideoPath,
-            studioSession.captureRegion,
-          ),
+        ? ((await (async () => {
+            try {
+              await cropVideoSource(
+                fallbackVideoPath,
+                croppedSourceVideoPath,
+                studioSession.captureRegion,
+              );
+            } catch (error) {
+              throw new ScreenstageError(
+                "RENDER_FAILURE",
+                error instanceof Error ? error.message : String(error),
+                {
+                  artifact: "cropped-source-video",
+                  outputPath: croppedSourceVideoPath,
+                },
+              );
+            }
+          })()),
           croppedSourceVideoPath)
         : fallbackVideoPath;
 
@@ -902,8 +1020,6 @@ export async function recordMotion(
     config.output.fps,
     editMarkers,
   );
-  let manifestPath: string | undefined;
-
   await fs.writeFile(
     path.join(sessionDir, "timeline.json"),
     JSON.stringify(
@@ -935,12 +1051,32 @@ export async function recordMotion(
     "utf8",
   );
 
-  console.log(`Generated editable demo: ${editableGeneratedDemoPath}`);
+  reporter?.log(`Generated editable demo: ${editableGeneratedDemoPath}`);
 
   if (ffmpegAvailable) {
+    reporter?.emit({
+      command: "record",
+      event: "render_started",
+      plannedOutputs: ffmpegPlans.map((plan) => ({
+        format: plan.format,
+        outputPath: plan.outputPath,
+      })),
+    });
+
     for (const plan of ffmpegPlans) {
-      await renderWithFfmpeg(plan);
-      console.log(`Rendered ${plan.format} video: ${plan.outputPath}`);
+      try {
+        await renderWithFfmpeg(plan);
+      } catch (error) {
+        throw new ScreenstageError(
+          "RENDER_FAILURE",
+          error instanceof Error ? error.message : String(error),
+          {
+            format: plan.format,
+            outputPath: plan.outputPath,
+          },
+        );
+      }
+      reporter?.log(`Rendered ${plan.format} video: ${plan.outputPath}`);
     }
 
     const reviewSourcePath =
@@ -955,18 +1091,51 @@ export async function recordMotion(
       posterPath = path.join(sessionDir, "poster.png");
       contactSheetPath = path.join(sessionDir, "contact-sheet.png");
 
-      await renderPosterFrame(reviewSourcePath, posterPath, durationSeconds);
-      console.log(`Rendered poster frame: ${posterPath}`);
+      try {
+        await renderPosterFrame(reviewSourcePath, posterPath, durationSeconds);
+      } catch (error) {
+        throw new ScreenstageError(
+          "RENDER_FAILURE",
+          error instanceof Error ? error.message : String(error),
+          {
+            artifact: "poster",
+            outputPath: posterPath,
+          },
+        );
+      }
+      reporter?.log(`Rendered poster frame: ${posterPath}`);
 
-      await renderContactSheet(reviewSourcePath, contactSheetPath, durationSeconds);
-      console.log(`Rendered contact sheet: ${contactSheetPath}`);
+      try {
+        await renderContactSheet(reviewSourcePath, contactSheetPath, durationSeconds);
+      } catch (error) {
+        throw new ScreenstageError(
+          "RENDER_FAILURE",
+          error instanceof Error ? error.message : String(error),
+          {
+            artifact: "contact-sheet",
+            outputPath: contactSheetPath,
+          },
+        );
+      }
+      reporter?.log(`Rendered contact sheet: ${contactSheetPath}`);
 
-      markerStillPaths = await renderMarkerStills(
-        reviewSourcePath,
-        path.join(sessionDir, "markers"),
-        editMarkers,
-        durationSeconds,
-      );
+      try {
+        markerStillPaths = await renderMarkerStills(
+          reviewSourcePath,
+          path.join(sessionDir, "markers"),
+          editMarkers,
+          durationSeconds,
+        );
+      } catch (error) {
+        throw new ScreenstageError(
+          "RENDER_FAILURE",
+          error instanceof Error ? error.message : String(error),
+          {
+            artifact: "marker-stills",
+            outputDir: path.join(sessionDir, "markers"),
+          },
+        );
+      }
     }
 
     manifestPath = await writeSessionManifest({
@@ -1007,6 +1176,7 @@ export async function recordMotion(
       mode: "manual-record",
       sessionDir,
     });
+    manifest = JSON.parse(await fs.readFile(manifestPath, "utf8")) as SessionManifest;
 
     await fs.writeFile(
       path.join(sessionDir, "timeline.json"),
@@ -1039,11 +1209,36 @@ export async function recordMotion(
       "utf8",
     );
 
-    if (manifestPath) {
-      console.log(`Wrote session manifest: ${manifestPath}`);
-    }
+    reporter?.emit({
+      artifacts: manifest.artifacts,
+      command: "record",
+      event: "artifacts_written",
+      manifestPath,
+      sessionDir,
+    });
+    reporter?.emit({
+      command: "record",
+      durationMs: Date.now() - startedAt,
+      event: "render_completed",
+      manifestPath,
+    });
+    reporter?.log(`Wrote session manifest: ${manifestPath}`);
+    reporter?.emit({
+      command: "record",
+      durationMs: Date.now() - startedAt,
+      event: "command_completed",
+      manifestPath,
+      sessionDir,
+      status: "success",
+    });
 
-    return;
+    return {
+      captureUrl,
+      manifest,
+      manifestPath,
+      recordingPath,
+      sessionDir,
+    };
   }
 
   manifestPath = await writeSessionManifest({
@@ -1070,6 +1265,7 @@ export async function recordMotion(
     mode: "manual-record",
     sessionDir,
   });
+  manifest = JSON.parse(await fs.readFile(manifestPath, "utf8")) as SessionManifest;
 
   await fs.writeFile(
     path.join(sessionDir, "timeline.json"),
@@ -1102,11 +1298,36 @@ export async function recordMotion(
     "utf8",
   );
 
-  console.log("ffmpeg was not found on PATH. Generated plan only.");
-  console.log(`Source video: ${renderSourcePath}`);
+  reporter?.emit({
+    artifacts: manifest.artifacts,
+    command: "record",
+    event: "artifacts_written",
+    manifestPath,
+    sessionDir,
+  });
+  reporter?.log("ffmpeg was not found on PATH. Generated plan only.");
+  reporter?.log(`Source video: ${renderSourcePath}`);
 
   for (const plan of ffmpegPlans) {
-    console.log(`Planned ${plan.format} output: ${plan.outputPath}`);
-    console.log(`Run manually: ffmpeg ${plan.args.join(" ")}`);
+    reporter?.log(`Planned ${plan.format} output: ${plan.outputPath}`);
+    reporter?.log(`Run manually: ffmpeg ${plan.args.join(" ")}`);
   }
+
+  reporter?.emit({
+    command: "record",
+    durationMs: Date.now() - startedAt,
+    event: "command_completed",
+    manifestPath,
+    sessionDir,
+    status: "partial",
+    warning: "ffmpeg_missing",
+  });
+
+  return {
+    captureUrl,
+    manifest,
+    manifestPath,
+    recordingPath,
+    sessionDir,
+  };
 }
