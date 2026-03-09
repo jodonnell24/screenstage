@@ -13,6 +13,13 @@ If you want to avoid hand-building scene arrays for every launch asset, you can 
 
 The repo ships with one public example under [../examples/quickstart/README.md](../examples/quickstart/README.md).
 
+Treat authoring choices as framing decisions:
+
+- scene arrays are good when you want explicit structure and deliberate beats
+- freeform demo functions are good when you want custom motion and interaction logic
+- more camera follow and zoom create emphasis
+- less camera follow and lower zoom preserve more context
+
 ## Demo Runtime API
 
 Async demo functions receive:
@@ -65,10 +72,10 @@ await cursor.moveToSelector("[data-demo='search']", {
 
 Built-in move timing presets:
 
-- `"continuous"`
-- `"late-arrival"`
-- `"depart-reveal"`
-- `"settle"`
+- `"continuous"`: follow and zoom through the whole move
+- `"late-arrival"`: stay broader early, then tighten near arrival
+- `"depart-reveal"`: widen earlier as the cursor departs, then travel broader
+- `"settle"`: slower handoff suited to smaller local corrections or hover-heavy beats
 
 ## Scene API
 
@@ -145,9 +152,9 @@ Supported scene types:
 
 Template helpers generate scene arrays for common flows:
 
-- `createFeatureTour()`
-- `createFormFillCapture()`
-- `createHeroWalkthrough()`
+- `createFeatureTour()`: guided multi-step product tours with travel between selectors
+- `createFormFillCapture()`: steadier form-entry and submit flows
+- `createHeroWalkthrough()`: a more presentation-led landing-page or hero sequence
 
 ### Hero Walkthrough Example
 
@@ -240,16 +247,16 @@ camera: {
 }
 ```
 
-## Recommended Workflow
+## Framing Guidance
 
-For strong release-style captures:
+Use these as tradeoffs, not defaults:
 
-- use a source viewport around `1440x900` and render at `1920x1080`
+- use a source viewport around `1440x900` and render at `1920x1080` when you want a normal desktop capture baseline
 - use `output.preset` for repeatable delivery targets instead of hand-tuning every config
 - pause deliberately with `cursor.wait()` or `camera.wait()` so the camera has time to settle
-- use `camera.focusSelector()` before important interactions instead of letting every shot be cursor-led
-- increase `camera.smoothingMs` if a cursor-led sequence still feels twitchy, or reduce it if the camera feels too lazy
-- switch `camera.mode` to `"static"` when you want a composed showcase clip that behaves like a normal screen recording
+- use `camera.focusSelector()` when a specific interaction deserves emphasis
+- increase `camera.smoothingMs` if cursor-led motion feels too twitchy, or reduce it if it feels too slow
+- switch `camera.mode` to `"static"` when the goal is full-page readability rather than cursor-led motion
 - use `cursor.typeSelector()` for form entries so the footage reads like a real person using the app
 - export `prores` when the clip is headed into Motion or Final Cut for finishing
 

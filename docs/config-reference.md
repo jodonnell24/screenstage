@@ -73,13 +73,25 @@ export default {
 - `browser.cursor.hideSelectors` lets you hide custom DOM cursor layers when you want Screenstage's cursor but the app also renders its own follower elements.
 - `setup` lets you put the app into the right pre-record state before capture starts.
 
+## How To Choose Camera Settings
+
+Camera options control taste and emphasis, not correctness.
+
+Use them based on what the viewer needs:
+
+- more context: lower zoom, calmer preset, or `camera.mode: "static"`
+- more emphasis: higher zoom and cursor-led follow behavior
+- balanced motion: a follow preset with moderate zoom
+
+The preset names are descriptive, not normative. They are not ranked from best to worst.
+
 ## Presets
 
 ### Camera Presets
 
-- `"showcase-follow"`: balanced default for release-style motion with calmer hover behavior
-- `"tight-follow"`: more responsive for compact UI and faster travel
-- `"lazy-follow"`: slower, calmer tracking for broad navigation or hover-heavy sequences
+- `"showcase-follow"`: moderate cursor-led framing for guided demos where you want motion without making every move feel aggressive
+- `"tight-follow"`: faster, tighter framing for compact UI, small controls, and interaction-heavy beats
+- `"lazy-follow"`: slower, broader tracking for flows where page context should stay visible longer
 - `"static"`: fixed framing with no follow-cam movement
 
 ### Output Presets
@@ -112,6 +124,15 @@ export default {
 - `"polished"`: balanced default with fuller chrome and depth
 - `"minimal"`: quieter shell with less glow and ornament
 - `"glass"`: brighter, more luminous shell treatment
+
+## Common Intent Mapping
+
+These are guidance patterns, not hard rules.
+
+- product walkthrough with lots of page context: `camera.mode: "static"` or a calmer follow preset
+- cinematic feature emphasis: follow preset plus a higher zoom
+- dashboard or broad navigation: `lazy-follow` or `static`
+- form fill or CTA focus: `showcase-follow` or `tight-follow`
 
 ## Examples
 
@@ -257,11 +278,7 @@ On machines with `ffmpeg` installed, manual recordings can use one of three path
 - `balanced`: JPEG frames plus a high-quality intermediate
 - `rgb-frames`: PNG frames plus a lossless RGB intermediate for maximum fidelity
 
-For real local apps, the current recommendation is:
-
-- `browser.capture.mode: "video"`
-- a larger source viewport like `1728x1080` on desktop
-- `output.preset: "motion-edit"` with both `mp4` and `prores`
+Choose among those based on fidelity and runtime tradeoffs, not because one is universally correct.
 
 Built-in shot markers:
 
