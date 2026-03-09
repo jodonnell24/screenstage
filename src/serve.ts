@@ -7,7 +7,7 @@ import type { LoadedMotionConfig } from "./types.js";
 
 const execFileAsync = promisify(execFile);
 
-type ManagedService = {
+export type ManagedService = {
   stop: () => Promise<void>;
 };
 

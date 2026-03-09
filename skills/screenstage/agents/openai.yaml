@@ -1,0 +1,4 @@
+interface:
+  display_name: "Screenstage"
+  short_description: "Capture polished browser demo videos"
+  default_prompt: "Use $screenstage to capture a polished demo video for this web app."

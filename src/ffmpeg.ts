@@ -528,8 +528,14 @@ function getFormatOutputPath(
 
 function renderFfmpegArgs(args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn("ffmpeg", args, {
-      stdio: "inherit",
+    const child = spawn("ffmpeg", [
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-nostats",
+      ...args,
+    ], {
+      stdio: ["ignore", "ignore", "inherit"],
     });
 
     child.once("error", (error) => reject(error));

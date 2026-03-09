@@ -249,6 +249,11 @@ function resolveBrowserDomain(url: string): string | undefined {
   }
 }
 
+export type LoadConfigOverrides = {
+  headless?: boolean;
+  outputDir?: string;
+};
+
 function normalizeSetupQuery(
   value: Record<string, SetupQueryValue> | undefined,
 ): Record<string, SetupQueryValue> {
@@ -261,7 +266,10 @@ function normalizeSetupQuery(
   ) as Record<string, SetupQueryValue>;
 }
 
-export async function loadConfig(configPath: string): Promise<LoadedMotionConfig> {
+export async function loadConfig(
+  configPath: string,
+  overrides: LoadConfigOverrides = {},
+): Promise<LoadedMotionConfig> {
   const absoluteConfigPath = path.resolve(configPath);
   const configModule = await import(pathToFileURL(absoluteConfigPath).href);
   const config = asMotionConfig(configModule);
@@ -397,7 +405,8 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
         mode: browserCursorMode,
       },
       channel: config.browser?.channel,
-      headless: config.browser?.headless ?? DEFAULTS.browser.headless,
+      headless:
+        overrides.headless ?? config.browser?.headless ?? DEFAULTS.browser.headless,
       slowMo: config.browser?.slowMo ?? DEFAULTS.browser.slowMo,
       studio: {
         controlsWidth:
@@ -535,7 +544,9 @@ export async function loadConfig(configPath: string): Promise<LoadedMotionConfig
           }
         : undefined,
     output: {
-      dir: path.resolve(configDir, config.output?.dir ?? "output"),
+      dir: overrides.outputDir
+        ? path.resolve(overrides.outputDir)
+        : path.resolve(configDir, config.output?.dir ?? "output"),
       fps: config.output?.fps ?? presetOutput.fps,
       formats,
       height: config.output?.height ?? presetOutput.height,

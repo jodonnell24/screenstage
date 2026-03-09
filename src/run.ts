@@ -6,8 +6,10 @@ import { chromium } from "playwright";
 
 import { DemoCameraController } from "./camera-controller.js";
 import { prepareComposition } from "./composition.js";
+import type { LoadConfigOverrides } from "./config.js";
 import { loadConfig, loadDemoModule } from "./config.js";
 import { DemoCursorController } from "./cursor-controller.js";
+import { ScreenstageError } from "./errors.js";
 import { installCursorOverlay, moveCursorOverlay } from "./cursor-overlay.js";
 import {
   buildFfmpegPlans,
@@ -18,9 +20,14 @@ import {
   renderWithFfmpeg,
 } from "./ffmpeg.js";
 import { writeMarkerArtifacts } from "./markers.js";
+import type { Reporter } from "./reporter.js";
 import { runScenes } from "./scenes.js";
-import { startManagedService } from "./serve.js";
-import { artifact, writeSessionManifest } from "./session-manifest.js";
+import { startManagedService, type ManagedService } from "./serve.js";
+import {
+  artifact,
+  writeSessionManifest,
+  type SessionManifest,
+} from "./session-manifest.js";
 import {
   applyContextSetup,
   applyPageEmulation,
@@ -29,28 +36,86 @@ import {
 } from "./setup.js";
 
 type StorageState = Awaited<ReturnType<BrowserContext["storageState"]>>;
+type BrowserInstance = Awaited<ReturnType<typeof chromium.launch>>;
+
+export type RunMotionOptions = {
+  configOverrides?: LoadConfigOverrides;
+  reporter?: Reporter;
+};
+
+export type RunMotionResult = {
+  captureUrl: string;
+  manifest: SessionManifest;
+  manifestPath: string;
+  sessionDir: string;
+};
 
 function stamp(): string {
   return new Date().toISOString().replaceAll(":", "-");
 }
 
-export async function runMotion(configPath: string): Promise<void> {
-  const config = await loadConfig(configPath);
+export async function runMotion(
+  configPath: string,
+  options: RunMotionOptions = {},
+): Promise<RunMotionResult> {
+  const reporter = options.reporter;
+  const startedAt = Date.now();
+  const config = await loadConfig(configPath, options.configOverrides);
   const demoModule = await loadDemoModule(config.demoPath);
   const captureUrl = resolveCaptureUrl(config);
   const sessionName = `${config.name}-${stamp()}`;
   const sessionDir = path.join(config.output.dir, sessionName);
   const recordingsDir = path.join(sessionDir, "recordings");
   const sourceVideoPath = path.join(sessionDir, "source.webm");
-  const managedService = await startManagedService(config);
+  let managedService: ManagedService | undefined;
+  let manifest: SessionManifest | undefined;
+  let manifestPath: string | undefined;
+
+  reporter?.emit({
+    command: "run",
+    configPath: config.configPath,
+    event: "command_started",
+    outputDir: config.output.dir,
+    sessionDir,
+  });
+
+  managedService = await startManagedService(config);
+
+  if (managedService) {
+    reporter?.emit({
+      command: "run",
+      configPath: config.configPath,
+      event: "service_started",
+      targetUrl: captureUrl,
+    });
+  }
 
   await fs.mkdir(recordingsDir, { recursive: true });
   const compositionLayout = await prepareComposition(sessionDir, config);
 
-  const browser = await chromium.launch({
-    channel: config.browser.channel,
+  let browser: BrowserInstance;
+  try {
+    browser = await chromium.launch({
+      channel: config.browser.channel,
+      headless: config.browser.headless,
+      slowMo: config.browser.slowMo,
+    });
+  } catch (error) {
+    throw new ScreenstageError(
+      "BROWSER_FAILURE",
+      error instanceof Error ? error.message : String(error),
+      {
+        browserChannel: config.browser.channel,
+        headless: config.browser.headless,
+      },
+    );
+  }
+
+  reporter?.emit({
+    browserChannel: config.browser.channel ?? "chromium",
+    command: "run",
+    event: "browser_started",
     headless: config.browser.headless,
-    slowMo: config.browser.slowMo,
   });
 
   let storageState: StorageState | undefined;
@@ -128,6 +193,13 @@ export async function runMotion(configPath: string): Promise<void> {
     | undefined;
 
   try {
+    reporter?.emit({
+      captureUrl,
+      command: "run",
+      event: "capture_started",
+      viewport: config.viewport,
+    });
+
     if (config.browser.cursor.mode === "motion") {
       await installCursorOverlay(page, {
         hideSelectors: config.browser.cursor.hideSelectors,
@@ -164,10 +236,18 @@ export async function runMotion(configPath: string): Promise<void> {
   const recordedVideoPath = await video?.path();
 
   if (!recordedVideoPath) {
-    throw new Error("Playwright did not produce a source video.");
+    throw new ScreenstageError(
+      "CAPTURE_FAILURE",
+      "Playwright did not produce a source video.",
+    );
   }
 
   await fs.rename(recordedVideoPath, sourceVideoPath);
+  reporter?.emit({
+    command: "run",
+    event: "capture_completed",
+    sourceVideoPath,
+  });
 
   const ffmpegPlans = buildFfmpegPlans(
     sourceVideoPath,
@@ -186,7 +266,6 @@ export async function runMotion(configPath: string): Promise<void> {
     config.output.fps,
     editMarkers,
   );
-  let manifestPath: string | undefined;
 
   await fs.writeFile(
     path.join(sessionDir, "timeline.json"),
@@ -211,9 +290,29 @@ export async function runMotion(configPath: string): Promise<void> {
   );
 
   if (await commandExists("ffmpeg")) {
+    reporter?.emit({
+      command: "run",
+      event: "render_started",
+      plannedOutputs: ffmpegPlans.map((plan) => ({
+        format: plan.format,
+        outputPath: plan.outputPath,
+      })),
+    });
+
     for (const plan of ffmpegPlans) {
-      await renderWithFfmpeg(plan);
-      console.log(`Rendered ${plan.format} video: ${plan.outputPath}`);
+      try {
+        await renderWithFfmpeg(plan);
+      } catch (error) {
+        throw new ScreenstageError(
+          "RENDER_FAILURE",
+          error instanceof Error ? error.message : String(error),
+          {
+            format: plan.format,
+            outputPath: plan.outputPath,
+          },
+        );
+      }
+      reporter?.log(`Rendered ${plan.format} video: ${plan.outputPath}`);
     }
 
     const reviewSourcePath =
@@ -228,18 +327,51 @@ export async function runMotion(configPath: string): Promise<void> {
       posterPath = path.join(sessionDir, "poster.png");
       contactSheetPath = path.join(sessionDir, "contact-sheet.png");
 
-      await renderPosterFrame(reviewSourcePath, posterPath, durationSeconds);
-      console.log(`Rendered poster frame: ${posterPath}`);
+      try {
+        await renderPosterFrame(reviewSourcePath, posterPath, durationSeconds);
+      } catch (error) {
+        throw new ScreenstageError(
+          "RENDER_FAILURE",
+          error instanceof Error ? error.message : String(error),
+          {
+            artifact: "poster",
+            outputPath: posterPath,
+          },
+        );
+      }
+      reporter?.log(`Rendered poster frame: ${posterPath}`);
 
-      await renderContactSheet(reviewSourcePath, contactSheetPath, durationSeconds);
-      console.log(`Rendered contact sheet: ${contactSheetPath}`);
+      try {
+        await renderContactSheet(reviewSourcePath, contactSheetPath, durationSeconds);
+      } catch (error) {
+        throw new ScreenstageError(
+          "RENDER_FAILURE",
+          error instanceof Error ? error.message : String(error),
+          {
+            artifact: "contact-sheet",
+            outputPath: contactSheetPath,
+          },
+        );
+      }
+      reporter?.log(`Rendered contact sheet: ${contactSheetPath}`);
 
-      markerStillPaths = await renderMarkerStills(
-        reviewSourcePath,
-        path.join(sessionDir, "markers"),
-        editMarkers,
-        durationSeconds,
-      );
+      try {
+        markerStillPaths = await renderMarkerStills(
+          reviewSourcePath,
+          path.join(sessionDir, "markers"),
+          editMarkers,
+          durationSeconds,
+        );
+      } catch (error) {
+        throw new ScreenstageError(
+          "RENDER_FAILURE",
+          error instanceof Error ? error.message : String(error),
+          {
+            artifact: "marker-stills",
+            outputDir: path.join(sessionDir, "markers"),
+          },
+        );
+      }
     }
 
     manifestPath = await writeSessionManifest({
@@ -273,6 +405,7 @@ export async function runMotion(configPath: string): Promise<void> {
       mode: "run",
       sessionDir,
     });
+    manifest = JSON.parse(await fs.readFile(manifestPath, "utf8")) as SessionManifest;
 
     await fs.writeFile(
       path.join(sessionDir, "timeline.json"),
@@ -296,11 +429,36 @@ export async function runMotion(configPath: string): Promise<void> {
       "utf8",
     );
 
-    if (manifestPath) {
-      console.log(`Wrote session manifest: ${manifestPath}`);
-    }
+    reporter?.emit({
+      artifacts: manifest.artifacts,
+      command: "run",
+      event: "artifacts_written",
+      manifestPath,
+      sessionDir,
+    });
+    reporter?.emit({
+      command: "run",
+      durationMs: Date.now() - startedAt,
+      event: "render_completed",
+      manifestPath,
+    });
+    reporter?.log(`Wrote session manifest: ${manifestPath}`);
 
-    return;
+    const result = {
+      captureUrl,
+      manifest,
+      manifestPath,
+      sessionDir,
+    };
+    reporter?.emit({
+      command: "run",
+      durationMs: Date.now() - startedAt,
+      event: "command_completed",
+      manifestPath,
+      sessionDir,
+      status: "success",
+    });
+    return result;
   }
 
   manifestPath = await writeSessionManifest({
@@ -320,6 +478,7 @@ export async function runMotion(configPath: string): Promise<void> {
     mode: "run",
     sessionDir,
   });
+  manifest = JSON.parse(await fs.readFile(manifestPath, "utf8")) as SessionManifest;
 
   await fs.writeFile(
     path.join(sessionDir, "timeline.json"),
@@ -343,11 +502,35 @@ export async function runMotion(configPath: string): Promise<void> {
     "utf8",
   );
 
-  console.log("ffmpeg was not found on PATH. Generated plan only.");
-  console.log(`Source video: ${sourceVideoPath}`);
+  reporter?.emit({
+    artifacts: manifest.artifacts,
+    command: "run",
+    event: "artifacts_written",
+    manifestPath,
+    sessionDir,
+  });
+  reporter?.log("ffmpeg was not found on PATH. Generated plan only.");
+  reporter?.log(`Source video: ${sourceVideoPath}`);
 
   for (const plan of ffmpegPlans) {
-    console.log(`Planned ${plan.format} output: ${plan.outputPath}`);
-    console.log(`Run manually: ffmpeg ${plan.args.join(" ")}`);
+    reporter?.log(`Planned ${plan.format} output: ${plan.outputPath}`);
+    reporter?.log(`Run manually: ffmpeg ${plan.args.join(" ")}`);
   }
+
+  reporter?.emit({
+    command: "run",
+    durationMs: Date.now() - startedAt,
+    event: "command_completed",
+    manifestPath,
+    sessionDir,
+    status: "partial",
+    warning: "ffmpeg_missing",
+  });
+
+  return {
+    captureUrl,
+    manifest,
+    manifestPath,
+    sessionDir,
+  };
 }
