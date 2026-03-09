@@ -132,3 +132,30 @@ Good starting points:
 - `studio-browser` for a polished browser-shell presentation
 
 Avoid hand-tuning widths, heights, and camera parameters unless the preset is clearly wrong for the task.
+
+## 8. Camera Choice Guidance
+
+Treat camera options as tradeoffs, not quality rankings.
+
+Use more cursor-led follow behavior when:
+
+- the user wants a cinematic, guided product demo
+- the action happens in small UI regions
+- the point is to emphasize specific controls or form fields
+
+Use calmer or more static framing when:
+
+- the user needs more page context
+- the app layout matters as much as the interaction
+- the flow includes broad navigation, dashboards, or large page sections
+
+Useful controls:
+
+- `camera.mode: "follow"`: cursor-led reframing
+- `camera.mode: "static"`: fixed framing
+- lower `camera.zoom`: more context
+- higher `camera.zoom`: more emphasis
+- calmer presets like `lazy-follow`: slower reframing
+- tighter presets like `tight-follow`: more aggressive reframing
+
+If the user did not specify taste and the choice will materially change how understandable the video is, ask or make the smallest reasonable assumption instead of treating a preset name as a universal best practice.

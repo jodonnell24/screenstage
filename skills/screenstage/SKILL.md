@@ -130,9 +130,20 @@ When a run fails, inspect:
 
 For common fixes, read [troubleshooting.md](./references/troubleshooting.md).
 
-## Good Defaults
+## Choosing Visual Style
 
-Prefer these defaults unless the task suggests otherwise:
+Do not assume the user wants either maximum follow-cam motion or maximum static readability by default.
+
+Choose based on what the video is for:
+
+- use more follow-cam motion when the point is to emphasize a specific interaction, field, CTA, or compact workflow beat
+- use calmer or wider framing when the point is to preserve page context, layout understanding, or broader navigation
+- use `camera.mode: "static"` when the user wants a composed screen recording feel rather than cursor-led reframing
+- use camera presets and zoom values as style controls, not as mandatory defaults
+
+If the user clearly wants one style, follow that direction. If the intent is ambiguous and the framing choice materially affects clarity, ask for clarification or make the smallest reasonable assumption and keep the choice easy to revise.
+
+Operational defaults that are still safe:
 
 - `run` over `record` for repeatable feature demos
 - `record` when the user explicitly wants to drive the browser live in studio mode
@@ -140,5 +151,3 @@ Prefer these defaults unless the task suggests otherwise:
 - `--output-dir` to keep artifacts isolated from user-owned folders during iteration
 - `--headless` for automated runs
 - the manifest over ad hoc file guessing
-
-When the user asks for a polished clip but does not specify styling, keep the existing Screenstage presets rather than inventing a custom visual treatment.
