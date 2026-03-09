@@ -5,7 +5,7 @@ This repo is set up to be published as the `screenstage` npm package on npmjs.or
 ## Before The First Public Release
 
 1. Confirm the npm package name is still available.
-2. Create an npm automation token and store it as `NPM_TOKEN` in GitHub Actions secrets.
+2. Configure npm trusted publishing for this repo and its `release.yml` workflow.
 3. Make sure the public repo metadata in `package.json` matches the live GitHub repo.
 
 ## Local Release Checklist
@@ -56,7 +56,7 @@ It will:
 1. install dependencies
 2. run `npm run check`
 3. run `npm run build`
-4. run `npm publish --access public`
+4. publish to npmjs.org through npm trusted publishing
 5. publish a scoped mirror to GitHub Packages as `@<owner>/screenstage`
 
 If you prefer release notes first, create the GitHub release from the pushed tag after CI passes.
@@ -71,3 +71,15 @@ Mirror package shape:
 - GitHub Packages: `@<owner>/screenstage`
 
 The workflow rewrites the package name only inside CI before the GitHub Packages publish step. The source `package.json` remains the unscoped npmjs package definition.
+
+## Authentication Model
+
+This repo now uses two different publish auth paths:
+
+- npmjs.org publish: npm trusted publishing through GitHub Actions OIDC
+- GitHub Packages mirror: the built-in `GITHUB_TOKEN` with `packages: write`
+
+That means:
+
+- no `NPM_TOKEN` repository secret is required for npmjs releases
+- no manually-added `GITHUB_TOKEN` secret is required for GitHub Packages
