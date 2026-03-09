@@ -10,13 +10,13 @@ It gives you one calm, basic workspace page with enough interaction to test both
 Try the scripted pass:
 
 ```bash
-node dist/cli.js run ./examples/quickstart/motion.config.mjs
+node dist/cli.js run ./examples/quickstart/screenstage.config.mjs
 ```
 
 Try the manual recorder:
 
 ```bash
-node dist/cli.js record ./examples/quickstart/motion.config.mjs
+node dist/cli.js record ./examples/quickstart/screenstage.config.mjs
 ```
 
 Outputs are written under `./output/`.

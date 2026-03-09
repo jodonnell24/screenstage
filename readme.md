@@ -83,25 +83,25 @@ Scaffold a starter project:
 node dist/cli.js init ./demo-project
 ```
 
-If you run `init` in a terminal, it opens a short wizard and writes `motion.config.mjs` for you. In non-interactive shells it falls back to the old starter scaffold.
+If you run `init` in a terminal, it opens a short wizard and writes `screenstage.config.mjs` for you. In non-interactive shells it falls back to the old starter scaffold.
 
 If you just want to try the tool against the bundled example first:
 
 ```bash
-node dist/cli.js run ./examples/quickstart/motion.config.mjs
-node dist/cli.js record ./examples/quickstart/motion.config.mjs
+node dist/cli.js run ./examples/quickstart/screenstage.config.mjs
+node dist/cli.js record ./examples/quickstart/screenstage.config.mjs
 ```
 
 Run the starter demo:
 
 ```bash
-node dist/cli.js run ./demo-project/motion.config.mjs
+node dist/cli.js run ./demo-project/screenstage.config.mjs
 ```
 
 Record a manual session instead of scripting the mouse:
 
 ```bash
-node dist/cli.js record ./demo-project/motion.config.mjs
+node dist/cli.js record ./demo-project/screenstage.config.mjs
 ```
 
 Each run creates a timestamped folder inside the configured output directory with artifacts like:
@@ -131,8 +131,8 @@ Development shortcuts:
 
 ```bash
 npm run dev -- init ./demo-project
-npm run dev -- record ./demo-project/motion.config.mjs
-npm run dev -- run ./demo-project/motion.config.mjs
+npm run dev -- record ./demo-project/screenstage.config.mjs
+npm run dev -- run ./demo-project/screenstage.config.mjs
 ```
 
 `init` is non-destructive. It only writes starter files that do not already exist, and in a normal terminal it now asks a few setup questions instead of making you hand-author the config.
@@ -143,7 +143,7 @@ For local apps and local fixtures, you can enable embedded studio mode so the co
 
 ## Config
 
-`motion.config.mjs` exports a default object:
+`screenstage.config.mjs` exports a default object:
 
 ```js
 export default {
