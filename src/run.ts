@@ -13,12 +13,14 @@ import {
   buildFfmpegPlans,
   commandExists,
   renderContactSheet,
+  renderMarkerStills,
   renderPosterFrame,
   renderWithFfmpeg,
 } from "./ffmpeg.js";
 import { writeMarkerArtifacts } from "./markers.js";
 import { runScenes } from "./scenes.js";
 import { startManagedService } from "./serve.js";
+import { artifact, writeSessionManifest } from "./session-manifest.js";
 import {
   applyContextSetup,
   applyPageEmulation,
@@ -180,6 +182,7 @@ export async function runMotion(configPath: string): Promise<void> {
     config.output.fps,
     editMarkers,
   );
+  let manifestPath: string | undefined;
 
   await fs.writeFile(
     path.join(sessionDir, "timeline.json"),
@@ -195,6 +198,7 @@ export async function runMotion(configPath: string): Promise<void> {
         markers: editMarkers,
         scenes: Array.isArray(demoModule.default) ? demoModule.default : undefined,
         samples: cursor.samples,
+        manifestPath,
       },
       null,
       2,
@@ -212,20 +216,128 @@ export async function runMotion(configPath: string): Promise<void> {
       ffmpegPlans.find((plan) => plan.format === "mp4")?.outputPath ??
       ffmpegPlans[0]?.outputPath;
     const durationSeconds = ffmpegPlans[0]?.durationSeconds ?? 0;
+    let posterPath: string | undefined;
+    let contactSheetPath: string | undefined;
+    let markerStillPaths: string[] = [];
 
     if (reviewSourcePath && durationSeconds > 0) {
-      const posterPath = path.join(sessionDir, "poster.png");
-      const contactSheetPath = path.join(sessionDir, "contact-sheet.png");
+      posterPath = path.join(sessionDir, "poster.png");
+      contactSheetPath = path.join(sessionDir, "contact-sheet.png");
 
       await renderPosterFrame(reviewSourcePath, posterPath, durationSeconds);
       console.log(`Rendered poster frame: ${posterPath}`);
 
       await renderContactSheet(reviewSourcePath, contactSheetPath, durationSeconds);
       console.log(`Rendered contact sheet: ${contactSheetPath}`);
+
+      markerStillPaths = await renderMarkerStills(
+        reviewSourcePath,
+        path.join(sessionDir, "markers"),
+        editMarkers,
+        durationSeconds,
+      );
+    }
+
+    manifestPath = await writeSessionManifest({
+      artifacts: {
+        composition: compositionLayout.assetPath
+          ? artifact(sessionDir, compositionLayout.assetPath, "composition-shell")
+          : undefined,
+        contactSheet: contactSheetPath
+          ? artifact(sessionDir, contactSheetPath, "contact-sheet")
+          : undefined,
+        finalRenders: ffmpegPlans.map((plan) =>
+          artifact(
+            sessionDir,
+            plan.outputPath,
+            plan.format === "prores" ? "final-prores" : "final-mp4",
+          ),
+        ),
+        markerCsv: artifact(sessionDir, markerArtifacts.csvPath, "markers-csv"),
+        markerJson: artifact(sessionDir, markerArtifacts.jsonPath, "markers-json"),
+        markerStills: markerStillPaths.map((stillPath) =>
+          artifact(sessionDir, stillPath, "marker-still"),
+        ),
+        poster: posterPath ? artifact(sessionDir, posterPath, "poster") : undefined,
+        source: artifact(sessionDir, sourceVideoPath, "source-video"),
+        timeline: artifact(sessionDir, path.join(sessionDir, "timeline.json"), "timeline"),
+      },
+      captureUrl,
+      config,
+      durationSeconds,
+      markers: editMarkers,
+      mode: "run",
+      sessionDir,
+    });
+
+    await fs.writeFile(
+      path.join(sessionDir, "timeline.json"),
+      JSON.stringify(
+        {
+          config,
+          captureUrl,
+          demoProgramType: Array.isArray(demoModule.default) ? "scenes" : "function",
+          ffmpegPlans,
+          cameraSamples: camera.samples,
+          compositionLayout,
+          manifestPath,
+          markerArtifacts,
+          markers: editMarkers,
+          scenes: Array.isArray(demoModule.default) ? demoModule.default : undefined,
+          samples: cursor.samples,
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    if (manifestPath) {
+      console.log(`Wrote session manifest: ${manifestPath}`);
     }
 
     return;
   }
+
+  manifestPath = await writeSessionManifest({
+    artifacts: {
+      composition: compositionLayout.assetPath
+        ? artifact(sessionDir, compositionLayout.assetPath, "composition-shell")
+        : undefined,
+      markerCsv: artifact(sessionDir, markerArtifacts.csvPath, "markers-csv"),
+      markerJson: artifact(sessionDir, markerArtifacts.jsonPath, "markers-json"),
+      source: artifact(sessionDir, sourceVideoPath, "source-video"),
+      timeline: artifact(sessionDir, path.join(sessionDir, "timeline.json"), "timeline"),
+    },
+    captureUrl,
+    config,
+    durationSeconds: ffmpegPlans[0]?.durationSeconds,
+    markers: editMarkers,
+    mode: "run",
+    sessionDir,
+  });
+
+  await fs.writeFile(
+    path.join(sessionDir, "timeline.json"),
+    JSON.stringify(
+      {
+        config,
+        captureUrl,
+        demoProgramType: Array.isArray(demoModule.default) ? "scenes" : "function",
+        ffmpegPlans,
+        cameraSamples: camera.samples,
+        compositionLayout,
+        manifestPath,
+        markerArtifacts,
+        markers: editMarkers,
+        scenes: Array.isArray(demoModule.default) ? demoModule.default : undefined,
+        samples: cursor.samples,
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
 
   console.log("ffmpeg was not found on PATH. Generated plan only.");
   console.log(`Source video: ${sourceVideoPath}`);

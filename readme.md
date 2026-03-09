@@ -91,8 +91,10 @@ Each run creates a timestamped folder inside the configured output directory wit
 - `final-prores.mov`
 - `poster.png`
 - `contact-sheet.png`
+- `manifest.json`
 - `markers.json`
 - `markers.csv`
+- `markers/` stills for each exported marker when an MP4 review render exists
 - `timeline.json`
 - `recording.json` for manual record sessions
 - `generated-demo.mjs` for manual record sessions
@@ -116,6 +118,7 @@ npm run dev -- run ./demo-project/motion.config.mjs
 `init` is non-destructive. It only writes starter files that do not already exist, and in a normal terminal it now asks a few setup questions instead of making you hand-author the config.
 `record` opens a visible browser, lets you perform the flow manually, then writes an editable demo module alongside the raw capture artifacts. Manual recording defaults to the stable browser-video path now, and you can opt into higher-fidelity frame capture with `browser.capture.mode` when you specifically want it.
 Both `run` and `record` export `markers.json` and `markers.csv` so you can line capture beats up in your real edit.
+Each session also writes a `manifest.json` that summarizes the capture, output artifacts, and marker list in one place.
 For local apps and local fixtures, you can enable embedded studio mode so the controls live outside the captured app stage instead of inside the page or in a separate popup.
 
 ## Config

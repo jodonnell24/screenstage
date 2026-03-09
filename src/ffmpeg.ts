@@ -12,6 +12,7 @@ import type {
   OutputFormat,
 } from "./types.js";
 import type { CapturedFrame } from "./frame-capture.js";
+import type { EditMarker } from "./markers.js";
 
 type NumericPoint = {
   timeMs: number;
@@ -788,6 +789,27 @@ export async function renderPosterFrame(
   ]);
 }
 
+export async function renderStillFrameAtTime(
+  sourcePath: string,
+  outputPath: string,
+  timeSeconds: number,
+): Promise<void> {
+  const safeTimeSeconds = Number(Math.max(timeSeconds, 0).toFixed(3));
+
+  await renderFfmpegArgs([
+    "-y",
+    "-ss",
+    String(safeTimeSeconds),
+    "-i",
+    sourcePath,
+    "-update",
+    "1",
+    "-frames:v",
+    "1",
+    outputPath,
+  ]);
+}
+
 export async function renderContactSheet(
   sourcePath: string,
   outputPath: string,
@@ -814,4 +836,43 @@ export async function renderContactSheet(
     filter,
     outputPath,
   ]);
+}
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64) || "marker";
+}
+
+export async function renderMarkerStills(
+  sourcePath: string,
+  outputDir: string,
+  markers: EditMarker[],
+  durationSeconds: number,
+): Promise<string[]> {
+  if (markers.length === 0) {
+    return [];
+  }
+
+  await fs.mkdir(outputDir, { recursive: true });
+  const paths: string[] = [];
+  const maxTimestamp = Math.max(durationSeconds - 1 / 30, 0);
+  const limitedMarkers =
+    markers.length <= 24
+      ? markers
+      : markers.filter((_, index) => index % Math.ceil(markers.length / 24) === 0).slice(0, 24);
+
+  for (const [index, marker] of limitedMarkers.entries()) {
+    const timeSeconds = clamp(marker.timeMs / 1000, 0, maxTimestamp);
+    const outputPath = path.join(
+      outputDir,
+      `${String(index + 1).padStart(2, "0")}-${slugify(marker.label)}.png`,
+    );
+    await renderStillFrameAtTime(sourcePath, outputPath, timeSeconds);
+    paths.push(outputPath);
+  }
+
+  return paths;
 }
