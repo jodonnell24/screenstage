@@ -4,12 +4,9 @@ This repo is set up to be published as the `screenstage` npm package.
 
 ## Before The First Public Release
 
-1. Confirm the public repository URL and add it to `package.json`:
-   - `repository`
-   - `homepage`
-   - `bugs`
-2. Confirm the npm package name is available.
-3. Create an npm automation token and store it as `NPM_TOKEN` in GitHub Actions secrets.
+1. Confirm the npm package name is still available.
+2. Create an npm automation token and store it as `NPM_TOKEN` in GitHub Actions secrets.
+3. Make sure the public repo metadata in `package.json` matches the live GitHub repo.
 
 ## Local Release Checklist
 
@@ -39,6 +36,12 @@ npm run pack:check
 
 ```bash
 git push --follow-tags
+```
+
+6. Publish manually if you want to ship before using GitHub Actions:
+
+```bash
+npm publish --access public
 ```
 
 ## GitHub Release Workflow

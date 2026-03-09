@@ -4,11 +4,11 @@
   "description": "TypeScript CLI for cursor-following product demo videos with Playwright and FFmpeg.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jodonnell24/motions.git"
+    "url": "git+https://github.com/jodonnell24/screenstage.git"
   },
-  "homepage": "https://github.com/jodonnell24/motions#readme",
+  "homepage": "https://github.com/jodonnell24/screenstage#readme",
   "bugs": {
-    "url": "https://github.com/jodonnell24/motions/issues"
+    "url": "https://github.com/jodonnell24/screenstage/issues"
   },
   "type": "module",
   "engines": {
