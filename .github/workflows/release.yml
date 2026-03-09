@@ -20,7 +20,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.14.0
           cache: npm
           registry-url: https://registry.npmjs.org
 
@@ -36,13 +36,24 @@ jobs:
       - name: Verify package contents
         run: npm run pack:check
 
+      - name: Show bundled npm version
+        run: npm -v
+
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@latest
+
+      - name: Show trusted publishing toolchain versions
+        run: |
+          node -v
+          npm -v
+
       - name: Publish to npm
         run: npm publish --access public
 
       - name: Set up Node.js for GitHub Packages
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.14.0
           registry-url: https://npm.pkg.github.com
           scope: "@${{ github.repository_owner }}"
 
