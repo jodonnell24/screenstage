@@ -1,4 +1,4 @@
-# Motion Creator
+# Screenstage
 
 TypeScript CLI for producing polished browser-product demos from any web app.
 
@@ -74,7 +74,7 @@ Use it locally without publishing:
 
 ```bash
 npm link
-motion-creator --help
+screenstage --help
 ```
 
 Scaffold a starter project:
@@ -122,9 +122,9 @@ Each run creates a timestamped folder inside the configured output directory wit
 ## CLI
 
 ```bash
-motion-creator init [directory]
-motion-creator record <config-path>
-motion-creator run <config-path>
+screenstage init [directory]
+screenstage record <config-path>
+screenstage run <config-path>
 ```
 
 Development shortcuts:
@@ -216,8 +216,8 @@ export default {
 - `browser.capture.mode` controls manual recording fidelity:
   `video` is the stable default, `balanced` is a higher-fidelity middle tier, and `rgb-frames` is the highest-quality but heaviest option.
 - `browser.cursor.mode` controls which cursor ends up in the recording:
-  `motion` uses Motion Creator's synthetic cursor, while `app` leaves the app's own cursor behavior alone.
-- `browser.cursor.hideSelectors` lets you hide custom DOM cursor layers when you want Motion Creator's cursor but the app also renders its own follower elements.
+  `motion` uses Screenstage's synthetic cursor, while `app` leaves the app's own cursor behavior alone.
+- `browser.cursor.hideSelectors` lets you hide custom DOM cursor layers when you want Screenstage's cursor but the app also renders its own follower elements.
 - `setup` lets you put the app into the right pre-record state before capture starts.
 
 Current camera presets:
@@ -579,7 +579,7 @@ The template helpers generate scene arrays for common release/demo flows:
 Example:
 
 ```js
-import { createHeroWalkthrough } from "motion-creator";
+import { createHeroWalkthrough } from "screenstage";
 
 export default createHeroWalkthrough({
   fieldSelector: "[data-demo='email']",
@@ -592,7 +592,7 @@ export default createHeroWalkthrough({
 For a more general selector tour:
 
 ```js
-import { createFeatureTour } from "motion-creator";
+import { createFeatureTour } from "screenstage";
 
 export default createFeatureTour({
   introPauseMs: 500,
@@ -634,7 +634,7 @@ export default createFeatureTour({
 You can also import move timing helpers directly:
 
 ```js
-import { createCameraMoveTiming } from "motion-creator";
+import { createCameraMoveTiming } from "screenstage";
 
 await cursor.moveToSelector("[data-demo='search']", {
   durationMs: 1600,

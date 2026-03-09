@@ -1,6 +1,6 @@
 # Quickstart Example
 
-This is the single bundled example for trying Motion Creator.
+This is the single bundled example for trying Screenstage.
 
 It gives you one calm, basic workspace page with enough interaction to test both:
 

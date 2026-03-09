@@ -14,7 +14,7 @@ npm run build
 - Keep changes focused and small enough to review.
 - Prefer TypeScript changes in `src/` and let `dist/` be rebuilt from source.
 - Update `readme.md` when the config surface, CLI behavior, or output artifacts change.
-- For runtime or render changes, run at least one real `motion-creator run` smoke test before opening a PR.
+- For runtime or render changes, run at least one real `screenstage run` smoke test before opening a PR.
 
 ## Pull Requests
 

@@ -1,6 +1,6 @@
 # Releasing
 
-This repo is set up to be published as the `motion-creator` npm package.
+This repo is set up to be published as the `screenstage` npm package.
 
 ## Before The First Public Release
 

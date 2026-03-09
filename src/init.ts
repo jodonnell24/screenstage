@@ -126,7 +126,7 @@ const HTML_TEMPLATE = `<!doctype html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Motion Creator Starter</title>
+    <title>Screenstage Starter</title>
     <style>
       /* bg: #f3efe8; surface: #ffffff; accent: #4ea87a; text: #181818 / #686868 */
       :root {

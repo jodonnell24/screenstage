@@ -1,5 +1,5 @@
 {
-  "name": "motion-creator",
+  "name": "screenstage",
   "version": "0.1.0",
   "description": "TypeScript CLI for cursor-following product demo videos with Playwright and FFmpeg.",
   "type": "module",
@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "bin": {
-    "motion-creator": "./dist/cli.js"
+    "screenstage": "./dist/cli.js"
   },
   "exports": {
     ".": {

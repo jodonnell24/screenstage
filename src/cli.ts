@@ -3,12 +3,12 @@ import { recordMotion } from "./record.js";
 import { runMotion } from "./run.js";
 
 function printHelp(): void {
-  console.log(`motion-creator
+  console.log(`screenstage
 
 Usage:
-  motion-creator init [directory]
-  motion-creator record <config-path>
-  motion-creator run <config-path>
+  screenstage init [directory]
+  screenstage record <config-path>
+  screenstage run <config-path>
 
 Commands:
   init   Run the guided config wizard or scaffold a starter project in non-interactive shells.
@@ -34,7 +34,7 @@ async function main(): Promise<void> {
 
   if (command === "run") {
     if (!value) {
-      throw new Error("Usage: motion-creator run <config-path>");
+      throw new Error("Usage: screenstage run <config-path>");
     }
 
     await runMotion(value);
@@ -43,7 +43,7 @@ async function main(): Promise<void> {
 
   if (command === "record") {
     if (!value) {
-      throw new Error("Usage: motion-creator record <config-path>");
+      throw new Error("Usage: screenstage record <config-path>");
     }
 
     await recordMotion(value);
