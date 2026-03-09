@@ -2,8 +2,6 @@
 
 TypeScript CLI for producing polished browser-product demos from any web app.
 
-It is designed for the workflow you described:
-
 - record real browser interactions against any web-based UI
 - keep the cursor visible in the footage with a professional-looking overlay
 - direct the camera toward important UI moments instead of relying only on raw cursor-following
@@ -32,7 +30,7 @@ This is a Playwright + FFmpeg pipeline. It works with React apps and non-React w
 - Post-processes the recording in FFmpeg into:
   - a composed browser presentation shell with background and chrome presets
   - `mp4` for fast review/sharing
-  - `prores` for Motion / Final Cut editing
+  - `prores` for Motion / Final Cut / other editing
   - review artifacts like a poster frame and contact sheet
 
 ## Requirements
@@ -523,7 +521,7 @@ export default [
   {
     type: "type-selector",
     selector: "[data-demo='email']",
-    text: "hello@getrestocky.com",
+    text: "hello@email.com",
     durationMs: 900,
     delayMs: 75,
   },
@@ -606,7 +604,7 @@ export default createFeatureTour({
     {
       selector: "[data-demo='email']",
       action: "type",
-      text: "hello@getrestocky.com",
+      text: "hello@email.com",
       zoom: 2,
     },
     {
